@@ -11,6 +11,8 @@ node_modules
 dist
 dist-ssr
 *.local
+.vite
+.pnpm-store
 
 # Editor directories and files
 .vscode/*
@@ -32,3 +34,6 @@ mysql-data
 meili-data
 redis-data
 /.husky/_/
+
+# Docker Compose local env
+.env
