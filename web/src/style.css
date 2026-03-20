@@ -1,0 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap');
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue',
+    'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
+  overflow-x: hidden;
+}
+
+#app {
+  width: 100%;
+  min-height: 100%;
+}
+
+a {
+  color: inherit;
+}
+
+.firacode {
+  font-family: 'Fira Code', monospace;
+}
