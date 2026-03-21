@@ -1,35 +1,35 @@
-<script setup>
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
 import TiLayout from "../layouts/TiLayout.vue";
+import { problemsetApi, type ProblemsetSummary } from "../api/problemset";
 
-const problems = [
-  { id: 1001, title: "NOIP 2007 普及组初赛试题" },
-  { id: 1002, title: "NOIP 2007 提高组初赛试题" },
-  { id: 1003, title: "NOIP 2008 普及组初赛试题" },
-  { id: 1004, title: "NOIP 2008 提高组初赛试题" },
-  { id: 1005, title: "NOIP 2009 普及组初赛试题" },
-  { id: 1006, title: "NOIP 2009 提高组初赛试题" },
-  { id: 1007, title: "NOIP 2010 普及组初赛试题" },
-  { id: 1008, title: "NOIP 2010 提高组初赛试题" },
-  { id: 1009, title: "NOIP 2011 普及组初赛试题" },
-  { id: 1010, title: "NOIP 2011 提高组初赛试题" },
-  { id: 1011, title: "NOIP 2012 普及组初赛试题" },
-  { id: 1012, title: "NOIP 2012 提高组初赛试题" },
-  { id: 1013, title: "NOIP 2013 普及组初赛试题" }
-];
+const loading = ref(true);
+const problems = ref<ProblemsetSummary[]>([]);
+
+onMounted(async () => {
+  problems.value = await problemsetApi.list();
+  loading.value = false;
+});
 </script>
 
 <template>
   <TiLayout title="题库" subtitle="洛谷有题 / 试题列表">
-    <div class="list">
-      <a v-for="p in problems" :key="p.id" class="row" href="#">
+    <div v-if="loading" class="loading">加载中...</div>
+    <div v-else class="list">
+      <router-link v-for="p in problems" :key="p.id" class="row" :to="`/problemset/${p.id}`">
         <div class="id">{{ p.id }}</div>
         <div class="title">{{ p.title }}</div>
-      </a>
+      </router-link>
     </div>
   </TiLayout>
 </template>
 
 <style scoped>
+.loading {
+  padding: 20px 26px;
+  color: #777;
+}
+
 .list {
   display: flex;
   flex-direction: column;
@@ -37,14 +37,14 @@ const problems = [
 
 .row {
   display: grid;
-  grid-template-columns: 116px 1fr;
+  grid-template-columns: 96px 1fr;
   align-items: center;
-  gap: 8px;
-  min-height: 66px;
-  padding: 0 26px;
+  gap: 12px;
+  min-height: 64px;
+  padding: 0 20px;
   text-decoration: none;
   color: inherit;
-  border-top: 1px solid #ededed;
+  border-top: 1px solid #efefef;
   transition: background-color 140ms ease;
 }
 
@@ -62,19 +62,15 @@ const problems = [
 
 .id {
   color: #1c1c1c;
-  font-size: 39px;
-  transform: scale(0.46);
-  transform-origin: left center;
-  margin-left: -3px;
+  font-size: 20px;
+  margin-left: 0;
   font-weight: 700;
 }
 
 .title {
   color: #0c67f3;
-  font-size: 40px;
-  transform: scale(0.46);
-  transform-origin: left center;
-  margin-left: -16px;
+  font-size: 16px;
+  margin-left: 0;
   font-weight: 500;
 }
 
@@ -87,9 +83,9 @@ const problems = [
 
   .id,
   .title {
-    transform: none;
+    font-size: 15px;
     margin-left: 0;
-    font-size: 16px;
   }
 }
 </style>
+

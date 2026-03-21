@@ -1,9 +1,9 @@
-<script setup>
+<script setup lang="ts">
 import { computed } from "vue";
 
 const SITE_START_DATE = "2025-01-01";
 
-const siteDays = computed(() => {
+const siteDays = computed<number>(() => {
   const start = new Date(`${SITE_START_DATE}T00:00:00`);
   const now = new Date();
   const diff = Math.max(0, now.getTime() - start.getTime());
@@ -13,55 +13,71 @@ const siteDays = computed(() => {
 
 <template>
   <footer class="footer">
-    <div class="ui grid">
-      <div class="eight wide column firacode">
+    <div class="ui-grid">
+      <div class="column firacode">
         <p>
-          <i class="fa fa-copyright"></i> 2025-2026 洛谷保存站 (<a href="https://www.luogu.me" target="_blank" class="footer-link">www.luogu.me</a>)
+          <i class="fa fa-copyright"></i>
+          <span>2025-2026 洛谷保存站（</span>
+          <a href="https://www.luogu.me" target="_blank" rel="noreferrer" class="footer-link">www.luogu.me</a>
+          <span>）</span>
+        </p>
+        <p class="group">
+          <a href="https://github.com/laikit-dev/luogu-saver" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fab fa-github"></i>
+            <span>GitHub</span>
+          </a>
+          <a href="https://help.luogu.me" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fa fa-book"></i>
+            <span>帮助文档</span>
+          </a>
+          <a href="https://help.luogu.me/docs/update" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fa fa-history"></i>
+            <span>更新日志</span>
+          </a>
         </p>
         <p>
-          <a href="https://github.com/laikit-dev/luogu-saver" target="_blank" class="footer-link" style="margin-right: 15px;">
-            <i class="fab fa-github"></i> GitHub
-          </a>
-          <a href="https://help.luogu.me" target="_blank" class="footer-link">
-            <i class="fa fa-book"></i> 帮助文档
-          </a>
-          <a href="https://help.luogu.me/docs/update" target="_blank" class="footer-link">
-            <i class="fa fa-history"></i> 更新日志
-          </a>
+          <i class="fa fa-clock"></i>
+          <span>本网站已运行</span>
+          <span id="site-days">{{ siteDays }}</span>
+          <span>天</span>
         </p>
         <p>
-          <i class="fa fa-clock"></i> 本网站已运行 <span id="site-days">{{ siteDays }}</span> 天
-        </p>
-        <p>
-          <a href="https://github.com/laikit-dev/luogu-saver/graphs/contributors" target="_blank" class="footer-link">
-            <i class="fas fa-users"></i> 项目贡献者
+          <a href="https://github.com/laikit-dev/luogu-saver/graphs/contributors" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fas fa-users"></i>
+            <span>项目贡献者</span>
           </a>
         </p>
       </div>
-      <div class="right floated six wide column firacode">
-        <p>
-          <i class="fa fa-code"></i> 开发者：Federico2903 &amp; Murasame &amp; quanac-lcx
-        </p>
-        <p>
-          <a href="https://help.luogu.me/docs/license/privacy" class="footer-link" style="margin-right: 15px;">
-            <i class="fa fa-user-shield"></i> 隐私协议
-          </a>
-          <a href="https://help.luogu.me/docs/license/disclaimer" class="footer-link" style="margin-right: 15px;">
-            <i class="fa fa-exclamation-circle"></i> 免责声明
-          </a>
-          <a href="https://help.luogu.me/docs/license/deletion" class="footer-link">
-            <i class="fa fa-trash-alt"></i> 数据移除政策
-          </a>
-        </p>
 
+      <div class="column right firacode">
         <p>
-          <a href="https://qm.qq.com/q/QVM9YFEb26" target="_blank" class="footer-link" style="margin-right: 15px;">
-          <i class="fab fa-qq"></i>&nbsp;洛谷保存站用户群：1017248143（点击加入）
+          <i class="fa fa-code"></i>
+          <span>开发者：Federico2903 &amp; Murasame &amp; quanac-lcx</span>
+        </p>
+        <p class="group">
+          <a href="https://help.luogu.me/docs/license/privacy" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fa fa-user-shield"></i>
+            <span>隐私协议</span>
+          </a>
+          <a href="https://help.luogu.me/docs/license/disclaimer" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fa fa-exclamation-circle"></i>
+            <span>免责声明</span>
+          </a>
+          <a href="https://help.luogu.me/docs/license/deletion" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fa fa-trash-alt"></i>
+            <span>数据移除政策</span>
           </a>
         </p>
         <p>
-          <a href="https://www.rainyun.com/MjUxMDAy_?s=saver" target="_blank" class="footer-link" style="margin-right: 15px;">
-          <i class="fa fa-server"></i>&nbsp;由 雨云 提供支持
+          <a href="https://qm.qq.com/q/QVM9YFEb26" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fab fa-qq"></i>
+            <span>洛谷保存站用户群：1017248143（点击加入）</span>
+          </a>
+        </p>
+        <p>
+          <a href="https://www.rainyun.com/MjUxMDAy_?s=saver" target="_blank" rel="noreferrer" class="footer-link">
+            <i class="fa fa-server"></i>
+            <span>由 雨云 提供支持</span>
           </a>
         </p>
       </div>
@@ -73,16 +89,15 @@ const siteDays = computed(() => {
 .footer {
   margin: 18px auto 0;
   max-width: 1040px;
-  padding: 18px 6px 0;
+  padding: 18px 8px 0;
   border-top: 1px solid #d9d9d9;
   color: #1f1f1f;
 }
 
-.ui.grid {
+.ui-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px 48px;
-  margin: 0;
 }
 
 .column {
@@ -90,7 +105,7 @@ const siteDays = computed(() => {
 }
 
 .firacode {
-  font-family: "Fira Code", monospace;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
 }
 
 .column p {
@@ -102,32 +117,36 @@ const siteDays = computed(() => {
   font-size: 14px;
 }
 
-.column i {
+.column p > i {
   display: inline-block;
-  width: 20px;
+  width: 18px;
   text-align: center;
   opacity: 0.9;
   flex-shrink: 0;
+}
+
+.group {
+  gap: 16px;
 }
 
 .footer-link {
   text-decoration: none;
   color: #1f1f1f;
   transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .footer-link:hover {
-  color: #337ab7;
-  text-decoration-line: underline;
-  text-decoration-color: #000;
-  text-underline-position: under;
+  color: #1e66f5;
 }
 
-.right.floated {
+.right {
   text-align: right;
 }
 
-.right.floated p {
+.right p {
   justify-content: flex-end;
 }
 
@@ -137,18 +156,18 @@ const siteDays = computed(() => {
 }
 
 @media (max-width: 860px) {
-  .ui.grid {
+  .ui-grid {
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  
-  .right.floated {
+
+  .right {
     text-align: left;
-    float: none !important;
   }
-  
-  .right.floated p {
+
+  .right p {
     justify-content: flex-start;
   }
 }
 </style>
+

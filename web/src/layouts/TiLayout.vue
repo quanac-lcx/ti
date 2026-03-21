@@ -1,89 +1,117 @@
-<script setup>
-import { RouterLink } from "vue-router";
-import { ref, computed } from "vue";
+<script setup lang="ts">
+import { ref } from "vue";
+import { RouterLink, useRoute } from "vue-router";
 import TiFooter from "../components/TiFooter.vue";
 
-const props = defineProps({
-  title: { type: String, default: "" },
-  subtitle: { type: String, default: "" }
+interface LayoutProps {
+  title?: string;
+  subtitle?: string;
+  showTopBar?: boolean;
+  showTitle?: boolean;
+  usePanel?: boolean;
+}
+
+interface NavItem {
+  to: string;
+  iconClass: string;
+  label: string;
+  title: string;
+}
+
+const props = withDefaults(defineProps<LayoutProps>(), {
+  title: "",
+  subtitle: "",
+  showTopBar: true,
+  showTitle: true,
+  usePanel: true
 });
 
+const route = useRoute();
 const sidebarCollapsed = ref(true);
 const manualToggle = ref(false);
 
-const handleMouseEnter = () => {
+const handleMouseEnter = (): void => {
   if (sidebarCollapsed.value && !manualToggle.value) {
     sidebarCollapsed.value = false;
   }
 };
 
-const handleMouseLeave = () => {
+const handleMouseLeave = (): void => {
   if (!sidebarCollapsed.value && !manualToggle.value) {
     sidebarCollapsed.value = true;
   }
 };
 
-const handleManualCollapse = () => {
+const handleManualCollapse = (): void => {
   manualToggle.value = true;
   sidebarCollapsed.value = true;
 };
 
-const handleManualExpand = () => {
+const handleManualExpand = (): void => {
   manualToggle.value = true;
   sidebarCollapsed.value = false;
 };
 
-const navItems = [
-  { to: "/problemset", icon: "📚", label: "题库", title: "题库" },
-  { to: "/", icon: "🏠", label: "主站", title: "返回主站" }
+const navItems: NavItem[] = [
+  { to: "/problemset", iconClass: "fa-solid fa-book", label: "题库", title: "题库" },
+  { to: "/", iconClass: "fa-solid fa-house", label: "主站", title: "返回主站" }
 ];
 </script>
 
 <template>
   <div class="ti">
-    <aside 
-      class="side" 
+    <aside
+      class="side"
       :class="{ collapsed: sidebarCollapsed }"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
       <div class="brand">
-        <div class="logo">⌁</div>
+        <div class="logo">
+          <img src="https://cdn.luogu.com.cn/youti-fe/logo-single.png?98632e1daed253842bc0846d56f869e3" alt="洛谷保存站" />
+        </div>
         <div class="brand-text" v-show="!sidebarCollapsed">洛谷保存站</div>
       </div>
 
       <nav class="nav">
-        <RouterLink 
-          v-for="item in navItems" 
-          :key="item.to" 
-          :to="item.to" 
-          :title="item.title" 
+        <RouterLink
+          v-for="item in navItems"
+          :key="item.to"
+          :to="item.to"
+          :title="item.title"
           class="nav-item"
-          :class="{ active: $route.path === item.to }"
+          :class="{ active: route.path === item.to }"
         >
-          <div class="icon">{{ item.icon }}</div>
+          <div class="icon"><i :class="item.iconClass"></i></div>
           <div class="text" v-show="!sidebarCollapsed">{{ item.label }}</div>
         </RouterLink>
       </nav>
 
-      <div class="nav-toggle" @click="sidebarCollapsed ? handleManualExpand() : handleManualCollapse()">
-        <div class="toggle-icon">{{ sidebarCollapsed ? '→' : '←' }}</div>
-      </div>
+      <button
+        type="button"
+        class="nav-toggle"
+        @click="sidebarCollapsed ? handleManualExpand() : handleManualCollapse()"
+      >
+        <div class="toggle-icon">{{ sidebarCollapsed ? "→" : "←" }}</div>
+      </button>
     </aside>
 
     <div class="main">
-      <header class="top">
+      <header v-if="props.showTopBar" class="top">
         <div class="crumb">{{ props.subtitle }}</div>
         <div class="avatar" aria-label="user">
           <div class="face">◉</div>
         </div>
       </header>
 
-      <div class="content">
-        <h1 class="pageTitle">{{ props.title }}</h1>
-        <div class="panel">
+      <div class="content" :class="{ 'content-no-top': !props.showTopBar }">
+        <h1 v-if="props.showTitle" class="page-title">{{ props.title }}</h1>
+
+        <div v-if="props.usePanel" class="panel">
           <slot />
         </div>
+        <slot v-else />
+
         <TiFooter />
       </div>
     </div>
@@ -107,62 +135,66 @@ const navItems = [
   top: 0;
   height: 100vh;
   width: 64px;
-  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 280ms cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
 .side:not(.collapsed) {
-  width: 240px;
+  width: 228px;
 }
 
 .brand {
-  height: 64px;
+  height: 60px;
   background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  gap: 8px;
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 10px;
+  padding: 0 10px;
+  transition: padding 280ms cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.side:not(.collapsed) .brand {
+  justify-content: flex-start;
+  padding: 0 14px;
 }
 
 .logo {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.2);
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.14);
   display: grid;
   place-items: center;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  font-size: 24px;
-  font-weight: 700;
-  transition: all 200ms ease;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  flex-shrink: 0;
 }
 
-.side:not(.collapsed) .logo {
-  width: 44px;
-  height: 44px;
-  font-size: 26px;
+.logo img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-text {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   white-space: nowrap;
-  opacity: 0.95;
-  animation: slideIn 300ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  opacity: 0.96;
+  animation: slide-in-x 220ms ease forwards;
 }
 
-@keyframes slideIn {
+@keyframes slide-in-x {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateX(-8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
   }
 }
 
@@ -182,18 +214,16 @@ const navItems = [
   padding: 12px 10px;
   display: flex;
   align-items: center;
-  justify-content: flex-start;
   gap: 14px;
-  opacity: 0.75;
-  transition: all 200ms ease;
+  opacity: 0.8;
+  transition: all 180ms ease;
   border-radius: 8px;
   white-space: nowrap;
-  position: relative;
 }
 
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.1);
-  opacity: 0.95;
+  opacity: 0.96;
 }
 
 .nav-item.active {
@@ -201,54 +231,32 @@ const navItems = [
   opacity: 1;
 }
 
-.nav-item .icon {
+.icon {
   width: 36px;
   height: 36px;
   border-radius: 8px;
   display: grid;
   place-items: center;
   background: rgba(255, 255, 255, 0.1);
-  font-size: 18px;
+  font-size: 16px;
   flex-shrink: 0;
-  transition: all 200ms ease;
 }
 
-.nav-item:hover .icon {
-  background: rgba(255, 255, 255, 0.15);
-  transform: scale(1.05);
-}
-
-.nav-item.active .icon {
-  background: rgba(249, 115, 22, 0.3);
-}
-
-.nav-item .text {
+.text {
   font-size: 14px;
   font-weight: 500;
-  letter-spacing: 0.3px;
-  animation: fadeIn 300ms ease forwards;
-  overflow: hidden;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    width: 0;
-  }
-  to {
-    opacity: 1;
-    width: auto;
-  }
 }
 
 .nav-toggle {
-  height: 48px;
+  height: 46px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  color: inherit;
   cursor: pointer;
-  transition: background 200ms ease;
 }
 
 .nav-toggle:hover {
@@ -257,17 +265,12 @@ const navItems = [
 
 .toggle-icon {
   font-size: 16px;
-  opacity: 0.6;
-  transition: opacity 200ms ease;
-}
-
-.nav-toggle:hover .toggle-icon {
-  opacity: 0.9;
+  opacity: 0.75;
 }
 
 .main {
   min-width: 0;
-  background: #f5f5f5;
+  background: #f1f1f1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -284,12 +287,8 @@ const navItems = [
 }
 
 .crumb {
-  font-size: 32px;
-  transform: scale(0.4);
-  transform-origin: left center;
-  line-height: 1;
-  margin-left: -6px;
-  opacity: 0.9;
+  font-size: 14px;
+  opacity: 0.92;
 }
 
 .avatar {
@@ -319,7 +318,10 @@ const navItems = [
   flex: 1;
 }
 
-/* 隐藏滚动条 */
+.content-no-top {
+  padding-top: 34px;
+}
+
 .content::-webkit-scrollbar {
   width: 8px;
 }
@@ -337,7 +339,7 @@ const navItems = [
   background: rgba(0, 0, 0, 0.3);
 }
 
-.pageTitle {
+.page-title {
   margin: 2px auto 20px;
   max-width: 1040px;
   font-size: 56px;
@@ -356,10 +358,6 @@ const navItems = [
 }
 
 @media (max-width: 980px) {
-  .brand {
-    height: 64px;
-  }
-
   .top {
     height: 64px;
     padding: 0 14px;
@@ -374,9 +372,14 @@ const navItems = [
     padding: 12px 0 24px;
   }
 
-  .pageTitle {
+  .content-no-top {
+    padding-top: 20px;
+  }
+
+  .page-title {
     font-size: 40px;
     margin-bottom: 12px;
   }
 }
 </style>
+
