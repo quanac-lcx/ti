@@ -14,6 +14,9 @@ onMounted(async () => {
 
 <template>
   <TiLayout title="题库" subtitle="洛谷有题 / 试题列表">
+    <div class="actions">
+      <router-link class="create-btn" to="/problemset/_new">新建题目</router-link>
+    </div>
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else class="list">
       <router-link v-for="p in problems" :key="p.id" class="row" :to="`/problemset/${p.id}`">
@@ -28,6 +31,27 @@ onMounted(async () => {
 .loading {
   padding: 20px 26px;
   color: #777;
+}
+
+.actions {
+  padding: 12px 20px 0;
+}
+
+.create-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 4px;
+  border: 1px solid #f1972c;
+  color: #f1972c;
+  background: #fff;
+  text-decoration: none;
+}
+
+.create-btn:hover {
+  background: #fff7ed;
 }
 
 .list {
@@ -88,4 +112,3 @@ onMounted(async () => {
   }
 }
 </style>
-

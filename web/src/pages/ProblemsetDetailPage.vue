@@ -107,12 +107,17 @@ watch(() => route.params.id, loadDetail);
             <h3 class="question-title">第 {{ currentQuestion.index }} 题</h3>
             <p class="question-stem">{{ currentQuestion.stem }}</p>
 
-            <ul class="options">
+            <ul v-if="currentQuestion.type === 'option'" class="options">
               <li v-for="option in currentQuestion.options" :key="option.key">
                 <span class="option-dot"></span>
                 <span>{{ option.key }}. {{ option.text }}</span>
               </li>
             </ul>
+
+            <div v-else class="input-preview">
+              <label>作答输入框预览</label>
+              <input type="text" :placeholder="currentQuestion.inputPlaceholder || '请输入答案'" disabled />
+            </div>
 
             <p class="question-score">本题共 {{ currentQuestion.score }} 分</p>
 
@@ -293,6 +298,25 @@ watch(() => route.params.id, loadDetail);
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.input-preview {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 10px;
+}
+
+.input-preview label {
+  font-size: 13px;
+  color: #666;
+}
+
+.input-preview input {
+  height: 36px;
+  border: 1px solid #d6d6d6;
+  border-radius: 4px;
+  padding: 0 10px;
+  background: #f8f8f8;
 }
 
 .option-dot {
