@@ -1,4 +1,14 @@
-export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+function resolveApiBaseUrl() {
+  const configured = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
+  if (configured) return configured.replace(/\/$/, "");
+  if (typeof window !== "undefined") {
+    const { protocol, hostname } = window.location;
+    return `${protocol}//${hostname}:3001`;
+  }
+  return "http://localhost:3001";
+}
+
+export const apiBaseUrl = resolveApiBaseUrl();
 
 interface LocalUser {
   uid?: string;

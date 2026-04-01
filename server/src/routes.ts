@@ -174,8 +174,8 @@ const CPOAUTH_SETTING_KEYS = {
   scope: "cpoauth.scope"
 };
 
-function buildDefaultCallbackUrl() {
-  return `${env.publicApiBaseUrl.replace(/\/$/, "")}/api/oauth/cpoauth/callback`;
+function buildDefaultCallbackUrl(req) {
+  return `${resolvePublicApiBaseUrl(req).replace(/\/$/, "")}/api/oauth/cpoauth/callback`;
 }
 
 function normalizeReturnTo(raw) {
@@ -228,6 +228,32 @@ function isHttpUrl(value) {
   }
 }
 
+function getRequestOrigin(req) {
+  const forwardedProto = String(req.headers["x-forwarded-proto"] ?? "").split(",")[0].trim();
+  const forwardedHost = String(req.headers["x-forwarded-host"] ?? "").split(",")[0].trim();
+  const protocol = forwardedProto || req.protocol || "http";
+  const host = forwardedHost || req.get("host") || `localhost:${env.port}`;
+  return `${protocol}://${host}`;
+}
+
+function resolvePublicApiBaseUrl(req) {
+  return env.publicApiBaseUrl || getRequestOrigin(req);
+}
+
+function resolveWebBaseUrl(req, candidate) {
+  const fallback = env.webBaseUrl || getRequestOrigin(req);
+  const raw = String(candidate ?? "").trim();
+  if (!isHttpUrl(raw)) return fallback;
+  try {
+    const desired = new URL(raw);
+    const current = new URL(getRequestOrigin(req));
+    if (desired.hostname !== current.hostname) return fallback;
+    return desired.origin;
+  } catch {
+    return fallback;
+  }
+}
+
 function normalizeOauthScope(scopeRaw) {
   const existing = String(scopeRaw ?? "")
     .split(/\s+/)
@@ -258,12 +284,12 @@ async function setAppSetting(key, value) {
   );
 }
 
-async function getCpoauthConfig() {
+async function getCpoauthConfig(req) {
   const settings = await getAppSettings(Object.values(CPOAUTH_SETTING_KEYS));
   return {
     clientId: String(settings[CPOAUTH_SETTING_KEYS.clientId] ?? "").trim(),
     clientSecret: String(settings[CPOAUTH_SETTING_KEYS.clientSecret] ?? "").trim(),
-    callbackUrl: String(settings[CPOAUTH_SETTING_KEYS.callbackUrl] ?? "").trim() || buildDefaultCallbackUrl(),
+    callbackUrl: String(settings[CPOAUTH_SETTING_KEYS.callbackUrl] ?? "").trim() || buildDefaultCallbackUrl(req),
     scope: normalizeOauthScope(String(settings[CPOAUTH_SETTING_KEYS.scope] ?? "").trim() || "openid profile email")
   };
 }
@@ -1393,7 +1419,7 @@ export function buildRouter() {
   });
 
   router.get("/oauth/cpoauth/authorize", async (req, res) => {
-    const config = await getCpoauthConfig();
+    const config = await getCpoauthConfig(req);
     if (!config.clientId || !config.clientSecret) {
       return res.status(503).json({ error: "cpoauth is not configured" });
     }
@@ -1403,13 +1429,14 @@ export function buildRouter() {
 
     const state = randomBytes(24).toString("hex");
     const returnTo = normalizeReturnTo(req.query?.returnTo);
+    const webBaseUrl = resolveWebBaseUrl(req, req.query?.webBaseUrl);
     await pingRedis();
-    await redis.set(`oauth:cpoauth:state:${state}`, JSON.stringify({ returnTo }), "EX", 600);
+    await redis.set(`oauth:cpoauth:state:${state}`, JSON.stringify({ returnTo, webBaseUrl }), "EX", 600);
     return res.redirect(302, buildCpoauthAuthorizeUrl(config, state));
   });
 
   router.get("/oauth/cpoauth/callback", async (req, res) => {
-    const loginCallbackUrl = new URL("/auth/cpoauth/callback", env.webBaseUrl);
+    const loginCallbackUrl = new URL("/auth/cpoauth/callback", resolveWebBaseUrl(req));
     const oauthError = String(req.query?.error ?? "").trim();
     const oauthErrorDescription = String(req.query?.error_description ?? req.query?.message ?? "").trim();
     if (oauthError) {
@@ -1444,9 +1471,11 @@ export function buildRouter() {
       return res.redirect(302, loginCallbackUrl.toString());
     }
     const returnTo = normalizeReturnTo(statePayload?.returnTo);
+    const webBaseUrl = resolveWebBaseUrl(req, statePayload?.webBaseUrl);
+    loginCallbackUrl.href = new URL("/auth/cpoauth/callback", webBaseUrl).toString();
 
     try {
-      const config = await getCpoauthConfig();
+      const config = await getCpoauthConfig(req);
       if (!config.clientId || !config.clientSecret || !isHttpUrl(config.callbackUrl)) {
         throw new Error("cpoauth is not configured");
       }
@@ -2258,7 +2287,7 @@ export function buildRouter() {
   router.get("/admin/oauth/cpoauth", async (req, res) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
-    const config = await getCpoauthConfig();
+    const config = await getCpoauthConfig(req);
     return res.json({ config });
   });
 
@@ -2269,7 +2298,7 @@ export function buildRouter() {
     const clientId = String(req.body?.clientId ?? "").trim();
     const clientSecret = String(req.body?.clientSecret ?? "").trim();
     const callbackUrlInput = String(req.body?.callbackUrl ?? "").trim();
-    const callbackUrl = callbackUrlInput || buildDefaultCallbackUrl();
+    const callbackUrl = callbackUrlInput || buildDefaultCallbackUrl(req);
     const scope = normalizeOauthScope(String(req.body?.scope ?? "").trim() || "openid profile email");
 
     if (!clientId) return res.status(400).json({ error: "clientId is required" });

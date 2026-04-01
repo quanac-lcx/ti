@@ -50,9 +50,11 @@ const LOCAL_USER_KEY = "ti.user";
 const LOCAL_ADMIN_TOKEN_KEY = "ti.admin.token";
 
 export function buildCpoauthAuthorizeUrl(returnTo = "/problemset"): string {
-  const apiBase = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
-  const url = new URL("/api/oauth/cpoauth/authorize", apiBase);
+  const url = new URL("/api/oauth/cpoauth/authorize", apiBaseUrl);
   url.searchParams.set("returnTo", returnTo);
+  if (typeof window !== "undefined") {
+    url.searchParams.set("webBaseUrl", window.location.origin);
+  }
   return url.toString();
 }
 

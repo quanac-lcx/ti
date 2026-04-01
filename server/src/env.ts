@@ -8,8 +8,8 @@ const port = Number(process.env.PORT ?? 3000);
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   port,
-  publicApiBaseUrl: process.env.PUBLIC_API_BASE_URL ?? `http://localhost:${port}`,
-  webBaseUrl: process.env.WEB_BASE_URL ?? "http://localhost:5173",
+  publicApiBaseUrl: String(process.env.PUBLIC_API_BASE_URL ?? "").trim(),
+  webBaseUrl: String(process.env.WEB_BASE_URL ?? "").trim(),
   cpoauthBaseUrl: process.env.CPOAUTH_BASE_URL ?? "https://auth.luogu.me",
   db: {
     host: process.env.DB_HOST ?? "localhost",
@@ -23,6 +23,5 @@ export const env = {
     port: Number(process.env.REDIS_PORT ?? 6379)
   }
 };
-
 
 
