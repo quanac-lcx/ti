@@ -34,6 +34,22 @@ async function ensureUniqueIndex(connection, indexName, ddl) {
   }
 }
 
+async function ensureColumn(connection, tableName, columnName, columnDefSql) {
+  const [rows] = await connection.query(
+    `
+      SELECT 1
+      FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE()
+        AND TABLE_NAME = ?
+        AND COLUMN_NAME = ?
+      LIMIT 1
+    `,
+    [tableName, columnName]
+  );
+  if (Array.isArray(rows) && rows.length > 0) return;
+  await connection.query(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDefSql}`);
+}
+
 export async function ensureUserSchema() {
   const connection = await dbPool.getConnection();
   try {
@@ -59,19 +75,19 @@ export async function ensureUserSchema() {
       )
     `);
 
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS uid VARCHAR(32) NULL");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(191) NULL");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NULL");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(255) NULL");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_cover_url VARCHAR(512) NULL");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT NULL");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS submission_analysis_mode VARCHAR(16) NOT NULL DEFAULT 'wrong_only'");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS autosave_interval_seconds INT NOT NULL DEFAULT 30");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_provider VARCHAR(32) NULL");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS oauth_subject VARCHAR(191) NULL");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin TINYINT(1) NOT NULL DEFAULT 0");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned TINYINT(1) NOT NULL DEFAULT 0");
-    await connection.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS records_public TINYINT(1) NOT NULL DEFAULT 1");
+    await ensureColumn(connection, "users", "uid", "VARCHAR(32) NULL");
+    await ensureColumn(connection, "users", "email", "VARCHAR(191) NULL");
+    await ensureColumn(connection, "users", "password_hash", "VARCHAR(255) NULL");
+    await ensureColumn(connection, "users", "avatar_url", "VARCHAR(255) NULL");
+    await ensureColumn(connection, "users", "profile_cover_url", "VARCHAR(512) NULL");
+    await ensureColumn(connection, "users", "bio", "TEXT NULL");
+    await ensureColumn(connection, "users", "submission_analysis_mode", "VARCHAR(16) NOT NULL DEFAULT 'wrong_only'");
+    await ensureColumn(connection, "users", "autosave_interval_seconds", "INT NOT NULL DEFAULT 30");
+    await ensureColumn(connection, "users", "oauth_provider", "VARCHAR(32) NULL");
+    await ensureColumn(connection, "users", "oauth_subject", "VARCHAR(191) NULL");
+    await ensureColumn(connection, "users", "is_admin", "TINYINT(1) NOT NULL DEFAULT 0");
+    await ensureColumn(connection, "users", "is_banned", "TINYINT(1) NOT NULL DEFAULT 0");
+    await ensureColumn(connection, "users", "records_public", "TINYINT(1) NOT NULL DEFAULT 1");
     await connection.query("ALTER TABLE users MODIFY COLUMN submission_analysis_mode VARCHAR(16) NOT NULL DEFAULT 'wrong_only'");
     await connection.query("ALTER TABLE users MODIFY COLUMN records_public TINYINT(1) NOT NULL DEFAULT 1");
 
@@ -107,10 +123,10 @@ export async function ensureUserSchema() {
         UNIQUE KEY uq_admin_tokens_token (token)
       )
     `);
-    await connection.query("ALTER TABLE admin_tokens ADD COLUMN IF NOT EXISTS token CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL");
+    await ensureColumn(connection, "admin_tokens", "token", "CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL");
     await connection.query("ALTER TABLE admin_tokens MODIFY COLUMN token CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL");
-    await connection.query("ALTER TABLE admin_tokens ADD COLUMN IF NOT EXISTS created_by_uid VARCHAR(32) NULL");
-    await connection.query("ALTER TABLE admin_tokens ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+    await ensureColumn(connection, "admin_tokens", "created_by_uid", "VARCHAR(32) NULL");
+    await ensureColumn(connection, "admin_tokens", "created_at", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS problemsets (
@@ -125,8 +141,8 @@ export async function ensureUserSchema() {
         PRIMARY KEY (id)
       )
     `);
-    await connection.query("ALTER TABLE problemsets ADD COLUMN IF NOT EXISTS question_config LONGTEXT NULL");
-    await connection.query("ALTER TABLE problemsets ADD COLUMN IF NOT EXISTS problemset_type VARCHAR(32) NOT NULL DEFAULT 'official_public'");
+    await ensureColumn(connection, "problemsets", "question_config", "LONGTEXT NULL");
+    await ensureColumn(connection, "problemsets", "problemset_type", "VARCHAR(32) NOT NULL DEFAULT 'official_public'");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS questions (
@@ -145,8 +161,8 @@ export async function ensureUserSchema() {
         UNIQUE KEY uq_problem_question (problemset_id, question_index)
       )
     `);
-    await connection.query("ALTER TABLE questions ADD COLUMN IF NOT EXISTS question_type VARCHAR(16) NOT NULL DEFAULT 'option'");
-    await connection.query("ALTER TABLE questions ADD COLUMN IF NOT EXISTS input_placeholder TEXT NULL");
+    await ensureColumn(connection, "questions", "question_type", "VARCHAR(16) NOT NULL DEFAULT 'option'");
+    await ensureColumn(connection, "questions", "input_placeholder", "TEXT NULL");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS submissions (
@@ -170,14 +186,14 @@ export async function ensureUserSchema() {
         INDEX idx_submissions_problem (problemset_id)
       )
     `);
-    await connection.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS answers_json LONGTEXT NULL");
-    await connection.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS results_json LONGTEXT NULL");
-    await connection.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS remaining_seconds INT NULL");
-    await connection.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS started_at DATETIME NULL");
-    await connection.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS submitted_at DATETIME NULL");
-    await connection.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS mode VARCHAR(16) NOT NULL DEFAULT 'training'");
-    await connection.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS status VARCHAR(16) NOT NULL DEFAULT 'submitted'");
-    await connection.query("ALTER TABLE submissions ADD COLUMN IF NOT EXISTS max_score DECIMAL(8,2) NOT NULL DEFAULT 0");
+    await ensureColumn(connection, "submissions", "answers_json", "LONGTEXT NULL");
+    await ensureColumn(connection, "submissions", "results_json", "LONGTEXT NULL");
+    await ensureColumn(connection, "submissions", "remaining_seconds", "INT NULL");
+    await ensureColumn(connection, "submissions", "started_at", "DATETIME NULL");
+    await ensureColumn(connection, "submissions", "submitted_at", "DATETIME NULL");
+    await ensureColumn(connection, "submissions", "mode", "VARCHAR(16) NOT NULL DEFAULT 'training'");
+    await ensureColumn(connection, "submissions", "status", "VARCHAR(16) NOT NULL DEFAULT 'submitted'");
+    await ensureColumn(connection, "submissions", "max_score", "DECIMAL(8,2) NOT NULL DEFAULT 0");
     await ensureUniqueIndex(connection, "idx_submissions_user_problem", "CREATE INDEX idx_submissions_user_problem ON submissions (user_uid, problemset_id)");
     await ensureUniqueIndex(connection, "idx_submissions_user_status", "CREATE INDEX idx_submissions_user_status ON submissions (user_uid, status)");
     await ensureUniqueIndex(connection, "idx_submissions_problem", "CREATE INDEX idx_submissions_problem ON submissions (problemset_id)");
