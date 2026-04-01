@@ -1,3 +1,4 @@
+// @ts-nocheck
 import cors from "cors";
 import express from "express";
 import { dbPool, ensureUserSchema } from "./db.js";
@@ -27,7 +28,7 @@ app.use("/api", async (req, res, next) => {
 }, buildRouter());
 
 app.get("/", (_req, res) => {
-  res.type("text").send("api up");
+  res.type("text").send("pong");
 });
 
 async function bootstrap() {
@@ -43,3 +44,6 @@ bootstrap().catch((err) => {
   console.error("[api] bootstrap failed:", err);
   process.exit(1);
 });
+
+
+

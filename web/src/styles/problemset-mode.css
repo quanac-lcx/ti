@@ -1,0 +1,285 @@
+.problemset-mode-page {
+  display: grid;
+  gap: 12px;
+}
+
+.problemset-mode-page .guest-login-modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.42);
+  display: grid;
+  place-items: center;
+  z-index: 170;
+}
+
+.problemset-mode-page .guest-login-modal-card {
+  width: min(92vw, 460px);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.24);
+  padding: 18px;
+  position: relative;
+}
+
+.problemset-mode-page .guest-login-modal-card h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+
+.problemset-mode-page .guest-login-modal-card p {
+  margin: 0;
+  color: #475569;
+}
+
+.problemset-mode-page .guest-login-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.problemset-mode-page .guest-login-close {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.problemset-mode-page .exam-notice {
+  position: fixed;
+  right: 18px;
+  top: 18px;
+  width: 360px;
+  z-index: 160;
+  background: rgba(30, 41, 59, 0.95);
+  color: #fff;
+  border-radius: 8px;
+  padding: 12px 14px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.problemset-mode-page .exam-notice p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.problemset-mode-page .exam-notice p:last-child {
+  margin-bottom: 0;
+}
+
+.problemset-mode-page .error-card {
+  color: #dc2626;
+  padding: 16px;
+}
+
+.problemset-mode-page .mode-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+}
+
+.problemset-mode-page .mode-header h2 {
+  margin: 0 0 8px;
+  font-size: 34px;
+}
+
+.problemset-mode-page .mode-hint {
+  margin: 0;
+  color: #6b7280;
+}
+
+.problemset-mode-page .mode-meta {
+  text-align: right;
+  display: grid;
+  gap: 4px;
+}
+
+.problemset-mode-page .mode-timer {
+  font-size: 26px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.problemset-mode-page .mode-timer.danger {
+  color: #dc2626;
+}
+
+.problemset-mode-page .autosave-tip {
+  color: #2563eb;
+  font-size: 13px;
+}
+
+.problemset-mode-page .mode-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 12px;
+}
+
+.problemset-mode-page .mode-left {
+  display: grid;
+  gap: 10px;
+}
+
+.problemset-mode-page .question-card {
+  padding: 14px;
+}
+
+.problemset-mode-page .question-card h3 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+
+.problemset-mode-page .question-stem {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.problemset-mode-page .mode-option-list {
+  display: grid;
+  gap: 8px;
+}
+
+.problemset-mode-page .mode-option-row {
+  display: grid;
+  grid-template-columns: 22px 32px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.problemset-mode-page .mode-option-row input {
+  margin: 0;
+}
+
+.problemset-mode-page .mode-option-key {
+  min-width: 32px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.problemset-mode-page .mode-option-text {
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.problemset-mode-page .mode-option-text.luogu-markdown p {
+  margin: 0;
+}
+
+.problemset-mode-page .input-wrap input {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #d5d5d5;
+  border-radius: 4px;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+
+.problemset-mode-page .question-score {
+  font-weight: 700;
+}
+
+.problemset-mode-page .result {
+  margin-top: 10px;
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 10px;
+}
+
+.problemset-mode-page .ok {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.problemset-mode-page .ng {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.problemset-mode-page .mode-right {
+  padding: 12px;
+}
+
+.problemset-mode-page .actions {
+  display: flex;
+  gap: 8px;
+}
+
+.problemset-mode-page .btn {
+  height: 34px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  padding: 0 12px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.problemset-mode-page .btn.primary {
+  border-color: #3297db;
+  background: #3297db;
+  color: #fff;
+}
+
+.problemset-mode-page .btn.warn {
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.problemset-mode-page .mode-summary {
+  margin-top: 10px;
+  color: #374151;
+  font-size: 14px;
+}
+
+.problemset-mode-page .mode-summary p {
+  margin: 4px 0;
+}
+
+.problemset-mode-page .mode-right h3 {
+  margin: 10px 0 8px;
+}
+
+.problemset-mode-page .question-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.problemset-mode-page .num-btn {
+  border: 0;
+  border-radius: 4px;
+  background: #c7c7c7;
+  color: #fff;
+  height: 30px;
+  padding: 0 10px;
+  cursor: pointer;
+}
+
+.problemset-mode-page .num-btn.answered {
+  background: #60a5fa;
+}
+
+.problemset-mode-page .num-btn.correct {
+  background: #22c55e;
+}
+
+.problemset-mode-page .num-btn.wrong {
+  background: #ef4444;
+}
+
+@media (max-width: 1160px) {
+  .problemset-mode-page .mode-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .problemset-mode-page .mode-meta {
+    text-align: left;
+  }
+}

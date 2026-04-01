@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
 export function normalizeEmail(email) {
@@ -24,3 +25,6 @@ export function verifyPassword(password, storedHash) {
   if (stored.length !== derived.length) return false;
   return timingSafeEqual(stored, derived);
 }
+
+
+

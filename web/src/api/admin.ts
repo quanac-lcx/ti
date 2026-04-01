@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiBaseUrl } from "../api";
-import { loadLocalUser, type AuthUser } from "./auth";
-import type { ChoiceOption } from "./problemset";
+import { loadAdminTokenSession, loadLocalUser, type AuthUser } from "./auth";
+import type { ChoiceOption, ProblemQuestion, ProblemsetSummary } from "./problemset";
 
 interface UsersResponse {
   users: AuthUser[];
@@ -14,6 +14,26 @@ interface CpoauthConfigResponse {
   config: CpoauthConfig;
 }
 
+interface AdminTokensResponse {
+  tokens: AdminToken[];
+}
+
+interface AdminTokenResponse {
+  token: AdminToken;
+}
+
+interface ProblemsetsResponse {
+  problemsets: AdminProblemset[];
+}
+
+interface ProblemsetResponse {
+  problemset: AdminProblemset;
+}
+
+interface QuestionResponse {
+  question: ProblemQuestion;
+}
+
 export interface CpoauthConfig {
   clientId: string;
   clientSecret: string;
@@ -21,10 +41,24 @@ export interface CpoauthConfig {
   scope: string;
 }
 
+export interface AdminProblemset extends ProblemsetSummary {
+  createdByUid?: string;
+  createdAt?: string;
+}
+
+export interface AdminToken {
+  id: number;
+  token: string;
+  createdByUid: string;
+  createdAt: string;
+}
+
 function adminHeaders() {
   const user = loadLocalUser();
+  const adminToken = loadAdminTokenSession();
   return {
-    "x-admin-uid": user?.uid ?? ""
+    "x-admin-uid": user?.uid ?? "",
+    "x-admin-token": adminToken
   };
 }
 
@@ -102,18 +136,122 @@ export async function createUser(payload: {
 export async function createQuestion(
   problemsetId: number,
   payload: {
+    index?: number;
+    type?: "option" | "input";
     stem: string;
+    inputPlaceholder?: string;
     options: ChoiceOption[];
     score: number;
     answer: string;
     analysis: string;
   }
-) {
-  await apiPost(
+): Promise<ProblemQuestion> {
+  const result = await apiPost<QuestionResponse>(
     `/api/admin/problemsets/${problemsetId}/questions`,
     payload,
     { headers: adminHeaders() }
   );
+  return result.question;
+}
+
+export async function fetchAdminProblemsets(): Promise<AdminProblemset[]> {
+  const result = await apiGet<ProblemsetsResponse>("/api/admin/problemsets", {
+    headers: adminHeaders()
+  });
+  return result.problemsets;
+}
+
+export async function fetchAdminProblemsetQuestions(problemsetId: number): Promise<ProblemQuestion[]> {
+  const result = await apiGet<{ questions: ProblemQuestion[] }>(`/api/admin/problemsets/${problemsetId}/questions`, {
+    headers: adminHeaders()
+  });
+  return result.questions;
+}
+
+export async function updateAdminProblemset(
+  problemsetId: number,
+  payload: Partial<{
+    id: number;
+    title: string;
+    description: string;
+    durationMinutes: number;
+    questionConfig: string;
+  }>
+): Promise<AdminProblemset> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/problemsets/${problemsetId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...adminHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(data?.error ?? `HTTP ${response.status}`));
+  }
+  return (data as ProblemsetResponse).problemset;
+}
+
+export async function deleteAdminProblemset(problemsetId: number): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/problemsets/${problemsetId}`, {
+    method: "DELETE",
+    headers: adminHeaders()
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
+}
+
+export async function deleteAllProblemsetQuestions(problemsetId: number): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/problemsets/${problemsetId}/questions`, {
+    method: "DELETE",
+    headers: adminHeaders()
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
+}
+
+export async function updateQuestion(
+  questionId: string | number,
+  payload: Partial<{
+    index: number;
+    type: "option" | "input";
+    stem: string;
+    inputPlaceholder: string;
+    options: ChoiceOption[];
+    score: number;
+    answer: string;
+    analysis: string;
+  }>
+): Promise<ProblemQuestion> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/questions/${encodeURIComponent(String(questionId))}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...adminHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(data?.error ?? `HTTP ${response.status}`));
+  }
+  return (data as QuestionResponse).question;
+}
+
+export async function deleteQuestion(questionId: string | number): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/questions/${encodeURIComponent(String(questionId))}`, {
+    method: "DELETE",
+    headers: adminHeaders()
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
 }
 
 export async function fetchCpoauthConfig(): Promise<CpoauthConfig> {
@@ -137,4 +275,29 @@ export async function updateCpoauthConfig(payload: CpoauthConfig): Promise<Cpoau
     throw new Error(String(data?.error ?? `HTTP ${response.status}`));
   }
   return (data as CpoauthConfigResponse).config;
+}
+
+export async function fetchAdminTokens(): Promise<AdminToken[]> {
+  const result = await apiGet<AdminTokensResponse>("/api/admin/admin-tokens", {
+    headers: adminHeaders()
+  });
+  return result.tokens;
+}
+
+export async function createAdminToken(): Promise<AdminToken> {
+  const result = await apiPost<AdminTokenResponse>("/api/admin/admin-tokens", {}, {
+    headers: adminHeaders()
+  });
+  return result.token;
+}
+
+export async function deleteAdminToken(id: number): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/admin-tokens/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders()
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
 }

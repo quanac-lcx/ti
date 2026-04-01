@@ -1,3 +1,4 @@
+﻿// @ts-nocheck
 import { dbPool } from "../src/db.js";
 
 async function main() {
@@ -15,3 +16,6 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+
+

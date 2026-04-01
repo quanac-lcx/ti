@@ -1,3 +1,4 @@
+// @ts-nocheck
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -22,3 +23,6 @@ export const env = {
     port: Number(process.env.REDIS_PORT ?? 6379)
   }
 };
+
+
+

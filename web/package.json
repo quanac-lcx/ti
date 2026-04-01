@@ -11,6 +11,14 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.44",
+    "markdown-it": "^14.1.1",
+    "markdown-it-emoji": "^3.0.0",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-sub": "^2.0.0",
+    "markdown-it-sup": "^2.0.0",
+    "markdown-it-texmath": "^1.0.0",
     "vue": "^3.5.6",
     "vue-router": "^4.4.5"
   },

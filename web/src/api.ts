@@ -1,5 +1,20 @@
 export const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
 
+interface LocalUser {
+  uid?: string;
+}
+
+function readLocalUser(): LocalUser | null {
+  const raw = localStorage.getItem("ti.user");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as LocalUser;
+  } catch {
+    localStorage.removeItem("ti.user");
+    return null;
+  }
+}
+
 function toNetworkError(err: unknown): Error {
   const message = String((err as Error)?.message ?? err);
   if (message.includes("Failed to fetch") || message.includes("ERR_CONNECTION_REFUSED")) {
@@ -9,8 +24,7 @@ function toNetworkError(err: unknown): Error {
 }
 
 export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
-  const userRaw = localStorage.getItem("ti.user");
-  const user = userRaw ? JSON.parse(userRaw) : null;
+  const user = readLocalUser();
   const headers = {
     ...(init?.headers ?? {}),
     ...(user?.uid ? { "x-user-uid": user.uid } : {})
@@ -39,8 +53,7 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function apiPost<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
-  const userRaw = localStorage.getItem("ti.user");
-  const user = userRaw ? JSON.parse(userRaw) : null;
+  const user = readLocalUser();
   const headers = {
     "Content-Type": "application/json",
     ...(init?.headers ?? {}),

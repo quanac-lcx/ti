@@ -1,192 +1,75 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue";
+import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import TiLayout from "../layouts/TiLayout.vue";
-import { buildCpoauthAuthorizeUrl, loginUser, saveLocalUser } from "../api/auth";
+import { buildCpoauthAuthorizeUrl, loginWithAdminToken, saveLocalUser } from "../api/auth";
 
 const route = useRoute();
 const router = useRouter();
-const pending = ref(false);
-const error = ref("");
 const cpoauthEntryUrl = buildCpoauthAuthorizeUrl(String(route.query.redirect ?? "/problemset"));
+const adminToken = ref("");
+const adminPending = ref(false);
+const adminError = ref("");
 
-const form = reactive({
-  identifier: "",
-  password: ""
-});
-
-const onSubmit = async () => {
-  error.value = "";
-  if (!form.identifier || !form.password) {
-    error.value = "请输入账号和密码";
+async function submitAdminToken() {
+  adminError.value = "";
+  const token = adminToken.value.trim();
+  if (!/^[A-Za-z0-9]{32}$/.test(token)) {
+    adminError.value = "格式有误";
     return;
   }
-
-  pending.value = true;
+  adminPending.value = true;
   try {
-    const user = await loginUser({
-      identifier: form.identifier.trim(),
-      password: form.password
-    });
+    const user = await loginWithAdminToken(token);
     saveLocalUser(user);
-    router.push("/problemset");
+    await router.push("/admin");
   } catch (err) {
-    error.value = String((err as Error)?.message ?? err);
+    adminError.value = String((err as Error)?.message ?? err);
   } finally {
-    pending.value = false;
+    adminPending.value = false;
   }
-};
+}
 </script>
 
 <template>
   <TiLayout :show-top-bar="false" :show-title="false" :use-panel="false">
-    <section class="auth-wrap">
-      <form class="auth-card" @submit.prevent="onSubmit">
-        <img class="brand-logo" src="https://cdn.luogu.com.cn/youti-fe/logo.png" alt="洛谷" />
-        <h2 class="auth-title">登录账号</h2>
-
-        <label class="field-label" for="login-identifier">登录账号</label>
-        <input
-          id="login-identifier"
-          v-model.trim="form.identifier"
-          class="field-input"
-          type="text"
-          placeholder="用户名或邮箱"
-        />
-
-        <label class="field-label" for="login-password">密码</label>
-        <input
-          id="login-password"
-          v-model="form.password"
-          class="field-input"
-          type="password"
-          placeholder="请输入密码"
-        />
-
-        <button type="submit" class="btn btn-primary" :disabled="pending">
-          {{ pending ? "登录中..." : "登录" }}
-        </button>
-
+    <section class="auth-wrap auth-login-page">
+      <div class="auth-card">
+        <span class="brand-logo-icon" role="img" aria-label="洛谷保存站有题">
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              fill-rule="evenodd"
+              clip-rule="evenodd"
+              d="M16.5595 0L16.2797 1.9926L16.2788 2.00192L13.3661 21.0724L32 29.8647L31.2365 31.5774L31.0491 32H0L0.275114 30.0093L0.27696 29.999L4.8679 0H16.5595ZM12.0976 29.3917H24.9043L12.9571 23.7544L12.0976 29.3917ZM2.96071 29.3917H9.5062L10.5402 22.6135L4.43321 19.7338L2.96071 29.3917ZM4.84311 17.0527L10.9501 19.9325L13.5951 2.60828H7.04864L4.84311 17.0527Z"
+              fill="currentColor"
+            ></path>
+          </svg>
+        </span>
+        <h2 class="auth-title">登录/注册</h2>
+        <p class="auth-tip">请使用 <a href="//auth.luogu.me" target="_blank" rel="noopener noreferrer">CP OAuth</a> 登录/注册。未注册的用户将自动注册。</p>
         <a :href="cpoauthEntryUrl" class="btn btn-cpoauth">
           <i class="fa-solid fa-right-to-bracket"></i>
-          使用 CPOAuth 登录
+          使用 CP OAuth 继续
         </a>
 
-        <p v-if="error" class="error">{{ error }}</p>
-
-        <div class="link-row">
-          <router-link to="/auth/register">创建账号</router-link>
-          <a href="#">忘记密码？</a>
+        <div class="admin-token-box">
+          <p class="admin-token-title">Admin Token</p>
+          <input
+            v-model="adminToken"
+            class="admin-token-input"
+            type="text"
+            maxlength="32"
+            placeholder="32位"
+          />
+          <button class="btn btn-admin-token" type="button" :disabled="adminPending" @click="submitAdminToken">
+            <i class="fa-solid fa-shield-halved"></i>
+            {{ adminPending ? "登录中..." : "使用 Admin Token 登录" }}
+          </button>
+          <p v-if="adminError" class="admin-token-error">{{ adminError }}</p>
         </div>
-      </form>
+      </div>
     </section>
   </TiLayout>
 </template>
 
-<style scoped>
-.auth-wrap {
-  min-height: calc(100vh - 260px);
-  display: grid;
-  place-items: center;
-  padding: 20px 12px;
-}
 
-.auth-card {
-  width: min(100%, 440px);
-  background: #f7f7f7;
-  border: 1px solid #e3e3e3;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  padding: 30px 34px 22px;
-}
-
-.brand-logo {
-  width: 146px;
-  display: block;
-  margin: 0 auto 10px;
-}
-
-.auth-title {
-  margin: 0 0 18px;
-  text-align: center;
-  color: #2d2d2d;
-  font-size: 30px;
-  font-weight: 500;
-}
-
-.field-label {
-  display: block;
-  margin: 8px 0 6px;
-  color: #666;
-  font-size: 14px;
-}
-
-.field-input {
-  width: 100%;
-  height: 40px;
-  border: 1px solid #d2d2d2;
-  border-radius: 4px;
-  padding: 0 12px;
-  font-size: 14px;
-  background: #fff;
-}
-
-.btn {
-  width: 100%;
-  height: 40px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 15px;
-  margin-top: 14px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  text-decoration: none;
-  box-sizing: border-box;
-}
-
-.btn-primary {
-  border: 1px solid #3c9de0;
-  background: #3c9de0;
-  color: #fff;
-}
-
-.btn-cpoauth {
-  border: 1px solid #f97316;
-  background: #fff;
-  color: #f97316;
-}
-
-.btn-cpoauth:hover {
-  background: #fff4ec;
-}
-
-.btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.error {
-  margin: 10px 0 0;
-  color: #d9534f;
-  font-size: 13px;
-}
-
-.link-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 12px;
-}
-
-.link-row a {
-  color: #2993e1;
-  text-decoration: none;
-  font-size: 14px;
-}
-
-.link-row a:hover {
-  text-decoration: underline;
-}
-</style>

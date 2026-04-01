@@ -1,0 +1,85 @@
+.footer {
+  margin: 18px auto 0;
+  max-width: var(--page-max-width);
+  padding: 18px var(--page-padding) 0;
+  border-top: 1px solid #d9d9d9;
+  color: #1f1f1f;
+  box-sizing: border-box;
+}
+
+.ui-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 48px;
+}
+
+.column {
+  padding: 0;
+}
+
+.firacode {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+.column p {
+  margin: 7px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.column p > i {
+  display: inline-block;
+  width: 18px;
+  text-align: center;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.group {
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  text-decoration: none;
+  color: #1f1f1f;
+  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-link:hover {
+  color: #1e66f5;
+}
+
+.right {
+  text-align: right;
+}
+
+.right p {
+  justify-content: flex-end;
+}
+
+#site-days {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .ui-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .right {
+    text-align: left;
+  }
+
+  .right p {
+    justify-content: flex-start;
+  }
+}
