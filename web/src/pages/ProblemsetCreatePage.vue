@@ -183,7 +183,7 @@ const createProblemset = async () => {
                   <ol>
                     <li>每道题使用一个 <code>:::question ... :::</code> 块。</li>
                     <li>题干用 <code>[stem] ... [/stem]</code>，支持 Markdown / LaTeX。</li>
-                    <li>选择题或判断题：<code>[options answer=A,B]</code> 包含所有选项文本。</li>
+                    <li>选择题或判断题：<code>[options answer=A,B]</code> 包含所有选项文本，支持 Markdown / LaTeX。</li>
                     <li>填空题：<code>[input answer=答案 placeholder=提示语（可选）]</code>。</li>
                     <li>解析(可选)：<code>[analysis] ... [/analysis]</code>，支持 Markdown / LaTeX。</li>
                   </ol>

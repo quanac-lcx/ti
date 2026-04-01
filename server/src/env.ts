@@ -16,7 +16,7 @@ export const env = {
     port: Number(process.env.DB_PORT ?? 3306),
     user: process.env.DB_USER ?? "app",
     password: process.env.DB_PASSWORD ?? "app",
-    name: process.env.DB_NAME ?? "app"
+    name: process.env.DB_NAME ?? "luogu_ti"
   },
   redis: {
     host: process.env.REDIS_HOST ?? "localhost",

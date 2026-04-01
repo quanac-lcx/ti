@@ -5,7 +5,7 @@ services:
     restart: unless-stopped
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root}
-      MARIADB_DATABASE: ${MARIADB_DATABASE:-app}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-luogu_ti}
       MARIADB_USER: ${MARIADB_USER:-app}
       MARIADB_PASSWORD: ${MARIADB_PASSWORD:-app}
       TZ: ${TZ:-Asia/Shanghai}
@@ -47,7 +47,7 @@ services:
       DB_PORT: 3306
       DB_USER: ${MARIADB_USER:-app}
       DB_PASSWORD: ${MARIADB_PASSWORD:-app}
-      DB_NAME: ${MARIADB_DATABASE:-app}
+      DB_NAME: ${MARIADB_DATABASE:-luogu_ti}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       TZ: ${TZ:-Asia/Shanghai}
