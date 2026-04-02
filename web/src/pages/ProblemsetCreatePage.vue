@@ -7,6 +7,12 @@ import { problemsetApi } from "../api/problemset";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
 import { parseQuestionConfig } from "../utils/questionConfigParser";
 
+type ProblemsetType =
+  | "official_public"
+  | "personal_featured"
+  | "personal_public"
+  | "personal_private";
+
 const router = useRouter();
 const currentUser = loadLocalUser();
 const pending = ref(false);
@@ -21,11 +27,7 @@ const form = reactive({
   description: "",
   durationMinutes: 120,
   questionConfig: "",
-  problemsetType: (isAdmin.value ? "official_public" : "personal_public") as
-    | "official_public"
-    | "personal_featured"
-    | "personal_public"
-    | "personal_private"
+  problemsetType: (isAdmin.value ? "official_public" : "personal_public") as ProblemsetType
 });
 
 const typeOptions = computed(() => {
@@ -43,7 +45,48 @@ const typeOptions = computed(() => {
   ];
 });
 
-const ruleTemplate = `
+const ruleTemplate = `:::group title="阅读程序"
+[material]
+请阅读程序，完成下面小题。
+
+\`\`\`cpp
+#include <iostream>
+using namespace std;
+
+int main() {
+    int a, b;
+    cin >> a >> b;
+    int x = a + b;
+    cout << x << endl;
+    return 0;
+}
+\`\`\`
+[/material]
+
+:::question type=option score=2
+[stem]
+如果输入 \`3 4\`，输出结果是多少？
+[/stem]
+[options answer=B]
+A. 5
+B. 7
+C. 9
+D. 11
+[/options]
+[analysis]
+3+4=7，所以输出结果是 7。
+[/analysis]
+:::
+
+:::question type=input score=2
+[stem]
+如果把 \`x = a + b\` 改成 \`x = a * b\`，输入 \`3 4\` 时输出结果是多少？
+[/stem]
+[input answer=12 placeholder="请直接填写输出结果"]
+[/input]
+:::
+:::
+
 :::question type=option score=2.5
 [stem]
 题干（支持 Markdown / LaTeX）
@@ -68,52 +111,67 @@ C. 选项C
 
 const previewParsed = computed(() => parseQuestionConfig(form.questionConfig));
 
-const previewQuestions = computed(() =>
-  previewParsed.value.questions.map((q, idx) => ({
-    ...q,
-    index: idx + 1,
-    stemHtml: renderLuoguMarkdown(q.stem),
-    analysisHtml: renderLuoguMarkdown(q.analysis),
-    optionsHtml: q.options.map((opt) => ({ ...opt, html: renderLuoguMarkdown(opt.text) }))
-  }))
-);
+const previewGroups = computed(() => {
+  let globalIndex = 0;
+  return previewParsed.value.groups.map((group, groupIndex) => ({
+    materialGroupIndex: group.materialGroupIndex,
+    title: group.title || (group.material ? `材料题 ${groupIndex + 1}` : ""),
+    material: group.material,
+    materialHtml: group.material ? renderLuoguMarkdown(group.material) : "",
+    questions: group.questions.map((question) => {
+      globalIndex += 1;
+      return {
+        ...question,
+        index: globalIndex,
+        stemHtml: renderLuoguMarkdown(question.stem),
+        analysisHtml: renderLuoguMarkdown(question.analysis),
+        optionsHtml: question.options.map((option) => ({
+          ...option,
+          html: renderLuoguMarkdown(option.text)
+        }))
+      };
+    })
+  }));
+});
 
 const previewErrors = computed(() => previewParsed.value.errors);
-
-const blockCount = computed(() => {
-  const matched = form.questionConfig.match(/:::question/g);
-  return matched ? matched.length : 0;
-});
+const questionCount = computed(() => previewParsed.value.questions.length);
+const materialGroupCount = computed(() =>
+  previewParsed.value.groups.filter((group) => group.material.trim().length > 0).length
+);
 
 const createProblemset = async () => {
   error.value = "";
   success.value = "";
+
   const customIdRaw = String(form.id ?? "").trim();
   const customId = Number(customIdRaw);
   if (!currentUser?.uid) {
-    error.value = "请先登录";
+    error.value = "请先登录。";
     return;
   }
-
   if (!form.title.trim()) {
     error.value = "请填写名称。";
     return;
   }
   if (!form.description.trim()) {
-    error.value = "请填写描述。";
+    error.value = "请填写测验描述。";
     return;
   }
   if (!Number.isFinite(form.durationMinutes) || form.durationMinutes <= 0) {
-    error.value = "测试时长须为正数。";
+    error.value = "测试时间长度必须为正数。";
     return;
   }
   if (!form.questionConfig.trim()) {
     error.value = "请填写题目配置文件。";
     return;
   }
-
+  if (previewErrors.value.length > 0) {
+    error.value = previewErrors.value[0];
+    return;
+  }
   if (isAdmin.value && customIdRaw && (!Number.isInteger(customId) || customId <= 0)) {
-    error.value = "ID必须是正整数。";
+    error.value = "ID 必须是正整数。";
     return;
   }
 
@@ -151,17 +209,26 @@ const createProblemset = async () => {
           <div class="form-grid">
             <label v-if="isAdmin">
               <span>ID</span>
-              <input v-model="form.id" type="number" min="1" placeholder="你是管理员，可以自定义。留空会自动分配" />
+              <input
+                v-model="form.id"
+                type="number"
+                min="1"
+                placeholder="你是管理员，可以自定义。留空会自动分配"
+              />
             </label>
 
             <label>
               <span>名称</span>
-              <input v-model.trim="form.title" type="text" placeholder="例如：西西弗 2099 提高组试题" />
+              <input v-model.trim="form.title" type="text" placeholder="填写名称" />
             </label>
 
             <label>
               <span>测验描述</span>
-              <textarea v-model="form.description" rows="3" placeholder="例如：共 25 题，单选 + 填空。支持 Markdown 与 latex"></textarea>
+              <textarea
+                v-model="form.description"
+                rows="3"
+                placeholder="例如：共 25 题，含阅读程序、补全代码、选择题与填空题。"
+              ></textarea>
             </label>
 
             <label>
@@ -181,11 +248,17 @@ const createProblemset = async () => {
                 <summary>题目配置格式</summary>
                 <div class="tip-body">
                   <ol>
-                    <li>每道题使用一个 <code>:::question ... :::</code> 块。</li>
-                    <li>题干用 <code>[stem] ... [/stem]</code>，支持 Markdown / LaTeX。</li>
-                    <li>选择题或判断题：<code>[options answer=A,B]</code> 包含所有选项文本，支持 Markdown / LaTeX。</li>
-                    <li>填空题：<code>[input answer=答案 placeholder=提示语（可选）]</code>。</li>
-                    <li>解析(可选)：<code>[analysis] ... [/analysis]</code>，支持 Markdown / LaTeX。</li>
+                    <li>普通题使用 <code>:::question ... :::</code>。</li>
+                    <li>题干使用 <code>[stem]...[/stem]</code>，支持 Markdown / LaTeX / 代码块。</li>
+                    <li>选择题使用 <code>[options answer=A,C]...[/options]</code>，最多 26 个选项。</li>
+                    <li>填空题使用 <code>[input answer=答案 placeholder="提示语"][/input]</code>。</li>
+                    <li>解析使用 <code>[analysis]...[/analysis]</code>，可选。</li>
+                    <li>
+                      材料题用 <code>:::group title="阅读程序"</code> 包住一组小题，并用
+                      <code>[material]...[/material]</code> 放共享代码/材料。
+                    </li>
+                    <li>一个 <code>:::group</code> 内可以放很多道 <code>:::question</code>，适合阅读程序、补全代码等</li>
+                    <li>嵌套可能会产生bug，没有测试过。</li>
                   </ol>
                 </div>
               </details>
@@ -195,46 +268,79 @@ const createProblemset = async () => {
               <span>题目配置文件</span>
               <textarea
                 v-model="form.questionConfig"
-                rows="16"
-                placeholder="按上方规则填写，支持多个 :::question 块"
+                rows="20"
+                placeholder="按上方规则填写。也可以点击下方填入模板熟悉一下格式。输入的内容会实时渲染在下方。"
               ></textarea>
             </label>
 
             <div class="preview-card">
               <div class="preview-title">实时预览</div>
               <ul v-if="previewErrors.length" class="preview-errors">
-                <li v-for="(msg, i) in previewErrors" :key="i">{{ msg }}</li>
+                <li v-for="(msg, index) in previewErrors" :key="index">{{ msg }}</li>
               </ul>
-              <div v-if="previewQuestions.length === 0" class="preview-empty">这里会实时渲染你在上方输入的题目配置</div>
+
+              <div v-if="previewGroups.length === 0" class="preview-empty">
+                请输入文本
+              </div>
+
               <div v-else class="preview-list">
-                <article v-for="(q, idx) in previewQuestions" :key="idx" class="preview-item">
-                  <header class="preview-head">
-                    <span class="preview-tag">第 {{ q.index }} 题</span>
-                    <span class="preview-meta">类型：{{ q.type === "input" ? "填空" : "选择" }}｜分值：{{ q.score }}</span>
-                    <span class="preview-answer">答案：{{ q.answer }}</span>
-                  </header>
-                  <div class="preview-stem luogu-markdown" v-html="q.stemHtml"></div>
-                  <ul v-if="q.type === 'option'" class="preview-options">
-                    <li v-for="opt in q.optionsHtml" :key="opt.key">
-                      <strong>{{ opt.key }}.</strong>
-                      <span class="luogu-markdown" v-html="opt.html"></span>
-                    </li>
-                  </ul>
-                  <div v-else class="preview-input">
-                    <label>填空</label>
-                    <input type="text" :placeholder="q.inputPlaceholder || '请输入答案'" disabled />
+                <section
+                  v-for="(group, groupIndex) in previewGroups"
+                  :key="group.materialGroupIndex ?? `single-${groupIndex}`"
+                  class="preview-group"
+                >
+                  <div v-if="group.materialHtml" class="preview-material">
+                    <div class="preview-material-title">
+                      {{ group.title || `材料题 ${groupIndex + 1}` }}
+                    </div>
+                    <div class="preview-material-content luogu-markdown" v-html="group.materialHtml"></div>
                   </div>
-                  <div v-if="q.analysis" class="preview-analysis">
-                    <strong>解析：</strong>
-                    <div class="luogu-markdown" v-html="q.analysisHtml"></div>
-                  </div>
-                </article>
+
+                  <article
+                    v-for="question in group.questions"
+                    :key="question.index"
+                    class="preview-item"
+                  >
+                    <header class="preview-head">
+                      <span class="preview-tag">第 {{ question.index }} 题</span>
+                      <span v-if="question.groupQuestionIndex" class="preview-meta">
+                        材料题第 {{ question.groupQuestionIndex }}
+                        <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
+                        小题
+                      </span>
+                      <span class="preview-meta">
+                        类型：{{ question.type === "input" ? "填空" : "选择" }}｜分值：{{ question.score }}
+                      </span>
+                      <span class="preview-answer">答案：{{ question.answer }}</span>
+                    </header>
+
+                    <div class="preview-stem luogu-markdown" v-html="question.stemHtml"></div>
+
+                    <ul v-if="question.type === 'option'" class="preview-options">
+                      <li v-for="option in question.optionsHtml" :key="option.key">
+                        <strong>{{ option.key }}.</strong>
+                        <span class="luogu-markdown" v-html="option.html"></span>
+                      </li>
+                    </ul>
+
+                    <div v-else class="preview-input">
+                      <label>填空</label>
+                      <input type="text" :placeholder="question.inputPlaceholder || '请输入答案'" disabled />
+                    </div>
+
+                    <div v-if="question.analysis" class="preview-analysis">
+                      <strong>解析：</strong>
+                      <div class="luogu-markdown" v-html="question.analysisHtml"></div>
+                    </div>
+                  </article>
+                </section>
               </div>
             </div>
           </div>
 
           <div class="meta">
-            <span>当前检测到题目块：{{ blockCount }}</span>
+            <span>当前共解析到 {{ questionCount }} 题</span>
+            <span v-if="materialGroupCount > 0">，其中材料题分组 {{ materialGroupCount }} 组</span>
           </div>
 
           <div class="actions">
@@ -248,9 +354,6 @@ const createProblemset = async () => {
           <p v-if="success" class="success">{{ success }}</p>
         </template>
       </div>
-
     </section>
   </TiLayout>
 </template>
-
-

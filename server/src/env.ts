@@ -1,7 +1,14 @@
 // @ts-nocheck
 import dotenv from "dotenv";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
 
-dotenv.config();
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const serverRoot = path.resolve(currentDir, "..");
+const repoRoot = path.resolve(serverRoot, "..");
+
+dotenv.config({ path: path.join(repoRoot, ".env") });
+dotenv.config({ path: path.join(serverRoot, ".env"), override: true });
 
 const port = Number(process.env.PORT ?? 3000);
 
@@ -23,5 +30,4 @@ export const env = {
     port: Number(process.env.REDIS_PORT ?? 6379)
   }
 };
-
 

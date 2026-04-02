@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import TiLayout from "../layouts/TiLayout.vue";
@@ -62,6 +62,8 @@ const currentQuestion = computed<ProblemQuestion | null>(() => {
   return detail.value.questions[selectedQuestionIndex.value] ?? null;
 });
 
+const questionMaterialHtml = computed(() => renderLuoguMarkdown(currentQuestion.value?.sharedMaterial ?? ""));
+
 const selectedSubmissionSummary = computed(() => {
   if (!selectedSubmission.value) return null;
   return submissions.value.find((item) => item.id === selectedSubmission.value?.id) ?? null;
@@ -85,6 +87,16 @@ const descriptionHtml = computed(() => renderLuoguMarkdown(detail.value?.summary
 const questionStemHtml = computed(() => renderLuoguMarkdown(currentQuestion.value?.stem ?? ""));
 const answerAnalysisHtml = computed(() => renderLuoguMarkdown(currentQuestion.value?.analysis ?? ""));
 const renderMd = (source: string) => renderLuoguMarkdown(source);
+
+function isMaterialGroupStart(question: ProblemQuestion, index: number, questionList: ProblemQuestion[]) {
+  if (!question.sharedMaterial?.trim() || question.materialGroupIndex === null) return false;
+  if (index === 0) return true;
+  return questionList[index - 1]?.materialGroupIndex !== question.materialGroupIndex;
+}
+
+function questionMaterialTitle(question: ProblemQuestion) {
+  return question.groupTitle?.trim() || "共享材料";
+}
 
 function normalizeOptionAnswer(raw: string) {
   return Array.from(
@@ -346,7 +358,7 @@ watch(
       <section class="problemset-detail-grid">
         <div class="left-column">
           <div class="panel-card tabs-card">
-            <button class="tab-btn" :class="{ active: activeTab === 'description' }" type="button" @click="activeTab = 'description'">测验描述</button>
+            <button class="tab-btn" :class="{ active: activeTab === 'description' }" type="button" @click="activeTab = 'description'">试题描述</button>
             <button class="tab-btn" :class="{ active: activeTab === 'question' }" type="button" @click="activeTab = 'question'">查看题目</button>
             <button v-if="hasHistory" class="tab-btn" :class="{ active: activeTab === 'history' }" type="button" @click="activeTab = 'history'">历史答卷</button>
           </div>
@@ -357,6 +369,17 @@ watch(
 
           <div v-else-if="activeTab === 'question' && currentQuestion" class="panel-card body-card">
             <h3 class="question-title">第 {{ currentQuestion.index }} 题</h3>
+            <div v-if="currentQuestion.sharedMaterial" class="shared-material-block">
+              <div class="shared-material-title">
+                {{ questionMaterialTitle(currentQuestion) }}
+                <span v-if="currentQuestion.groupQuestionIndex">
+                  · 第 {{ currentQuestion.groupQuestionIndex }}
+                  <span v-if="currentQuestion.groupQuestionCount"> / {{ currentQuestion.groupQuestionCount }}</span>
+                  小题
+                </span>
+              </div>
+              <div class="shared-material-content luogu-markdown" v-html="questionMaterialHtml"></div>
+            </div>
             <div class="question-stem luogu-markdown" v-html="questionStemHtml"></div>
 
             <div v-if="currentQuestion.type === 'option'" class="detail-option-list">
@@ -378,7 +401,7 @@ watch(
 
             <p class="question-score">本题共 {{ currentQuestion.score }} 分</p>
             <button class="answer-btn" type="button" @click="answerVisible = !answerVisible">
-              {{ answerVisible ? "隐藏答案与解析" : "显示答案与解析" }}
+              {{ answerVisible ? '隐藏答案与解析' : '显示答案与解析' }}
             </button>
 
             <div v-if="answerVisible" class="answer-block">
@@ -388,8 +411,24 @@ watch(
           </div>
 
           <div v-else-if="activeTab === 'history' && selectedSubmission" class="panel-card body-card">
-            <article v-for="question in detail.questions" :id="`history-question-${question.id}`" :key="question.id" class="history-question">
-              <h3 class="history-question-title" :class="historyQuestionTitleClass(question)">第 {{ question.index }} 题</h3>
+            <article
+              v-for="(question, index) in detail.questions"
+              :id="`history-question-${question.id}`"
+              :key="question.id"
+              class="history-question"
+            >
+              <div v-if="isMaterialGroupStart(question, index, detail.questions)" class="shared-material-block">
+                <div class="shared-material-title">{{ questionMaterialTitle(question) }}</div>
+                <div class="shared-material-content luogu-markdown" v-html="renderMd(question.sharedMaterial)"></div>
+              </div>
+              <h3 class="history-question-title" :class="historyQuestionTitleClass(question)">
+                第 {{ question.index }} 题
+                <span v-if="question.groupQuestionIndex">
+                  · 第 {{ question.groupQuestionIndex }}
+                  <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
+                  小题
+                </span>
+              </h3>
               <div class="question-stem luogu-markdown" v-html="renderMd(question.stem)"></div>
 
               <div v-if="question.type === 'option'" class="detail-option-list">
@@ -404,20 +443,20 @@ watch(
                   <span class="detail-option-text luogu-markdown" v-html="renderMd(option.text)"></span>
                 </label>
               </div>
-              <div v-else class="history-input">你的作答：{{ submissionResultMap[question.id]?.userAnswer || "（空）" }}</div>
+              <div v-else class="history-input">你的作答：{{ submissionResultMap[question.id]?.userAnswer || '（空）' }}</div>
 
               <div class="history-meta">
                 <p class="history-answer">正确答案：{{ submissionResultMap[question.id]?.standardAnswer || question.answer }}</p>
                 <p class="history-score">得分：{{ submissionResultMap[question.id]?.earned ?? 0 }} / {{ question.score }} 分</p>
                 <button class="answer-btn history-toggle-btn" type="button" @click="toggleHistoryAnalysis(question)">
-                  {{ shouldShowHistoryAnalysis(question) ? "隐藏解析" : "显示解析" }}
+                  {{ shouldShowHistoryAnalysis(question) ? '隐藏解析' : '显示解析' }}
                 </button>
               </div>
               <div v-if="shouldShowHistoryAnalysis(question)" class="history-analysis luogu-markdown" v-html="renderMd(question.analysis)"></div>
             </article>
           </div>
 
-          <div v-else-if="activeTab === 'history' && !hasHistory" class="panel-card body-card">暂无历史答卷。</div>
+          <div v-else-if="activeTab === 'history' && !hasHistory" class="panel-card body-card">暂无历史提交。</div>
         </div>
 
         <aside class="right-column">
@@ -426,7 +465,7 @@ watch(
             <p class="history-date">提交于 {{ formatDate(selectedSubmission?.submittedAt ?? submissions[0]?.submittedAt) }}</p>
             <div class="history-header">
               <h3>最近提交记录</h3>
-              <button class="toggle-btn" @click="historyCollapsed = !historyCollapsed">{{ historyCollapsed ? "展开" : "收起" }}</button>
+              <button class="toggle-btn" @click="historyCollapsed = !historyCollapsed">{{ historyCollapsed ? '展开' : '收起' }}</button>
             </div>
             <div v-if="!historyCollapsed" class="history-list">
               <button
@@ -467,7 +506,7 @@ watch(
         <button class="detail-modal-close" @click="closeConflictModal">×</button>
         <p>
           {{ activeExam?.problemsetId }} - {{ activeExam?.problemsetTitle }} 正在进行中，是否删除上次状态并开始新的测试？
-          （你也可以去个人中心恢复上次考试）
+          （你也可以去个人中心恢复上次考试。）
         </p>
         <div class="detail-modal-actions">
           <button class="danger" @click="forceStartExam">覆盖并开始新测试</button>
@@ -477,3 +516,5 @@ watch(
     </div>
   </TiLayout>
 </template>
+
+

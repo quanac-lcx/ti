@@ -91,6 +91,51 @@ const guestPlayable = computed(() => {
 const questions = computed(() => detail.value?.questions ?? []);
 const totalScore = computed(() => questions.value.reduce((sum, item) => sum + Number(item.score), 0));
 
+interface SidebarQuestionGroup {
+  key: string;
+  title: string;
+  questions: ProblemQuestion[];
+  materialGroupIndex: number | null;
+  isMaterialGroup: boolean;
+}
+
+const sidebarQuestionGroups = computed<SidebarQuestionGroup[]>(() => {
+  const groups: SidebarQuestionGroup[] = [];
+  const materialGroupMap = new Map<number, SidebarQuestionGroup>();
+
+  for (const question of questions.value) {
+    const hasMaterial = Boolean(question.sharedMaterial?.trim()) && question.materialGroupIndex !== null;
+    if (!hasMaterial || question.materialGroupIndex === null) {
+      groups.push({
+        key: `single-${question.id}`,
+        title: `第 ${question.index} 题`,
+        questions: [question],
+        materialGroupIndex: null,
+        isMaterialGroup: false
+      });
+      continue;
+    }
+
+    const existing = materialGroupMap.get(question.materialGroupIndex);
+    if (existing) {
+      existing.questions.push(question);
+      continue;
+    }
+
+    const group: SidebarQuestionGroup = {
+      key: `material-${question.materialGroupIndex}`,
+      title: question.groupTitle?.trim() || `材料题 ${question.materialGroupIndex}`,
+      questions: [question],
+      materialGroupIndex: question.materialGroupIndex,
+      isMaterialGroup: true
+    };
+    materialGroupMap.set(question.materialGroupIndex, group);
+    groups.push(group);
+  }
+
+  return groups;
+});
+
 const answeredCount = computed(() =>
   questions.value.filter((question) => String(answers[question.id] ?? "").trim().length > 0).length
 );
@@ -326,6 +371,10 @@ function scrollToQuestion(questionId: string) {
 
 function renderMd(text: string) {
   return renderLuoguMarkdown(text);
+}
+
+function questionMaterialTitle(question: ProblemQuestion) {
+  return question.groupTitle?.trim() || "共享材料";
 }
 
 function isOptionChecked(question: ProblemQuestion, key: string) {
@@ -634,21 +683,6 @@ function closeGuestLoginModal() {
       <div v-if="loading" class="panel-card">加载中...</div>
       <div v-else-if="error" class="panel-card error-card">{{ error }}</div>
       <template v-else-if="detail">
-        <section class="panel-card mode-header">
-          <div>
-            <h2>{{ detail.summary.id }} - {{ detail.summary.title }}</h2>
-            <p class="mode-hint">{{ isExam ? "限时测试模式" : "自由练习模式" }}</p>
-          </div>
-          <div class="mode-meta">
-            <div>题目数量：{{ detail.summary.questionCount }}</div>
-            <div>测试时间：{{ detail.summary.durationHours }} 小时</div>
-            <div v-if="isExam" class="mode-timer" :class="{ danger: remainingSeconds <= 300 }">
-              剩余时间 {{ formatDuration(remainingSeconds) }}
-            </div>
-            <div v-if="autosaving && isExam" class="autosave-tip">自动保存中...</div>
-          </div>
-        </section>
-
         <section class="mode-layout">
           <div class="mode-left">
             <article
@@ -657,7 +691,23 @@ function closeGuestLoginModal() {
               :key="question.id"
               class="panel-card question-card"
             >
-              <h3>第 {{ question.index }} 题</h3>
+              <h3>
+                第 {{ question.index }} 题
+                <span v-if="question.groupQuestionIndex">
+                  · 第 {{ question.groupQuestionIndex }}
+                  <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
+                  小题
+                </span>
+              </h3>
+              <details v-if="question.sharedMaterial?.trim()" class="shared-material-panel" open>
+                <summary class="shared-material-summary">
+                  <span class="shared-material-arrow" aria-hidden="true"></span>
+                  <span class="shared-material-title">{{ questionMaterialTitle(question) }}</span>
+                </summary>
+                <div class="shared-material-block">
+                  <div class="shared-material-content luogu-markdown" v-html="renderMd(question.sharedMaterial)"></div>
+                </div>
+              </details>
               <div class="question-stem luogu-markdown" v-html="renderMd(question.stem)"></div>
 
               <div v-if="question.type === 'option'" class="mode-option-list">
@@ -697,7 +747,27 @@ function closeGuestLoginModal() {
           </div>
 
           <aside class="panel-card mode-right">
-            <div class="actions">
+            <div v-if="isExam" class="mode-timer-card" :class="{ danger: remainingSeconds <= 300 }">
+              <span class="mode-timer-label">剩余时间</span>
+              <strong class="mode-timer-value">{{ formatDuration(remainingSeconds) }}</strong>
+            </div>
+
+            <div class="mode-summary-cards">
+              <div class="mode-summary-card">
+                <span class="mode-summary-label">已作答</span>
+                <strong>{{ answeredCount }} / {{ detail.summary.questionCount }}</strong>
+              </div>
+              <div v-if="submitted" class="mode-summary-card">
+                <span class="mode-summary-label">正确题数</span>
+                <strong>{{ correctCount }} 题</strong>
+              </div>
+              <div v-if="submitted" class="mode-summary-card">
+                <span class="mode-summary-label">得分</span>
+                <strong>{{ submissionScore }} / {{ maxScore }}</strong>
+              </div>
+            </div>
+
+            <div class="actions mode-actions">
               <button v-if="isExam && !submitted && !!currentUser?.uid" class="btn warn" @click="pauseExam">暂停</button>
               <button v-if="isExam && !submitted" class="btn primary" @click="submitExam('manual')">交卷</button>
               <button v-if="!isExam && !submitted" class="btn primary" @click="saveTrainingRecord">
@@ -705,23 +775,40 @@ function closeGuestLoginModal() {
               </button>
             </div>
 
-            <div class="mode-summary">
-              <p>已作答：{{ answeredCount }} / {{ detail.summary.questionCount }}</p>
-              <p v-if="submitted">正确：{{ correctCount }} 题</p>
-              <p v-if="submitted">得分：{{ submissionScore }} / {{ maxScore }}</p>
-            </div>
+            <div class="mode-question-nav">
+              <div class="mode-question-nav-head">
+                <h3>题目列表</h3>
+              </div>
+              <div class="question-group-list">
+                <template v-for="group in sidebarQuestionGroups" :key="group.key">
+                  <section
+                    v-if="group.isMaterialGroup"
+                    class="question-group-block material"
+                  >
+                    <div class="question-group-title">{{ group.title }}</div>
+                    <div class="question-grid">
+                      <button
+                        v-for="question in group.questions"
+                        :key="question.id"
+                        class="num-btn"
+                        :class="questionButtonClass(question)"
+                        @click="scrollToQuestion(question.id)"
+                      >
+                        {{ question.index }}
+                      </button>
+                    </div>
+                  </section>
 
-            <h3>题目列表</h3>
-            <div class="question-grid">
-              <button
-                v-for="question in detail.questions"
-                :key="question.id"
-                class="num-btn"
-                :class="questionButtonClass(question)"
-                @click="scrollToQuestion(question.id)"
-              >
-                第 {{ question.index }} 题
-              </button>
+                  <button
+                    v-else
+                    class="num-btn num-btn-standalone"
+                    :class="questionButtonClass(group.questions[0])"
+                    @click="scrollToQuestion(group.questions[0].id)"
+                  >
+                    {{ group.questions[0].index }}
+                  </button>
+                </template>
+              </div>
             </div>
           </aside>
         </section>

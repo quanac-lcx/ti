@@ -1,10 +1,11 @@
-// @ts-nocheck
+﻿// @ts-nocheck
 import express from "express";
 import { randomBytes } from "node:crypto";
 import { dbPool, pingDb } from "./db.js";
 import { pingRedis, redis } from "./redis.js";
 import { buildGravatarUrl, hashPassword, normalizeEmail, verifyPassword } from "./auth.js";
 import { env } from "./env.js";
+import { parseQuestionConfig } from "./questionConfigParser.js";
 
 function isEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value ?? "").trim());
@@ -62,6 +63,17 @@ function toQuestion(row) {
     id: String(row.id),
     index: Number(row.question_index),
     type: String(row.question_type ?? "option"),
+    materialGroupIndex: row.material_group_index === null || row.material_group_index === undefined
+      ? null
+      : Number(row.material_group_index),
+    groupQuestionIndex: row.group_question_index === null || row.group_question_index === undefined
+      ? null
+      : Number(row.group_question_index),
+    groupQuestionCount: row.group_question_count === null || row.group_question_count === undefined
+      ? null
+      : Number(row.group_question_count),
+    groupTitle: String(row.group_title ?? ""),
+    sharedMaterial: String(row.shared_material ?? ""),
     stem: String(row.stem ?? ""),
     inputPlaceholder: String(row.input_placeholder ?? ""),
     options: Array.isArray(row.options_json)
@@ -367,7 +379,7 @@ function pickDisplayName(profile) {
   if (displayName !== "cpo-user") return displayName;
   const username = sanitizeUsername(profile?.username);
   if (username !== "cpo-user") return username;
-  return "CPOAuth 用户";
+  return "CPOAuth 鐢ㄦ埛";
 }
 
 async function buildUniqueDisplayName(baseUsername) {
@@ -585,159 +597,6 @@ async function getNextProblemsetIdByType(problemsetType) {
   return Number(rows[0]?.max_id ?? minId - 1) + 1;
 }
 
-function parseInlineAttrs(raw) {
-  const attrs = {};
-  const source = String(raw ?? "");
-  const pattern = /([a-zA-Z_][a-zA-Z0-9_-]*)\s*=\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|[^\s]+)/g;
-  let match = pattern.exec(source);
-  while (match) {
-    const key = match[1];
-    let value = match[2] ?? "";
-    if ((value.startsWith("\"") && value.endsWith("\"")) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    attrs[key] = value;
-    match = pattern.exec(source);
-  }
-  return attrs;
-}
-
-function getSection(rawBlock, sectionName) {
-  const regex = new RegExp(`\\[${sectionName}([^\\]]*)\\]([\\s\\S]*?)\\[\\/${sectionName}\\]`, "i");
-  const matched = regex.exec(rawBlock);
-  if (!matched) return null;
-  return {
-    attrs: parseInlineAttrs(matched[1] ?? ""),
-    body: String(matched[2] ?? "").trim()
-  };
-}
-
-function parseOptionLines(optionsText) {
-  const lines = String(optionsText ?? "")
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const options = [];
-  for (const line of lines) {
-    const letterMatch = /^([A-Za-z])[\.\)]\s*(.+)$/.exec(line);
-    if (letterMatch) {
-      options.push({ key: letterMatch[1].toUpperCase(), text: letterMatch[2].trim() });
-      continue;
-    }
-    const numberMatch = /^(\d+)[\.\)]\s*(.+)$/.exec(line);
-    if (numberMatch) {
-      const index = Number(numberMatch[1]) - 1;
-      if (index >= 0 && index < 26) {
-        options.push({ key: String.fromCharCode(65 + index), text: numberMatch[2].trim() });
-      }
-    }
-  }
-  return options.filter((item, index, arr) => arr.findIndex((it) => it.key === item.key) === index);
-}
-
-function normalizeOptionAnswer(answerRaw) {
-  const letters = String(answerRaw ?? "")
-    .split(",")
-    .map((item) => item.trim().toUpperCase())
-    .filter(Boolean);
-  const normalized = Array.from(new Set(letters)).filter((item) => /^[A-Z]$/.test(item));
-  return normalized.join(",");
-}
-
-function parseQuestionConfig(configRaw) {
-  const source = String(configRaw ?? "").replace(/\r\n/g, "\n");
-  const blockRegex = /:::question([^\n]*)\n([\s\S]*?)\n:::/g;
-  const parsed = [];
-  const errors = [];
-  let matched = blockRegex.exec(source);
-
-  while (matched) {
-    const headerAttrs = parseInlineAttrs(matched[1] ?? "");
-    const blockBody = String(matched[2] ?? "");
-    const questionType = String(headerAttrs.type ?? "").trim().toLowerCase();
-    const score = Number(headerAttrs.score ?? NaN);
-    const stemSection = getSection(blockBody, "stem");
-    const analysisSection = getSection(blockBody, "analysis");
-
-    if (!questionType || (questionType !== "option" && questionType !== "input")) {
-      errors.push("题型 type 只支持 option 或 input");
-      matched = blockRegex.exec(source);
-      continue;
-    }
-    if (!Number.isFinite(score) || score <= 0) {
-      errors.push("score 必须为正数");
-      matched = blockRegex.exec(source);
-      continue;
-    }
-    if (!stemSection?.body) {
-      errors.push("每个题目都必须提供 [stem]...[/stem]");
-      matched = blockRegex.exec(source);
-      continue;
-    }
-
-    if (questionType === "option") {
-      const optionSection = getSection(blockBody, "options");
-      const answer = normalizeOptionAnswer(optionSection?.attrs?.answer ?? "");
-      const options = parseOptionLines(optionSection?.body ?? "");
-      if (!optionSection) {
-        errors.push("选择题需要 [options answer=A]...[/options]");
-        matched = blockRegex.exec(source);
-        continue;
-      }
-      if (options.length < 2 || options.length > 26) {
-        errors.push("选择题选项数量必须在 2~26");
-        matched = blockRegex.exec(source);
-        continue;
-      }
-      if (!answer) {
-        errors.push("选择题答案不能为空，例如 answer=A 或 answer=A,C");
-        matched = blockRegex.exec(source);
-        continue;
-      }
-
-      parsed.push({
-        type: "option",
-        score,
-        stem: stemSection.body,
-        options,
-        answer,
-        inputPlaceholder: "",
-        analysis: analysisSection?.body ?? ""
-      });
-    } else {
-      const inputSection = getSection(blockBody, "input");
-      const answer = String(inputSection?.attrs?.answer ?? "").trim();
-      if (!inputSection) {
-        errors.push("填空题需要 [input answer=xxx placeholder=提示]...[/input]");
-        matched = blockRegex.exec(source);
-        continue;
-      }
-      if (!answer) {
-        errors.push("填空题 answer 不能为空");
-        matched = blockRegex.exec(source);
-        continue;
-      }
-
-      parsed.push({
-        type: "input",
-        score,
-        stem: stemSection.body,
-        options: [],
-        answer,
-        inputPlaceholder: String(inputSection.attrs?.placeholder ?? inputSection.body ?? "").trim(),
-        analysis: analysisSection?.body ?? ""
-      });
-    }
-
-    matched = blockRegex.exec(source);
-  }
-
-  if (parsed.length === 0 && errors.length === 0) {
-    errors.push("未解析到题目，请检查配置格式。");
-  }
-  return { questions: parsed, errors };
-}
-
 async function getProblemsetById(problemsetId) {
   const [rows] = await dbPool.query(
     "SELECT id, title, description, duration_minutes, question_config, created_by_uid, problemset_type FROM problemsets WHERE id = ? LIMIT 1",
@@ -913,7 +772,7 @@ export function buildRouter() {
     }
 
     const [questionRows] = await dbPool.query(
-      "SELECT id, question_index, question_type, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE problemset_id = ? ORDER BY question_index ASC",
+      "SELECT id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE problemset_id = ? ORDER BY question_index ASC",
       [problemsetId]
     );
 
@@ -945,7 +804,7 @@ export function buildRouter() {
       const problemsetType = normalizeProblemsetType(typeRaw) || PROBLEMSET_TYPES.official_public;
 
       if (!user.is_admin && (problemsetType === PROBLEMSET_TYPES.official_public || problemsetType === PROBLEMSET_TYPES.personal_featured)) {
-        return res.status(403).json({ error: "普通用户仅可创建个人公开/个人私有题目" });
+        return res.status(403).json({ error: "鏅€氱敤鎴蜂粎鍙垱寤轰釜浜哄叕寮€/涓汉绉佹湁棰樼洰" });
       }
 
       if (!title) {
@@ -1001,11 +860,16 @@ export function buildRouter() {
         for (let index = 0; index < parsed.questions.length; index += 1) {
           const question = parsed.questions[index];
           await connection.query(
-            "INSERT INTO questions (problemset_id, question_index, question_type, stem, input_placeholder, options_json, score, answer, analysis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO questions (problemset_id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
               problemsetId,
               index + 1,
               question.type,
+              question.materialGroupIndex,
+              question.groupQuestionIndex,
+              question.groupQuestionCount,
+              question.groupTitle || null,
+              question.sharedMaterial || null,
               question.stem,
               question.inputPlaceholder,
               JSON.stringify(question.options),
@@ -1102,7 +966,7 @@ export function buildRouter() {
     }
 
     if (!actor.is_admin && (nextType === PROBLEMSET_TYPES.official_public || nextType === PROBLEMSET_TYPES.personal_featured)) {
-      return res.status(403).json({ error: "普通用户仅可设置个人公开/个人私有" });
+      return res.status(403).json({ error: "鏅€氱敤鎴蜂粎鍙缃釜浜哄叕寮€/涓汉绉佹湁" });
     }
 
     const parsed = parseQuestionConfig(questionConfig);
@@ -1147,11 +1011,16 @@ export function buildRouter() {
       for (let index = 0; index < parsed.questions.length; index += 1) {
         const question = parsed.questions[index];
         await connection.query(
-          "INSERT INTO questions (problemset_id, question_index, question_type, stem, input_placeholder, options_json, score, answer, analysis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO questions (problemset_id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             targetId,
             index + 1,
             question.type,
+            question.materialGroupIndex,
+            question.groupQuestionIndex,
+            question.groupQuestionCount,
+            question.groupTitle || null,
+            question.sharedMaterial || null,
             question.stem,
             question.inputPlaceholder,
             JSON.stringify(question.options),
@@ -1408,7 +1277,7 @@ export function buildRouter() {
       [token]
     );
     if (!Array.isArray(rows) || rows.length === 0) {
-      return res.status(401).json({ error: "无效的Token" });
+      return res.status(401).json({ error: "鏃犳晥鐨凾oken" });
     }
 
     return res.status(201).json({
@@ -1560,7 +1429,7 @@ export function buildRouter() {
       return res.status(403).json({ error: "无权访问该题目。" });
     }
     const [rows] = await dbPool.query(
-      "SELECT id, question_index, question_type, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE problemset_id = ? ORDER BY question_index ASC",
+      "SELECT id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE problemset_id = ? ORDER BY question_index ASC",
       [problemsetId]
     );
     return res.json({ questions: rows.map(toQuestion) });
@@ -1963,7 +1832,7 @@ export function buildRouter() {
     }
 
     const [rows] = await dbPool.query(
-      "SELECT id, question_index, question_type, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE problemset_id = ? ORDER BY question_index ASC",
+      "SELECT id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE problemset_id = ? ORDER BY question_index ASC",
       [problemsetId]
     );
     return res.json({ questions: rows.map(toQuestion) });
@@ -2165,7 +2034,7 @@ export function buildRouter() {
     }
 
     const [rows] = await dbPool.query(
-      "SELECT id, problemset_id, question_index, question_type, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE id = ? LIMIT 1",
+      "SELECT id, problemset_id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE id = ? LIMIT 1",
       [questionId]
     );
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -2254,7 +2123,7 @@ export function buildRouter() {
     }
 
     const [updatedRows] = await dbPool.query(
-      "SELECT id, question_index, question_type, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE id = ? LIMIT 1",
+      "SELECT id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE id = ? LIMIT 1",
       [questionId]
     );
     return res.json({ question: toQuestion(updatedRows[0]) });
@@ -2347,7 +2216,7 @@ export function buildRouter() {
     const [countRows] = await dbPool.query("SELECT COUNT(*) AS cnt FROM admin_tokens");
     const count = Number(countRows?.[0]?.cnt ?? 0);
     if (count >= 2) {
-      return res.status(400).json({ error: "最多只能保留 2 个 admin token" });
+      return res.status(400).json({ error: "鏈€澶氬彧鑳戒繚鐣?2 涓?admin token" });
     }
 
     let createdToken = "";
@@ -2402,34 +2271,6 @@ export function buildRouter() {
     return res.status(204).send();
   });
 
-  router.post("/admin/users", async (req, res) => {
-    const admin = await requireAdmin(req, res);
-    if (!admin) return;
-    const username = String(req.body?.username ?? "").trim();
-    const email = normalizeEmail(req.body?.email);
-    const password = String(req.body?.password ?? "");
-    if (!username || !isEmail(email) || password.length < 6) {
-      return res.status(400).json({ error: "invalid payload" });
-    }
-
-    const [exists] = await dbPool.query("SELECT id FROM users WHERE email = ? LIMIT 1", [email]);
-    if (Array.isArray(exists) && exists.length > 0) {
-      return res.status(409).json({ error: "email already exists" });
-    }
-
-    const [result] = await dbPool.query(
-      "INSERT INTO users (name, email, password_hash, avatar_url) VALUES (?, ?, ?, ?)",
-      [username, email, hashPassword(password), buildGravatarUrl(email)]
-    );
-    const userId = Number(result.insertId);
-    await dbPool.query("UPDATE users SET uid = ? WHERE id = ?", [`pre${userId}`, userId]);
-    const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
-      [userId]
-    );
-    return res.status(201).json({ user: toPublicUser(rows[0]) });
-  });
-
   router.patch("/admin/users/:uid", async (req, res) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
@@ -2470,6 +2311,9 @@ export function buildRouter() {
       values.push(buildGravatarUrl(email));
     }
     if (typeof isAdmin === "boolean") {
+      if (targetUid === admin.uid && !isAdmin) {
+        return res.status(400).json({ error: "admin cannot remove self admin permission" });
+      }
       sets.push("is_admin = ?");
       values.push(isAdmin ? 1 : 0);
     }
@@ -2615,7 +2459,7 @@ export function buildRouter() {
     }
 
     const [rows] = await dbPool.query(
-      "SELECT id, question_index, question_type, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE id = ? LIMIT 1",
+      "SELECT id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE id = ? LIMIT 1",
       [result.insertId]
     );
     return res.status(201).json({ question: toQuestion(rows[0]) });
@@ -2623,3 +2467,5 @@ export function buildRouter() {
 
   return router;
 }
+
+

@@ -134,6 +134,29 @@
   gap: 12px;
 }
 
+:is(.problemset-create-page, .problemset-edit-page) .preview-group {
+  display: grid;
+  gap: 10px;
+}
+
+:is(.problemset-create-page, .problemset-edit-page) .preview-material {
+  border: 1px solid #d8e2f0;
+  background: #f8fbff;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+:is(.problemset-create-page, .problemset-edit-page) .preview-material-title {
+  margin-bottom: 8px;
+  color: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+:is(.problemset-create-page, .problemset-edit-page) .preview-material-content {
+  line-height: 1.7;
+}
+
 :is(.problemset-create-page, .problemset-edit-page) .preview-item {
   border: 1px solid #e2e8f0;
   background: #fff;

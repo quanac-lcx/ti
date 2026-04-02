@@ -19,6 +19,11 @@ export interface ProblemQuestion {
   id: string;
   index: number;
   type: "option" | "input";
+  materialGroupIndex: number | null;
+  groupQuestionIndex: number | null;
+  groupQuestionCount: number | null;
+  groupTitle: string;
+  sharedMaterial: string;
   stem: string;
   inputPlaceholder: string;
   options: ChoiceOption[];

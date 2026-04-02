@@ -44,10 +44,17 @@
 }
 
 .admin-toolbar,
-.admin-actions,
-.admin-card .actions {
+.admin-actions {
   margin-top: 10px;
   display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-head .actions {
+  margin-top: 0;
+  display: inline-flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
@@ -68,7 +75,7 @@
   gap: 6px;
 }
 
-.admin-form-grid label > span {
+.admin-form-grid label>span {
   color: #374151;
   font-weight: 600;
   font-size: 14px;
@@ -97,8 +104,16 @@
   border-top: 1px solid #efefef;
   padding: 8px;
   text-align: left;
-  vertical-align: top;
+  vertical-align: middle;
   font-size: 13px;
+}
+
+.admin-table td.actions {
+  white-space: nowrap;
+}
+
+.admin-table td.actions .admin-btn+.admin-btn {
+  margin-left: 8px;
 }
 
 .admin-table th:first-child,

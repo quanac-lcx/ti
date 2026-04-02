@@ -1,47 +1,110 @@
-﻿# Vue + Redis + MariaDB 项目框架
+# ti.luogu.me
 
-包含：
+项目包含：
+
 - `web/`：Vue 3 + Vite 前端
-- `server/`：Node.js(Express) API，演示连接 Redis / MariaDB
-- `docker-compose.yml`：一键启动 `mariadb` + `redis` + `api` + `web`
-- 包管理器：pnpm（容器内使用 `corepack enable` + `pnpm install`）
+- `server/`：Node.js + Express + MariaDB + Redis 后端
+- `docker-compose.yml`：本地开发基础设施（MariaDB / Redis）
+- `docker-compose.prod.yml`：Linux 生产部署
 
-## 快速开始
+## 一本地开发（推荐）
 
-1) 准备环境：Docker Desktop
-> 如果 `docker compose` 报 `dockerDesktopLinuxEngine` 管道找不到，一般是 Docker Desktop 未启动或未启用 Linux/WSL2 引擎。
+### 1. 准备环境
 
-2) 初始化环境变量
+- Node.js 20+
+- `pnpm`
+- MariaDB / MySQL
+- Redis
+
+### 2. 安装依赖
+
+```bash
+pnpm install
+```
+
+### 3. 配置后端环境变量
+
+```bash
+cp server/.env.example server/.env
+```
+
+按实际数据库 / Redis 修改 `server/.env`。
+
+默认本地开发配置：
+
+- API：`http://localhost:3000`
+- Web：`http://localhost:5173`
+- MariaDB：`127.0.0.1:3306`
+- Redis：`127.0.0.1:6379`
+
+### 4. 启动项目
+
+```bash
+pnpm dev
+```
+
+或分别启动：
+
+```bash
+pnpm run dev:api
+pnpm run dev:web
+```
+
+## 二使用 Docker 启动本地数据库 / Redis
+
+如果本机没有 MariaDB / Redis，可以直接启动基础设施：
 
 ```bash
 cp .env.example .env
+pnpm run dev:infra
 ```
 
-3) 启动（Docker）
+默认暴露端口：
 
-```bash
-docker compose up -d
+- MariaDB：`127.0.0.1:3307`
+- Redis：`127.0.0.1:6380`
+
+这时把 `server/.env` 改成：
+
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3307
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6380
 ```
 
-4) 访问
-
-- 前端：`http://localhost:5173`
-- 根路径会跳转到：`/problemset`
-- API：`http://localhost:3000/api/health`
-
-## 常用命令
+停止基础设施：
 
 ```bash
-docker compose logs -f api
-docker compose logs -f web
-docker compose down
+pnpm run dev:infra:down
 ```
 
-## 本地启动（不使用 Docker）
+## 三生产部署（Linux）
 
-在根目录：
+生产环境请使用：
 
 ```bash
-pnpm -C web install
-pnpm -C web dev
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+更完整的 Linux 部署步骤见：`docs/deploy-linux.md`
+
+该部署方式会：
+
+- 使用 `server/Dockerfile` 构建后端产物
+- 使用 `web/Dockerfile` 构建前端静态资源
+- 使用 Nginx 在容器内托管前端 SPA
+- 使用 Docker 内部网络连接 MariaDB / Redis / API / Web
+
+## 四常用命令
+
+```bash
+pnpm build
+pnpm -C server run typecheck
+pnpm -C web exec vue-tsc --noEmit
+docker compose ps
+docker compose logs -f mariadb
+docker compose logs -f redis
+docker compose -f docker-compose.prod.yml logs -f api
+docker compose -f docker-compose.prod.yml logs -f web
 ```

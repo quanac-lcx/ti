@@ -170,7 +170,7 @@ onMounted(loadSettings);
             </button>
           </div>
           <div class="cover-preview" :style="profileCoverUrl ? { backgroundImage: `url(${profileCoverUrl})` } : {}">
-            <div class="preview-tip"><i class="fa-solid fa-panorama"></i>个人中心背景图预览</div>
+            <div class="preview-tip"><i class="fa-solid fa-panorama"></i>预览</div>
           </div>
         </div>
 

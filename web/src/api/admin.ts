@@ -122,17 +122,6 @@ export async function updateUser(
   return (data as UserResponse).user;
 }
 
-export async function createUser(payload: {
-  username: string;
-  email: string;
-  password: string;
-}): Promise<AuthUser> {
-  const result = await apiPost<UserResponse>("/api/admin/users", payload, {
-    headers: adminHeaders()
-  });
-  return result.user;
-}
-
 export async function createQuestion(
   problemsetId: number,
   payload: {

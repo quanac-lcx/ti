@@ -2,7 +2,6 @@
 import { computed, onMounted, reactive, ref } from "vue";
 import {
   banUser,
-  createUser,
   deleteUser,
   fetchAdminUsers,
   promoteUser,
@@ -17,12 +16,6 @@ const users = ref<AuthUser[]>([]);
 const loading = ref(false);
 const selected = ref<string[]>([]);
 const editingUid = ref("");
-
-const createForm = reactive({
-  username: "",
-  email: "",
-  password: ""
-});
 
 const editForm = reactive({
   uid: "",
@@ -75,23 +68,6 @@ function startEdit(target: AuthUser) {
   document.getElementById("user-edit")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-async function submitCreate() {
-  try {
-    await createUser({
-      username: createForm.username.trim(),
-      email: createForm.email.trim(),
-      password: createForm.password
-    });
-    createForm.username = "";
-    createForm.email = "";
-    createForm.password = "";
-    notifySuccess("用户创建成功。");
-    await loadUsers();
-  } catch (err) {
-    notifyError(String((err as Error)?.message ?? err));
-  }
-}
-
 async function submitEdit() {
   if (!editingUid.value) {
     notifyWarning("请先从用户列表选择一个用户进行编辑。");
@@ -142,7 +118,14 @@ async function runBatch(title: string, message: string, task: (uid: string) => P
 
 async function batchPromote() {
   await runBatch("批量提权", "将选中用户提升为管理员。", async (uid) => {
-    await promoteUser(uid);
+    await updateUser(uid, { isAdmin: true });
+  });
+}
+
+async function batchDemote() {
+  await runBatch("批量解除管理员", "将移除选中用户的管理员权限。", async (uid) => {
+    if (isSelf(uid)) return;
+    await updateUser(uid, { isAdmin: false });
   });
 }
 
@@ -162,8 +145,18 @@ async function batchDelete() {
 
 async function singlePromote(uid: string) {
   try {
-    await promoteUser(uid);
-    notifySuccess(`${uid} 已提升为管理员。`);
+    const target = users.value.find((item) => item.uid === uid);
+    const nextAdmin = !Boolean(target?.isAdmin);
+    if (!nextAdmin && isSelf(uid)) {
+      notifyWarning("不能解除当前登录管理员自己的权限。");
+      return;
+    }
+    if (nextAdmin) {
+      await promoteUser(uid);
+    } else {
+      await updateUser(uid, { isAdmin: false });
+    }
+    notifySuccess(`${uid} 已${nextAdmin ? "提升为" : "解除"}管理员。`);
     await loadUsers();
   } catch (err) {
     notifyError(String((err as Error)?.message ?? err));
@@ -191,7 +184,6 @@ onMounted(loadUsers);
   <div class="admin-page">
     <nav class="admin-anchor-nav">
       <a href="#users-table">用户列表</a>
-      <a href="#user-create">创建用户</a>
       <a href="#user-edit">编辑用户</a>
     </nav>
 
@@ -203,11 +195,12 @@ onMounted(loadUsers);
       <div class="admin-toolbar">
         <button class="admin-btn" type="button" @click="toggleAll">{{ allSelected ? "取消全选" : "全选" }}</button>
         <button class="admin-btn" type="button" @click="batchPromote">批量提权</button>
+        <button class="admin-btn" type="button" @click="batchDemote">批量解除提权</button>
         <button class="admin-btn" type="button" @click="batchBan(true)">批量封禁</button>
         <button class="admin-btn" type="button" @click="batchBan(false)">批量解封</button>
         <button class="admin-btn danger" type="button" @click="batchDelete">批量删除</button>
       </div>
-      <p class="admin-hint">提示：管理员不会封禁/删除自己。</p>
+      <p class="admin-hint">提示：管理员不会封禁/删除/降权自己。</p>
 
       <p v-if="loading">加载中...</p>
       <table v-else class="admin-table">
@@ -232,7 +225,7 @@ onMounted(loadUsers);
             <td>{{ item.isBanned ? "是" : "否" }}</td>
             <td class="actions">
               <button class="admin-btn" type="button" @click="startEdit(item)">编辑</button>
-              <button class="admin-btn" type="button" @click="singlePromote(item.uid)">提权</button>
+              <button class="admin-btn" type="button" @click="singlePromote(item.uid)">{{ item.isAdmin ? "解除提权" : "提权" }}</button>
               <button class="admin-btn" type="button" @click="singleToggleBan(item.uid, !item.isBanned)">
                 {{ item.isBanned ? "解封" : "封禁" }}
               </button>
@@ -240,27 +233,6 @@ onMounted(loadUsers);
           </tr>
         </tbody>
       </table>
-    </section>
-
-    <section id="user-create" class="admin-card">
-      <h3>创建用户</h3>
-      <div class="admin-form-grid">
-        <label>
-          <span>显示名称</span>
-          <input v-model.trim="createForm.username" type="text" placeholder="用户名" />
-        </label>
-        <label>
-          <span>邮箱</span>
-          <input v-model.trim="createForm.email" type="email" placeholder="邮箱" />
-        </label>
-        <label>
-          <span>密码</span>
-          <input v-model="createForm.password" type="password" placeholder="至少 6 位" />
-        </label>
-      </div>
-      <div class="admin-actions">
-        <button class="admin-btn primary" type="button" @click="submitCreate">创建用户</button>
-      </div>
     </section>
 
     <section id="user-edit" class="admin-card">

@@ -3,9 +3,9 @@ function resolveApiBaseUrl() {
   if (configured) return configured.replace(/\/$/, "");
   if (typeof window !== "undefined") {
     const { protocol, hostname } = window.location;
-    return `${protocol}//${hostname}:3001`;
+    return `${protocol}//${hostname}:3000`;
   }
-  return "http://localhost:3001";
+  return "http://localhost:3000";
 }
 
 export const apiBaseUrl = resolveApiBaseUrl();
@@ -50,7 +50,6 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
     try {
       localStorage.removeItem("ti.user");
     } catch { }
-    // 尝试读取后端的错误描述，随后跳转登录页
     const payload = await response.json().catch(() => ({}));
     window.location.href = "/auth/login";
     throw new Error(String(payload?.error ?? "forbidden"));

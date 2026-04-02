@@ -150,6 +150,11 @@ export async function ensureUserSchema() {
         problemset_id BIGINT UNSIGNED NOT NULL,
         question_index INT NOT NULL,
         question_type VARCHAR(16) NOT NULL DEFAULT 'option',
+        material_group_index INT NULL,
+        group_question_index INT NULL,
+        group_question_count INT NULL,
+        group_title VARCHAR(191) NULL,
+        shared_material MEDIUMTEXT NULL,
         stem TEXT NOT NULL,
         input_placeholder TEXT NULL,
         options_json JSON NOT NULL,
@@ -162,6 +167,11 @@ export async function ensureUserSchema() {
       )
     `);
     await ensureColumn(connection, "questions", "question_type", "VARCHAR(16) NOT NULL DEFAULT 'option'");
+    await ensureColumn(connection, "questions", "material_group_index", "INT NULL");
+    await ensureColumn(connection, "questions", "group_question_index", "INT NULL");
+    await ensureColumn(connection, "questions", "group_question_count", "INT NULL");
+    await ensureColumn(connection, "questions", "group_title", "VARCHAR(191) NULL");
+    await ensureColumn(connection, "questions", "shared_material", "MEDIUMTEXT NULL");
     await ensureColumn(connection, "questions", "input_placeholder", "TEXT NULL");
 
     await connection.query(`
@@ -201,4 +211,3 @@ export async function ensureUserSchema() {
     connection.release();
   }
 }
-
