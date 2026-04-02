@@ -252,14 +252,26 @@ function resolvePublicApiBaseUrl(req) {
   return env.publicApiBaseUrl || getRequestOrigin(req);
 }
 
+function isAllowedWebHostname(currentHostname, desiredHostname) {
+  if (!currentHostname || !desiredHostname) return false;
+  if (currentHostname === desiredHostname) return true;
+  if (currentHostname.startsWith("api.") && currentHostname.slice(4) === desiredHostname) return true;
+  if (desiredHostname.startsWith("api.") && desiredHostname.slice(4) === currentHostname) return true;
+  return false;
+}
+
 function resolveWebBaseUrl(req, candidate) {
   const fallback = env.webBaseUrl || getRequestOrigin(req);
   const raw = String(candidate ?? "").trim();
   if (!isHttpUrl(raw)) return fallback;
   try {
     const desired = new URL(raw);
+    if (env.webBaseUrl && isHttpUrl(env.webBaseUrl)) {
+      const configured = new URL(env.webBaseUrl);
+      return configured.origin === desired.origin ? desired.origin : configured.origin;
+    }
     const current = new URL(getRequestOrigin(req));
-    if (desired.hostname !== current.hostname) return fallback;
+    if (!isAllowedWebHostname(current.hostname, desired.hostname)) return fallback;
     return desired.origin;
   } catch {
     return fallback;
@@ -2467,5 +2479,4 @@ export function buildRouter() {
 
   return router;
 }
-
 

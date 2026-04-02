@@ -1,11 +1,28 @@
+function normalizeBaseUrl(value: string) {
+  return value.replace(/\/$/, "");
+}
+
+function isLocalHostname(hostname: string) {
+  return hostname === "localhost"
+    || hostname === "127.0.0.1"
+    || hostname === "0.0.0.0"
+    || hostname === "::1"
+    || hostname === "[::1]";
+}
+
 function resolveApiBaseUrl() {
   const configured = String(import.meta.env.VITE_API_BASE_URL ?? "").trim();
-  if (configured) return configured.replace(/\/$/, "");
+  if (configured) return normalizeBaseUrl(configured);
+
   if (typeof window !== "undefined") {
-    const { protocol, hostname } = window.location;
-    return `${protocol}//${hostname}:3000`;
+    const { origin, protocol, hostname } = window.location;
+    if (isLocalHostname(hostname)) {
+      return `${protocol}//${hostname}:3000`;
+    }
+    return normalizeBaseUrl(origin);
   }
-  return "http://localhost:3000";
+
+  return "";
 }
 
 export const apiBaseUrl = resolveApiBaseUrl();

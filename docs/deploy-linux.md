@@ -70,6 +70,9 @@ docker compose -f docker-compose.prod.yml logs -f web
 - `api.ti.luogu.me` -> `http://127.0.0.1:3000`
 - `ti.luogu.me` -> `http://127.0.0.1:5173`
 
+If `VITE_API_BASE_URL` is left empty during the frontend build, the web container now falls back to same-origin `/api` requests and proxies them to the `api` container internally.
+If you want the browser to call `https://api.ti.luogu.me` directly, keep `VITE_API_BASE_URL`, `PUBLIC_API_BASE_URL`, and `WEB_BASE_URL` set explicitly as above.
+
 并在反代层配置 HTTPS 证书。
 
 ## 6. 首次后台登录（Admin Token）
