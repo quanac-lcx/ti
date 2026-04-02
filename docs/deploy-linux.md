@@ -1,36 +1,32 @@
 # Linux 部署说明
 
-以下步骤适用于 Ubuntu / Debian 一类 Linux 服务器。
+这份文档是 Linux 部署的快捷版。  
+更完整、更详细、包含反向代理与常见报错排查的版本请直接看仓库根目录 [README.md](../README.md) 中的“Linux 详细部署教程”。
 
-## 1. 安装基础环境
+## 1. 安装 Docker
 
 ```bash
 sudo apt update
-sudo apt install -y git curl docker.io docker-compose-plugin
+sudo apt install -y ca-certificates curl git docker.io docker-compose-plugin
 sudo systemctl enable --now docker
-```
-
-安装 `pnpm`（仅在需要本机调试时使用）：
-
-```bash
-corepack enable
-corepack prepare pnpm@9.15.4 --activate
+sudo usermod -aG docker "$USER"
+newgrp docker
 ```
 
 ## 2. 拉取项目
 
 ```bash
-git clone <your-repo-url> /home/ti
-cd /home/ti
+git clone <your-repo-url> /opt/ti.luogu.me
+cd /opt/ti.luogu.me
 ```
 
-## 3. 配置生产环境变量
+## 3. 复制并修改 `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-将 `.env` 至少改成：
+分域部署示例：
 
 ```env
 TZ=Asia/Shanghai
@@ -40,8 +36,12 @@ MARIADB_DATABASE=luogu_ti
 MARIADB_USER=app
 MARIADB_PASSWORD=请改成强密码
 
+API_BIND_HOST=127.0.0.1
 API_PORT=3000
+WEB_BIND_HOST=127.0.0.1
 WEB_PORT=5173
+
+NPM_REGISTRY=https://registry.npmmirror.com
 
 VITE_API_BASE_URL=https://api.ti.luogu.me
 PUBLIC_API_BASE_URL=https://api.ti.luogu.me
@@ -49,7 +49,36 @@ WEB_BASE_URL=https://ti.luogu.me
 CPOAUTH_BASE_URL=https://auth.luogu.me
 ```
 
-## 4. 启动生产环境
+同域 `/api` 反代示例：
+
+```env
+TZ=Asia/Shanghai
+
+MARIADB_ROOT_PASSWORD=请改成强密码
+MARIADB_DATABASE=luogu_ti
+MARIADB_USER=app
+MARIADB_PASSWORD=请改成强密码
+
+API_BIND_HOST=127.0.0.1
+API_PORT=3000
+WEB_BIND_HOST=127.0.0.1
+WEB_PORT=5173
+
+NPM_REGISTRY=https://registry.npmmirror.com
+
+VITE_API_BASE_URL=
+PUBLIC_API_BASE_URL=
+WEB_BASE_URL=https://ti.luogu.me
+CPOAUTH_BASE_URL=https://auth.luogu.me
+```
+
+说明：
+
+- 如果服务器能稳定访问官方源，可把 `NPM_REGISTRY` 改成 `https://registry.npmjs.org`
+- 如果前面有 Nginx / Caddy，建议 `API_BIND_HOST=127.0.0.1`、`WEB_BIND_HOST=127.0.0.1`
+- 若 `VITE_API_BASE_URL` 留空，前端会使用同源 `/api`，由 `web` 容器内 Nginx 转发到 `api`
+
+## 4. 启动
 
 ```bash
 docker compose -f docker-compose.prod.yml up -d --build
@@ -59,47 +88,30 @@ docker compose -f docker-compose.prod.yml ps
 查看日志：
 
 ```bash
+docker compose -f docker-compose.prod.yml logs -f mariadb
 docker compose -f docker-compose.prod.yml logs -f api
 docker compose -f docker-compose.prod.yml logs -f web
 ```
 
-## 5. 反向代理
-
-建议：
-
-- `api.ti.luogu.me` -> `http://127.0.0.1:3000`
-- `ti.luogu.me` -> `http://127.0.0.1:5173`
-
-If `VITE_API_BASE_URL` is left empty during the frontend build, the web container now falls back to same-origin `/api` requests and proxies them to the `api` container internally.
-If you want the browser to call `https://api.ti.luogu.me` directly, keep `VITE_API_BASE_URL`, `PUBLIC_API_BASE_URL`, and `WEB_BASE_URL` set explicitly as above.
-
-并在反代层配置 HTTPS 证书。
-
-## 6. 首次后台登录（Admin Token）
-
-进入数据库容器：
+## 5. 初始化后台 Admin Token
 
 ```bash
-docker exec -it app-mariadb mariadb -uapp -p luogu_ti
+docker compose -f docker-compose.prod.yml exec mariadb mariadb -uapp -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"
 ```
-
-插入一条 32 位字母数字 token：
 
 ```sql
 INSERT INTO admin_tokens (token, created_by_uid)
 VALUES ('AbCdEfGhIjKlMnOpQrStUvWxYz123456', 'root');
 ```
 
-然后访问：
+登录地址：
 
 - `https://ti.luogu.me/auth/login`
 
-在登录页下方使用 `Admin Token` 登录后台，完成 CPOAuth 配置。
-
-## 7. 更新部署
+## 6. 更新部署
 
 ```bash
-cd /home/ti
+cd /opt/ti.luogu.me
 git pull
 docker compose -f docker-compose.prod.yml up -d --build
 ```

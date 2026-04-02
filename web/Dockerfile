@@ -1,7 +1,9 @@
 FROM node:20-alpine AS build
 
 WORKDIR /app
-RUN corepack enable
+ARG NPM_REGISTRY=https://registry.npmmirror.com
+ENV npm_config_registry=${NPM_REGISTRY}
+RUN npm install -g pnpm@9.15.4
 
 COPY package.json pnpm-lock.yaml tsconfig.json vite.config.ts index.html ./
 RUN pnpm install --frozen-lockfile

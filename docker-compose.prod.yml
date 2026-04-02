@@ -33,6 +33,8 @@ services:
   api:
     build:
       context: ./server
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
     container_name: app-api
     restart: unless-stopped
     environment:
@@ -50,7 +52,7 @@ services:
       CPOAUTH_BASE_URL: ${CPOAUTH_BASE_URL:-https://auth.luogu.me}
       TZ: ${TZ:-Asia/Shanghai}
     ports:
-      - "${API_PORT:-3000}:3000"
+      - "${API_BIND_HOST:-0.0.0.0}:${API_PORT:-3000}:3000"
     depends_on:
       mariadb:
         condition: service_healthy
@@ -61,11 +63,12 @@ services:
     build:
       context: ./web
       args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
     container_name: app-web
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-5173}:80"
+      - "${WEB_BIND_HOST:-0.0.0.0}:${WEB_PORT:-5173}:80"
     depends_on:
       - api
 
