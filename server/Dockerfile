@@ -5,12 +5,13 @@ ARG NPM_REGISTRY=https://registry.npmmirror.com
 ENV npm_config_registry=${NPM_REGISTRY}
 RUN npm install -g pnpm@9.15.4
 
-COPY package.json pnpm-lock.yaml tsconfig.json ./
-RUN pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY server/package.json server/tsconfig.json ./server/
+RUN pnpm install --filter ./server... --frozen-lockfile
 
-COPY src ./src
-COPY scripts ./scripts
-RUN pnpm build
+COPY server/src ./server/src
+COPY server/scripts ./server/scripts
+RUN pnpm -C server build
 
 FROM node:20-alpine AS runner
 
@@ -19,11 +20,12 @@ ARG NPM_REGISTRY=https://registry.npmmirror.com
 ENV npm_config_registry=${NPM_REGISTRY}
 RUN npm install -g pnpm@9.15.4
 
-COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --frozen-lockfile --prod
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY server/package.json ./server/package.json
+RUN pnpm install --filter ./server --prod --frozen-lockfile
 
-COPY --from=build /app/dist ./dist
+COPY --from=build /app/server/dist ./server/dist
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["pnpm", "-C", "server", "start"]

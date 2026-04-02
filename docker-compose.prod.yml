@@ -32,7 +32,8 @@ services:
 
   api:
     build:
-      context: ./server
+      context: .
+      dockerfile: server/Dockerfile
       args:
         NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
     container_name: app-api
@@ -61,7 +62,8 @@ services:
 
   web:
     build:
-      context: ./web
+      context: .
+      dockerfile: web/Dockerfile
       args:
         NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
