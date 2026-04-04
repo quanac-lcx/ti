@@ -37,3 +37,4 @@ redis-data
 
 # Docker Compose local env
 .env
+.codex

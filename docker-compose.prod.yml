@@ -1,0 +1,79 @@
+services:
+  mariadb:
+    image: mariadb:11
+    container_name: app-mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-luogu_ti}
+      MARIADB_USER: ${MARIADB_USER:-app}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-app}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    container_name: app-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    container_name: app-api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      DB_USER: ${MARIADB_USER:-app}
+      DB_PASSWORD: ${MARIADB_PASSWORD:-app}
+      DB_NAME: ${MARIADB_DATABASE:-luogu_ti}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PUBLIC_API_BASE_URL: ${PUBLIC_API_BASE_URL:-}
+      WEB_BASE_URL: ${WEB_BASE_URL:-}
+      CPOAUTH_BASE_URL: ${CPOAUTH_BASE_URL:-https://auth.luogu.me}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${API_BIND_HOST:-0.0.0.0}:${API_PORT:-3000}:3000"
+    depends_on:
+      mariadb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    container_name: app-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_BIND_HOST:-0.0.0.0}:${WEB_PORT:-5173}:80"
+    depends_on:
+      - api
+
+volumes:
+  mariadb_data:
+  redis_data:

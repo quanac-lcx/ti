@@ -1,95 +1,69 @@
-<script setup>
+<script setup lang="ts">
+import { onMounted, ref } from "vue";
 import TiLayout from "../layouts/TiLayout.vue";
+import { problemsetApi, type ProblemsetSummary } from "../api/problemset";
 
-const problems = [
-  { id: 1001, title: "NOIP 2007 普及组初赛试题" },
-  { id: 1002, title: "NOIP 2007 提高组初赛试题" },
-  { id: 1003, title: "NOIP 2008 普及组初赛试题" },
-  { id: 1004, title: "NOIP 2008 提高组初赛试题" },
-  { id: 1005, title: "NOIP 2009 普及组初赛试题" },
-  { id: 1006, title: "NOIP 2009 提高组初赛试题" },
-  { id: 1007, title: "NOIP 2010 普及组初赛试题" },
-  { id: 1008, title: "NOIP 2010 提高组初赛试题" },
-  { id: 1009, title: "NOIP 2011 普及组初赛试题" },
-  { id: 1010, title: "NOIP 2011 提高组初赛试题" },
-  { id: 1011, title: "NOIP 2012 普及组初赛试题" },
-  { id: 1012, title: "NOIP 2012 提高组初赛试题" },
-  { id: 1013, title: "NOIP 2013 普及组初赛试题" }
-];
+const loading = ref(true);
+const problems = ref<ProblemsetSummary[]>([]);
+const error = ref("");
+const activeTab = ref<"official" | "all" | "featured">("official");
+
+async function loadList() {
+  loading.value = true;
+  error.value = "";
+  try {
+    problems.value = await problemsetApi.list(activeTab.value);
+  } catch (err) {
+    error.value = String((err as Error)?.message ?? err);
+    problems.value = [];
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(loadList);
 </script>
 
 <template>
-  <TiLayout title="题库" subtitle="洛谷有题 / 试题列表">
-    <div class="list">
-      <a v-for="p in problems" :key="p.id" class="row" href="#">
-        <div class="id">{{ p.id }}</div>
-        <div class="title">{{ p.title }}</div>
-      </a>
+  <TiLayout title="题库" subtitle="保存站有题 / 试题列表">
+    <div class="problemset-page">
+      <div class="toolbar">
+        <div class="tabs">
+          <button class="tab" :class="{ active: activeTab === 'all' }" @click="activeTab = 'all'; loadList()">
+            <i class="fa-solid fa-table-cells-large"></i>
+            全部
+          </button>
+          <button class="tab" :class="{ active: activeTab === 'official' }" @click="activeTab = 'official'; loadList()">
+            <i class="fa-solid fa-shield"></i>
+            官方题目
+          </button>
+          <button class="tab" :class="{ active: activeTab === 'featured' }" @click="activeTab = 'featured'; loadList()">
+            <i class="fa-solid fa-star"></i>
+            个人精选
+          </button>
+        </div>
+        <div class="toolbar-actions">
+          <button class="tab ghost" type="button" @click="loadList">
+            <i class="fa-solid fa-rotate-right"></i>
+            刷新
+          </button>
+          <router-link class="create-btn" to="/problemset/_new">
+            <i class="fa-solid fa-plus"></i>
+            新建题目
+          </router-link>
+        </div>
+      </div>
+      <div v-if="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i>加载中...</div>
+      <div v-else-if="error" class="error"><i class="fa-solid fa-circle-exclamation"></i>{{ error }}</div>
+      <div v-else-if="problems.length === 0" class="loading"><i class="fa-regular fa-folder-open"></i>当前分栏下暂无题目</div>
+      <div v-else class="list">
+        <router-link v-for="p in problems" :key="p.id" class="row" :to="`/problemset/${p.id}`">
+          <div class="id">{{ p.id }}</div>
+          <div class="title">{{ p.title }}</div><i class="fa-solid fa-chevron-right row-arrow"></i>
+        </router-link>
+      </div>
     </div>
   </TiLayout>
 </template>
 
-<style scoped>
-.list {
-  display: flex;
-  flex-direction: column;
-}
 
-.row {
-  display: grid;
-  grid-template-columns: 116px 1fr;
-  align-items: center;
-  gap: 8px;
-  min-height: 66px;
-  padding: 0 26px;
-  text-decoration: none;
-  color: inherit;
-  border-top: 1px solid #ededed;
-  transition: background-color 140ms ease;
-}
-
-.row:first-child {
-  border-top: none;
-}
-
-.row:hover {
-  background: #fafcff;
-}
-
-.row:hover .title {
-  color: #0d58d9;
-}
-
-.id {
-  color: #1c1c1c;
-  font-size: 39px;
-  transform: scale(0.46);
-  transform-origin: left center;
-  margin-left: -3px;
-  font-weight: 700;
-}
-
-.title {
-  color: #0c67f3;
-  font-size: 40px;
-  transform: scale(0.46);
-  transform-origin: left center;
-  margin-left: -16px;
-  font-weight: 500;
-}
-
-@media (max-width: 860px) {
-  .row {
-    grid-template-columns: 78px 1fr;
-    min-height: 52px;
-    padding: 0 14px;
-  }
-
-  .id,
-  .title {
-    transform: none;
-    margin-left: 0;
-    font-size: 16px;
-  }
-}
-</style>

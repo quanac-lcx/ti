@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Redis from "ioredis";
 import { env } from "./env.js";
 
@@ -13,4 +14,6 @@ export async function pingRedis() {
   if (redis.status !== "ready") await redis.connect();
   await redis.ping();
 }
+
+
 

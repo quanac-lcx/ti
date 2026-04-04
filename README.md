@@ -1,47 +1,524 @@
-﻿# Vue + Redis + MariaDB 项目框架
+# ti.luogu.me
 
-包含：
+`ti.luogu.me` 是一个前后端分离的题库 / 套题系统仓库，当前代码结构如下：
+
 - `web/`：Vue 3 + Vite 前端
-- `server/`：Node.js(Express) API，演示连接 Redis / MariaDB
-- `docker-compose.yml`：一键启动 `mariadb` + `redis` + `api` + `web`
-- 包管理器：pnpm（容器内使用 `corepack enable` + `pnpm install`）
+- `server/`：Node.js + Express 后端
+- `docker-compose.yml`：本地开发用的 MariaDB / Redis 基础设施
+- `docker-compose.prod.yml`：Linux 服务器生产部署编排
 
-## 快速开始
+当前仓库已经针对 Linux 部署做了几项兼容性处理：
 
-1) 准备环境：Docker Desktop
-> 如果 `docker compose` 报 `dockerDesktopLinuxEngine` 管道找不到，一般是 Docker Desktop 未启动或未启用 Linux/WSL2 引擎。
+- Docker 构建阶段固定使用 `pnpm@9.15.4`
+- 支持通过 `NPM_REGISTRY` 覆盖容器内的 npm registry，避免部分 Linux 服务器拉不到 `registry.npmjs.org`
+- 根目录新增 `.nvmrc`，便于 Linux 上直接对齐 Node 20
+- 生产环境端口支持通过 `API_BIND_HOST` / `WEB_BIND_HOST` 控制绑定地址，方便只监听 `127.0.0.1`
 
-2) 初始化环境变量
+如果你只是要部署到 Linux，推荐直接看下面的“Linux 详细部署教程”；如果你要本地开发，再看前面的开发章节。
+
+## 本地开发
+
+### 1. 环境要求
+
+- Node.js 20.x
+- `pnpm` 9.x
+- MariaDB / MySQL
+- Redis
+
+如果你本机使用 `nvm`，推荐直接在仓库根目录执行：
+
+```bash
+nvm install
+nvm use
+corepack enable
+corepack prepare pnpm@9.15.4 --activate
+```
+
+### 2. 安装依赖
+
+```bash
+pnpm install
+```
+
+### 3. 配置后端环境变量
+
+```bash
+cp server/.env.example server/.env
+```
+
+默认开发环境配置如下：
+
+- API：`http://localhost:3000`
+- Web：`http://localhost:5173`
+- MariaDB：`127.0.0.1:3306`
+- Redis：`127.0.0.1:6379`
+
+如需指定前端请求地址，可额外执行：
+
+```bash
+cp web/.env.example web/.env.development
+```
+
+### 4. 启动开发环境
+
+```bash
+pnpm dev
+```
+
+也可以拆开启动：
+
+```bash
+pnpm run dev:api
+pnpm run dev:web
+```
+
+## 使用 Docker 启动本地数据库 / Redis
+
+如果你的开发机没有本地 MariaDB / Redis，可以直接用仓库根目录的 Compose：
+
+```bash
+cp .env.example .env
+pnpm run dev:infra
+```
+
+默认端口：
+
+- MariaDB：`127.0.0.1:3307`
+- Redis：`127.0.0.1:6380`
+
+此时把 `server/.env` 改成：
+
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3307
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6380
+```
+
+停止基础设施：
+
+```bash
+pnpm run dev:infra:down
+```
+
+## Linux 详细部署教程
+
+下面这套流程是给 Ubuntu / Debian 服务器准备的，Rocky Linux / AlmaLinux / CentOS 也可以参考同样思路，只是系统包管理命令不同。  
+生产环境推荐使用 Docker Compose 部署，不建议把 Node、MariaDB、Redis 全部直接装到宿主机上手工跑服务。
+
+### 1. 部署前先明确两件事
+
+第一件事：你准备怎么暴露站点。
+
+- 方案 A：`ti.luogu.me` 和 `api.ti.luogu.me` 分域部署
+- 方案 B：只用一个域名，例如 `ti.luogu.me`，前端走 `/`，后端走 `/api`
+
+第二件事：你准备怎么绑定宿主机端口。
+
+- 如果你前面还有宿主机 Nginx / Caddy，建议把 `API_BIND_HOST` 和 `WEB_BIND_HOST` 设成 `127.0.0.1`
+- 如果你只是临时起服务测试，允许外部直接访问，也可以保持默认 `0.0.0.0`
+
+### 2. 服务器建议配置
+
+最低建议：
+
+- 2 vCPU
+- 2 GB 内存
+- 20 GB 可用磁盘
+
+更稳妥的生产建议：
+
+- 2 到 4 vCPU
+- 4 GB 内存
+- SSD 磁盘
+- 能正常访问 Docker Hub、npm registry 或你自定义的镜像源
+
+### 3. 安装基础环境
+
+先安装 Docker、Git、Curl：
+
+```bash
+sudo apt update
+sudo apt install -y ca-certificates curl git docker.io docker-compose-plugin
+sudo systemctl enable --now docker
+```
+
+把当前用户加入 `docker` 组，避免后续每条命令都写 `sudo`：
+
+```bash
+sudo usermod -aG docker "$USER"
+newgrp docker
+```
+
+如果你还想在宿主机上做本地构建、调试或排查 Node 问题，再额外安装 `nvm`、Node 和 `pnpm`：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+cd /path/to/ti.luogu.me
+nvm install
+nvm use
+corepack enable
+corepack prepare pnpm@9.15.4 --activate
+```
+
+说明：
+
+- 仓库根目录已经提供 `.nvmrc`，`nvm install` 会自动安装 Node 20
+- 如果你只用 Docker Compose 部署，其实不装 Node / pnpm 也可以
+- 如果服务器访问 `registry.npmjs.org` 很慢或会超时，请提前准备镜像源，后面配置 `NPM_REGISTRY`
+
+### 4. 拉取代码
+
+推荐把项目放在固定目录，例如 `/opt/ti.luogu.me`：
+
+```bash
+sudo mkdir -p /opt/ti.luogu.me
+sudo chown -R "$USER":"$USER" /opt/ti.luogu.me
+git clone <your-repo-url> /opt/ti.luogu.me
+cd /opt/ti.luogu.me
+```
+
+后续所有命令默认都在仓库根目录执行。
+
+### 5. 复制生产环境变量模板
 
 ```bash
 cp .env.example .env
 ```
 
-3) 启动（Docker）
+这一步非常重要。  
+`docker-compose.prod.yml` 里的端口、数据库口令、构建镜像源、前端 API 地址都会从根目录 `.env` 里读取。
 
-```bash
-docker compose up -d
+### 6. 编辑 `.env`
+
+下面先给一个比较通用、适合“前端一个域名、API 一个域名”的示例：
+
+```env
+TZ=Asia/Shanghai
+
+MARIADB_ROOT_PASSWORD=请改成强密码
+MARIADB_DATABASE=luogu_ti
+MARIADB_USER=app
+MARIADB_PASSWORD=请改成强密码
+
+API_BIND_HOST=127.0.0.1
+API_PORT=3000
+WEB_BIND_HOST=127.0.0.1
+WEB_PORT=5173
+
+NPM_REGISTRY=https://registry.npmmirror.com
+
+VITE_API_BASE_URL=https://api.ti.luogu.me
+PUBLIC_API_BASE_URL=https://api.ti.luogu.me
+WEB_BASE_URL=https://ti.luogu.me
+CPOAUTH_BASE_URL=https://auth.luogu.me
 ```
 
-4) 访问
+如果你准备使用“同域名 + `/api` 反代”的方式，也就是浏览器最终只访问 `https://ti.luogu.me`，那么可以这样配：
 
-- 前端：`http://localhost:5173`
-- 根路径会跳转到：`/problemset`
-- API：`http://localhost:3000/api/health`
+```env
+TZ=Asia/Shanghai
+
+MARIADB_ROOT_PASSWORD=请改成强密码
+MARIADB_DATABASE=luogu_ti
+MARIADB_USER=app
+MARIADB_PASSWORD=请改成强密码
+
+API_BIND_HOST=127.0.0.1
+API_PORT=3000
+WEB_BIND_HOST=127.0.0.1
+WEB_PORT=5173
+
+NPM_REGISTRY=https://registry.npmmirror.com
+
+VITE_API_BASE_URL=
+PUBLIC_API_BASE_URL=
+WEB_BASE_URL=https://ti.luogu.me
+CPOAUTH_BASE_URL=https://auth.luogu.me
+```
+
+这几项变量的含义建议你看清楚：
+
+| 变量 | 作用 | 建议 |
+| --- | --- | --- |
+| `MARIADB_ROOT_PASSWORD` | MariaDB root 口令 | 必改，且要足够复杂 |
+| `MARIADB_DATABASE` | 业务数据库名 | 一般保持 `luogu_ti` 即可 |
+| `MARIADB_USER` | 业务数据库用户 | 一般保持 `app` 即可 |
+| `MARIADB_PASSWORD` | 业务数据库口令 | 必改，且不要和 root 口令相同 |
+| `API_BIND_HOST` | 宿主机 API 监听地址 | 有反向代理时设 `127.0.0.1` |
+| `API_PORT` | 宿主机 API 端口 | 默认 `3000` |
+| `WEB_BIND_HOST` | 宿主机前端监听地址 | 有反向代理时设 `127.0.0.1` |
+| `WEB_PORT` | 宿主机前端端口 | 默认 `5173` |
+| `NPM_REGISTRY` | 容器构建阶段使用的 npm registry | 海外机器可改成 `https://registry.npmjs.org`，网络受限环境保留镜像源 |
+| `VITE_API_BASE_URL` | 前端构建时写死的 API 基础地址 | 分域部署时写 `https://api.xxx.com`；同域 `/api` 反代时可留空 |
+| `PUBLIC_API_BASE_URL` | 后端对外公开 API 基础地址 | 分域部署时与 API 域名一致；同域 `/api` 反代时可留空 |
+| `WEB_BASE_URL` | 站点对外访问域名 | 建议写真实 HTTPS 域名 |
+| `CPOAUTH_BASE_URL` | CPOAuth 服务地址 | 默认 `https://auth.luogu.me` |
+
+特别说明：
+
+- `NPM_REGISTRY` 是这次 Linux 兼容处理里的重点之一。很多服务器不是 Docker 装不上，而是构建镜像时拉 `pnpm` 或装依赖超时。
+- 如果你服务器能稳定访问官方源，可以把 `NPM_REGISTRY` 改成 `https://registry.npmjs.org`
+- 如果你保持 `VITE_API_BASE_URL=` 为空，前端会走同源请求，然后由 `web` 容器内的 Nginx 把 `/api` 转发给 `api` 容器
+
+### 7. 启动生产环境
+
+第一次部署建议直接构建并启动：
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+查看容器状态：
+
+```bash
+docker compose -f docker-compose.prod.yml ps
+```
+
+查看后端日志：
+
+```bash
+docker compose -f docker-compose.prod.yml logs -f api
+```
+
+查看前端日志：
+
+```bash
+docker compose -f docker-compose.prod.yml logs -f web
+```
+
+查看数据库日志：
+
+```bash
+docker compose -f docker-compose.prod.yml logs -f mariadb
+```
+
+说明：
+
+- 第一次启动时，MariaDB 初始化可能需要几十秒
+- `api` 服务会等待 `mariadb` 和 `redis` 健康检查通过后再启动
+- 如果你改过 `.env` 里的构建相关变量，例如 `NPM_REGISTRY`、`VITE_API_BASE_URL`，记得重新执行 `up -d --build`
+
+### 8. 检查服务是否真的起来了
+
+建议依次检查：
+
+1. `docker compose -f docker-compose.prod.yml ps` 里所有服务都处于 `running`
+2. `api` 日志里能看到类似 `listening on :3000`
+3. 访问 `http://127.0.0.1:3000/` 能返回 `pong`
+4. 访问 `http://127.0.0.1:5173/` 能返回前端页面
+
+如果你把 `API_BIND_HOST` / `WEB_BIND_HOST` 设成 `127.0.0.1`，上面这两条检查建议在服务器本机执行，例如：
+
+```bash
+curl http://127.0.0.1:3000/
+curl -I http://127.0.0.1:5173/
+```
+
+### 9. 配置反向代理
+
+生产环境通常还会在宿主机再放一层 Nginx 或 Caddy，负责：
+
+- 绑定 80 / 443
+- 配置 HTTPS 证书
+- 处理域名转发
+
+#### 方案 A：前后端分域
+
+建议：
+
+- `ti.luogu.me` -> `http://127.0.0.1:5173`
+- `api.ti.luogu.me` -> `http://127.0.0.1:3000`
+
+Nginx 参考配置：
+
+```nginx
+server {
+  listen 80;
+  server_name ti.luogu.me;
+
+  location / {
+    proxy_pass http://127.0.0.1:5173;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+
+server {
+  listen 80;
+  server_name api.ti.luogu.me;
+
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+#### 方案 B：同域名 + `/api`
+
+如果你希望用户只访问一个域名，比如 `https://ti.luogu.me`，那可以让宿主机 Nginx 统一转发：
+
+```nginx
+server {
+  listen 80;
+  server_name ti.luogu.me;
+
+  location /api/ {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+
+  location / {
+    proxy_pass http://127.0.0.1:5173;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+```
+
+这一模式下建议：
+
+- `VITE_API_BASE_URL=` 留空
+- `PUBLIC_API_BASE_URL=` 留空
+- `WEB_BASE_URL=https://ti.luogu.me`
+
+### 10. 首次后台登录与 Admin Token
+
+项目当前支持通过数据库插入一条 Admin Token 的方式做首次后台登录。
+
+先进入 MariaDB 容器：
+
+```bash
+docker compose -f docker-compose.prod.yml exec mariadb mariadb -uapp -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE"
+```
+
+插入一条 32 位字母数字 token：
+
+```sql
+INSERT INTO admin_tokens (token, created_by_uid)
+VALUES ('AbCdEfGhIjKlMnOpQrStUvWxYz123456', 'root');
+```
+
+然后访问：
+
+- `https://ti.luogu.me/auth/login`
+
+在登录页下方使用这条 `Admin Token` 登录后台，完成 CPOAuth 相关配置。
+
+### 11. 更新部署
+
+更新代码后重新构建：
+
+```bash
+cd /opt/ti.luogu.me
+git pull
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+如果你只是重启服务，不重新构建：
+
+```bash
+docker compose -f docker-compose.prod.yml restart
+```
+
+如果要停服：
+
+```bash
+docker compose -f docker-compose.prod.yml down
+```
+
+注意：
+
+- `down` 不会删除命名卷，数据库和 Redis 数据默认还在
+- 如果你执行 `down -v`，命名卷会被删掉，数据库数据也会丢失，生产环境不要随便用
+
+### 12. 常见报错与排查建议
+
+#### 12.1 构建时卡在安装 pnpm 或依赖下载
+
+现象：
+
+- `pnpm install` 超时
+- Docker build 里拉 `pnpm@9.15.4` 失败
+- 日志里出现访问 `registry.npmjs.org` 超时
+
+排查：
+
+1. 确认服务器能否访问外网
+2. 把 `.env` 里的 `NPM_REGISTRY` 改成可达的镜像源
+3. 重新执行 `docker compose -f docker-compose.prod.yml up -d --build`
+
+#### 12.2 3000 或 5173 端口被占用
+
+现象：
+
+- Compose 启动时报端口冲突
+
+处理：
+
+1. 用 `ss -lntp | grep -E '3000|5173'` 查占用
+2. 改 `.env` 里的 `API_PORT` 或 `WEB_PORT`
+3. 如果前面有宿主机 Nginx / Caddy，推荐直接把 `API_BIND_HOST` 和 `WEB_BIND_HOST` 设成 `127.0.0.1`
+
+#### 12.3 页面能打开，但接口 404 / 502 / 请求到错地址
+
+优先检查：
+
+1. 你到底是“分域部署”还是“同域 `/api` 反代”
+2. `VITE_API_BASE_URL` 是否配对了当前方案
+3. `PUBLIC_API_BASE_URL` / `WEB_BASE_URL` 是否写成了真实对外域名
+4. 宿主机反向代理是否正确把请求转给了 `127.0.0.1:3000` 和 `127.0.0.1:5173`
+
+#### 12.4 OAuth 回调地址不对
+
+优先检查：
+
+1. `WEB_BASE_URL` 是否是用户真实访问的 HTTPS 域名
+2. `PUBLIC_API_BASE_URL` 是否和 API 对外域名一致
+3. 后台里的 CPOAuth callback URL 是否与你最终公网访问地址一致
+4. 反向代理是否正确透传了 `Host` 与 `X-Forwarded-Proto`
+
+#### 12.5 数据库一直起不来
+
+优先检查：
+
+1. `docker compose -f docker-compose.prod.yml logs -f mariadb`
+2. 宿主机磁盘空间是否够
+3. `.env` 中的数据库口令是否写了非法字符或被错误转义
+4. 之前是否残留了异常卷数据
 
 ## 常用命令
 
 ```bash
-docker compose logs -f api
-docker compose logs -f web
-docker compose down
+pnpm build
+pnpm -C server run typecheck
+pnpm -C web exec vue-tsc --noEmit
+docker compose ps
+docker compose logs -f mariadb
+docker compose logs -f redis
+docker compose -f docker-compose.prod.yml ps
+docker compose -f docker-compose.prod.yml logs -f api
+docker compose -f docker-compose.prod.yml logs -f web
 ```
 
-## 本地启动（不使用 Docker）
+## 补充说明
 
-在根目录：
-
-```bash
-pnpm -C web install
-pnpm -C web dev
-```
+仓库里还有一份简版 Linux 部署说明：[docs/deploy-linux.md](docs/deploy-linux.md)。  
+如果你后续在 Linux 上遇到新的报错，可以直接把报错日志、执行命令、你当前 `.env` 里相关项贴出来，我再继续跟你一起排。

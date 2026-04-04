@@ -1,0 +1,14 @@
+.git
+.gitignore
+.codex
+.env
+.env.*
+!.env.example
+node_modules
+**/node_modules
+.pnpm-store
+**/.pnpm-store
+server/dist
+web/dist
+docs
+infra

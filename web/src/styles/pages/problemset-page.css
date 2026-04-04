@@ -1,0 +1,135 @@
+.problemset-page .toolbar {
+  padding: 12px 20px 0;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.problemset-page .tabs,
+.problemset-page .toolbar-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.problemset-page .tab {
+  min-height: 34px;
+  min-width: 108px;
+  border: 1px solid var(--app-border-strong);
+  background: var(--panel-bg);
+  border-radius: 4px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  color: var(--app-text-muted);
+}
+
+.problemset-page .tab.active {
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+  border-color: var(--app-primary);
+}
+
+.problemset-page .loading,
+.problemset-page .error {
+  padding: 20px 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.problemset-page .loading {
+  color: var(--app-text-soft);
+}
+
+.problemset-page .error {
+  color: var(--app-danger);
+}
+
+.problemset-page .create-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 4px;
+  border: 1px solid var(--app-primary);
+  color: var(--app-primary);
+  background: var(--panel-bg);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.problemset-page .create-btn:hover {
+  background: var(--app-primary-soft);
+}
+
+.problemset-page .list {
+  display: flex;
+  flex-direction: column;
+}
+
+.problemset-page .row {
+  display: grid;
+  grid-template-columns: 96px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 16px;
+  text-decoration: none;
+  color: inherit;
+  border-top: 1px solid var(--app-border-subtle);
+}
+
+.problemset-page .row:first-child {
+  border-top: none;
+}
+
+.problemset-page .row:hover {
+  background: var(--app-bg-muted);
+}
+
+.problemset-page .row:hover .title {
+  color: var(--app-primary);
+}
+
+.problemset-page .id {
+  color: var(--app-text);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.problemset-page .title {
+  color: var(--app-primary);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.problemset-page .row-arrow {
+  font-size: 12px;
+  color: var(--app-text-soft);
+}
+
+@media (max-width: 860px) {
+  .problemset-page .row {
+    grid-template-columns: 78px 1fr auto;
+    min-height: 46px;
+    padding: 0 12px;
+  }
+
+  .problemset-page .id,
+  .problemset-page .title {
+    font-size: 15px;
+  }
+}

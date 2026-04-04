@@ -1,20 +1,77 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap");
+@import "katex/dist/katex.min.css";
+@import "highlight.js/styles/github-dark.css";
 
 :root {
   color-scheme: light;
+  --page-max-width: 1180px;
+  --page-padding: 20px;
+  --app-radius: 6px;
+  --app-bg: #f4f6f9;
+  --app-surface: #fbfcfe;
+  --app-bg-muted: #f1f4f8;
+  --app-bg-subtle: #edf2f7;
+  --app-bg-elevated: #f7f9fc;
+  --app-input-bg: #f8fafc;
+  --app-mask: rgba(214, 221, 231, 0.76);
+  --app-modal-surface: rgba(251, 252, 254, 0.96);
+  --app-surface-inverse: #2b3544;
+  --app-text-on-inverse: #f8fbff;
+  --app-border: #d9e1eb;
+  --app-border-strong: #c6d0dd;
+  --app-border-subtle: #e8edf3;
+  --app-text: #1f2937;
+  --app-text-muted: #526072;
+  --app-text-soft: #718096;
+  --app-primary: #5f7bd9;
+  --app-primary-soft: #eef2ff;
+  --app-success: #5f9b78;
+  --app-success-soft: #edf7f1;
+  --app-danger: #c96f72;
+  --app-danger-soft: #fdf0f1;
+  --app-warning: #b98a4a;
+  --app-warning-soft: #f8f1e6;
+  --app-warning-border: #e8d4b6;
+  --app-warning-text: #8d6932;
+  --app-neutral-fill: #c8d1dc;
+  --layout-sider-bg: #fbfcfe;
+  --layout-sider-border: #d9e1eb;
+  --layout-header-bg: #fbfcfe;
+  --layout-header-border: #d9e1eb;
+  --layout-brand-bg: #f3f6fb;
+  --layout-nav-hover-bg: #eef2f7;
+  --layout-nav-active-bg: #eef2ff;
+  --layout-nav-active-indicator: #5f7bd9;
+  --dropdown-shadow: 0 16px 32px rgba(143, 157, 179, 0.18);
+  --panel-bg: var(--app-surface);
+  --panel-border: var(--app-border);
+  --panel-radius: var(--app-radius);
+  --panel-shadow: none;
+  --surface-shadow-sm: 0 16px 32px rgba(143, 157, 179, 0.16);
+  --color-success: var(--app-success);
+  --color-danger: var(--app-danger);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 html,
 body {
   height: 100%;
   width: 100%;
+  background: var(--app-bg);
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue',
-    'PingFang SC', 'Noto Sans CJK SC', 'Microsoft YaHei', sans-serif;
+  font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
+  background: var(--app-bg);
+  color: var(--app-text);
 }
 
 #app {
@@ -26,6 +83,134 @@ a {
   color: inherit;
 }
 
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+.tab,
+.problemset-tab,
+.create-btn,
+.guest-link,
+.view-paper,
+.link-btn {
+  line-height: 1;
+}
+
+button i,
+a i {
+  width: 1em;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.luogu-markdown {
+  color: var(--app-text);
+  line-height: 1.75;
+  word-break: break-word;
+}
+
+.luogu-markdown> :first-child {
+  margin-top: 0;
+}
+
+.luogu-markdown> :last-child {
+  margin-bottom: 0;
+}
+
+.luogu-markdown p,
+.luogu-markdown ul,
+.luogu-markdown ol,
+.luogu-markdown blockquote,
+.luogu-markdown pre,
+.luogu-markdown table {
+  margin: 0 0 12px;
+}
+
+.luogu-markdown ul,
+.luogu-markdown ol {
+  padding-left: 24px;
+}
+
+.luogu-markdown pre {
+  overflow: auto;
+  background: #0f172a;
+  color: #e5e7eb;
+  border-radius: var(--panel-radius);
+  padding: 10px 0;
+}
+
+.luogu-markdown code {
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.luogu-markdown :not(pre)>code {
+  background: var(--app-bg-subtle);
+  border-radius: 4px;
+  padding: 1px 4px;
+}
+
+.luogu-markdown blockquote {
+  border-left: 3px solid var(--app-border-strong);
+  margin-left: 0;
+  padding-left: 12px;
+  color: var(--app-text-muted);
+}
+
+.luogu-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.luogu-markdown th,
+.luogu-markdown td {
+  border: 1px solid var(--app-border);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.luogu-markdown .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin: 0.8em 0;
+}
+
+.luogu-markdown .code-block code {
+  display: block;
+  font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  font-size: 13px;
+}
+
+.luogu-markdown .code-line {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: baseline;
+  min-height: 20px;
+}
+
+.luogu-markdown .line-no {
+  color: var(--app-text-soft);
+  text-align: right;
+  padding: 0 10px 0 12px;
+  min-width: 4ch;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  border-right: 1px solid var(--app-border);
+  margin-right: 10px;
+}
+
+.luogu-markdown .line-content {
+  white-space: pre;
+  word-break: normal;
+  padding-right: 12px;
+}
+
 .firacode {
-  font-family: 'Fira Code', monospace;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
 }

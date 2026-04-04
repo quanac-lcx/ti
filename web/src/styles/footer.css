@@ -1,0 +1,102 @@
+.footer {
+  margin-top: 18px;
+  border-top: 1px solid var(--app-border);
+  color: var(--app-text);
+  box-sizing: border-box;
+}
+
+.footer-inner {
+  max-width: var(--page-max-width);
+  margin: 0 auto;
+  padding: 18px 0 30px;
+}
+
+.ui-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 48px;
+}
+
+.column {
+  padding: 0;
+}
+
+.firacode {
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
+.column p {
+  margin: 7px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.5;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.column p > i {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+.group {
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  text-decoration: none;
+  color: var(--app-text);
+  transition: color 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer-link i {
+  width: 18px;
+  height: 18px;
+  display: inline-grid;
+  place-items: center;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.footer-link:hover {
+  color: var(--app-primary);
+}
+
+.right {
+  text-align: right;
+}
+
+.right p {
+  justify-content: flex-end;
+}
+
+#site-days {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+@media (max-width: 860px) {
+  .ui-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .right {
+    text-align: left;
+  }
+
+  .right p {
+    justify-content: flex-start;
+  }
+}
