@@ -209,6 +209,30 @@
   color: var(--app-text-soft);
 }
 
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.theme-toggle {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--app-border-strong);
+  border-radius: var(--panel-radius);
+  background: var(--app-bg-elevated);
+  color: var(--app-text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.theme-toggle:hover {
+  background: var(--layout-nav-hover-bg);
+  color: var(--app-text);
+}
+
 .account {
   position: relative;
   display: flex;
@@ -221,7 +245,7 @@
   width: 44px;
   height: 44px;
   padding: 0;
-  background: var(--app-surface);
+  background: var(--app-bg-elevated);
   border: 1px solid var(--app-border-strong);
   border-radius: var(--panel-radius);
   display: grid;
@@ -268,8 +292,8 @@
   position: absolute;
   right: 0;
   top: 100%;
-  min-width: 184px;
-  background: var(--app-surface);
+  min-width: 196px;
+  background: var(--app-modal-surface);
   border: 1px solid var(--app-border);
   border-radius: var(--panel-radius);
   box-shadow: var(--dropdown-shadow);
@@ -367,6 +391,15 @@
   .top {
     min-height: 56px;
     padding: 0 14px;
+  }
+
+  .top-actions {
+    gap: 8px;
+  }
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
   }
 
   .content {

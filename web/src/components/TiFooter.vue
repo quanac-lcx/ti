@@ -75,7 +75,7 @@ const siteDays = computed<number>(() => {
           </a>
         </p>
         <p style="font-weight: bold;">
-          <a href="https://www.rainyun.com/MjUxMDAy_?s=saver" target="_blank" rel="noreferrer" class="footer-link">
+          <a href="https://www.rainyun.com/federico_" target="_blank" rel="noreferrer" class="footer-link">
             <i class="fa fa-server"></i>
             <span>由 雨云 提供支持</span>
           </a>

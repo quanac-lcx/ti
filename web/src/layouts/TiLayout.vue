@@ -4,6 +4,7 @@ import { RouterLink, useRoute, useRouter } from "vue-router";
 import TiFooter from "../components/TiFooter.vue";
 import UiLoadingBar from "../components/UiLoadingBar.vue";
 import { clearLocalUser, loadLocalUser, type AuthUser } from "../api/auth";
+import { toggleThemeMode, useThemeMode } from "../theme/useTheme";
 
 interface LayoutProps {
   title?: string;
@@ -47,6 +48,8 @@ const navItems: NavItem[] = [
 const isLoggedIn = computed(() => !!currentUser.value);
 const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin));
 const avatarUrl = computed(() => currentUser.value?.avatarUrl ?? "");
+const { isDarkTheme } = useThemeMode();
+
 const pageDocumentTitle = computed(() => {
   const pageTitle = String(props.title ?? "").trim();
   if (pageTitle) {
@@ -109,6 +112,10 @@ const logout = () => {
   router.push("/auth/login");
 };
 
+const handleThemeToggle = () => {
+  toggleThemeMode();
+};
+
 onMounted(() => {
   refreshUser();
   window.addEventListener("storage", refreshUser);
@@ -139,7 +146,7 @@ watch(
         <div class="logo">
           <img src="https://lgs-cdn.cn-nb1.rains3.com/luogu-saver/logo-icon.png" alt="保存站有题" />
         </div>
-        <div class="brand-text" v-show="!sidebarCollapsed">保存站有题</div>
+        <div v-show="!sidebarCollapsed" class="brand-text">保存站有题</div>
       </div>
 
       <nav class="nav">
@@ -153,7 +160,7 @@ watch(
             rel="noopener noreferrer"
           >
             <div class="icon"><i :class="item.iconClass"></i></div>
-            <div class="text" v-show="!sidebarCollapsed">{{ item.label }}</div>
+            <div v-show="!sidebarCollapsed" class="text">{{ item.label }}</div>
           </a>
           <RouterLink
             v-else
@@ -163,7 +170,7 @@ watch(
             :class="{ active: route.path === item.to }"
           >
             <div class="icon"><i :class="item.iconClass"></i></div>
-            <div class="text" v-show="!sidebarCollapsed">{{ item.label }}</div>
+            <div v-show="!sidebarCollapsed" class="text">{{ item.label }}</div>
           </RouterLink>
         </template>
       </nav>
@@ -181,36 +188,49 @@ watch(
       <header v-if="props.showTopBar" class="top">
         <div class="crumb">{{ props.subtitle }}</div>
 
-        <div class="account">
-          <template v-if="isLoggedIn">
-            <button type="button" class="avatar-btn" @click="goProfile">
-              <img class="avatar-img" :src="avatarUrl" alt="avatar" />
-            </button>
-            <div class="account-pop">
-              <button type="button" class="pop-item" @click="goProfile">
-                <i class="fa-regular fa-user"></i>
-                个人中心
-              </button>
-              <button type="button" class="pop-item" @click="goSettings">
-                <i class="fa-solid fa-gear"></i>
-                个人设置
-              </button>
-              <RouterLink v-if="isAdmin" to="/admin" class="pop-item pop-link">
-                <i class="fa-solid fa-shield-halved"></i>
-                管理后台
-              </RouterLink>
-              <button type="button" class="pop-item danger" @click="logout">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                退出登录
-              </button>
-            </div>
-          </template>
+        <div class="top-actions">
+          <button
+            type="button"
+            class="theme-toggle"
+            :title="isDarkTheme ? '切换到浅色模式' : '切换到深色模式'"
+            :aria-label="isDarkTheme ? '切换到浅色模式' : '切换到深色模式'"
+            :aria-pressed="isDarkTheme"
+            @click="handleThemeToggle"
+          >
+            <i :class="isDarkTheme ? 'fa-regular fa-sun' : 'fa-regular fa-moon'"></i>
+          </button>
 
-          <template v-else>
-            <div class="guest-actions">
-              <RouterLink to="/auth/login" class="guest-link">登录/注册</RouterLink>
-            </div>
-          </template>
+          <div class="account">
+            <template v-if="isLoggedIn">
+              <button type="button" class="avatar-btn" @click="goProfile">
+                <img class="avatar-img" :src="avatarUrl" alt="avatar" />
+              </button>
+              <div class="account-pop">
+                <button type="button" class="pop-item" @click="goProfile">
+                  <i class="fa-regular fa-user"></i>
+                  个人中心
+                </button>
+                <button type="button" class="pop-item" @click="goSettings">
+                  <i class="fa-solid fa-gear"></i>
+                  个人设置
+                </button>
+                <RouterLink v-if="isAdmin" to="/admin" class="pop-item pop-link">
+                  <i class="fa-solid fa-shield-halved"></i>
+                  管理后台
+                </RouterLink>
+                <button type="button" class="pop-item danger" @click="logout">
+                  <i class="fa-solid fa-right-from-bracket"></i>
+                  退出登录
+                </button>
+              </div>
+            </template>
+
+            <template v-else>
+              <div class="guest-actions">
+                <RouterLink to="/auth/login" class="guest-link">登录/注册</RouterLink>
+              </div>
+            </template>
+          </div>
         </div>
       </header>
 

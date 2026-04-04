@@ -177,7 +177,7 @@
   gap: 8px;
   cursor: pointer;
   margin-bottom: 8px;
-  color: #8a5a2b;
+  color: #1f2937;
 }
 
 .problemset-mode-page .shared-material-summary::-webkit-details-marker {
@@ -189,7 +189,7 @@
   height: 0;
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
-  border-left: 8px solid #8a5a2b;
+  border-left: 8px solid #1f2937;
   transition: transform 0.18s ease;
   transform-origin: 35% 50%;
 }
@@ -199,16 +199,16 @@
 }
 
 .problemset-mode-page .shared-material-block {
-  border: 1px solid #f3c99b;
+  border: 1px solid #1f2937;
   border-radius: 8px;
-  background: #fffaf5;
+  background: #f1f4f8;
   padding: 12px 14px;
 }
 
 .problemset-mode-page .shared-material-title {
   font-weight: 700;
   font-size: 16px;
-  color: #8a5a2b;
+  color: #1f2937;
 }
 
 .problemset-mode-page .shared-material-content {

@@ -23,7 +23,7 @@
 .problemset-detail-page .action-btn {
   height: 34px;
   border: 1px solid var(--app-primary);
-  background: #fff;
+  background: var(--app-bg-elevated);
   color: var(--app-primary);
   border-radius: 4px;
   padding: 0 14px;
@@ -53,12 +53,12 @@
 }
 
 .problemset-detail-page .stat-label {
-  color: #777;
+  color: var(--app-text-soft);
   font-size: 12px;
 }
 
 .problemset-detail-page .stat-value {
-  color: #333;
+  color: var(--app-text);
   font-size: 16px;
   font-weight: 700;
 }
@@ -66,7 +66,7 @@
 .problemset-detail-page .stat-divider {
   width: 1px;
   height: 30px;
-  background: #d9d9d9;
+  background: var(--app-border);
 }
 
 .problemset-detail-page .problemset-detail-grid {
@@ -89,7 +89,7 @@
 .problemset-detail-page .tab-btn {
   border: 1px solid transparent;
   background: transparent;
-  color: #222;
+  color: var(--app-text);
   border-radius: 4px;
   height: 34px;
   padding: 0 12px;
@@ -102,7 +102,7 @@
 }
 
 .problemset-detail-page .tab-btn:hover {
-  background: #f8fafc;
+  background: var(--app-bg-muted);
 }
 
 .problemset-detail-page .tab-btn.active {
@@ -157,17 +157,17 @@
 
 .problemset-detail-page .input-preview label {
   font-size: 13px;
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .problemset-detail-page .input-preview input {
   width: 100%;
   height: 36px;
-  border: 1px solid #d6d6d6;
+  border: 1px solid var(--app-border-strong);
   border-radius: 4px;
   padding: 0 10px;
   box-sizing: border-box;
-  background: #f8f8f8;
+  background: var(--app-input-bg);
 }
 
 .problemset-detail-page .question-score {
@@ -177,8 +177,8 @@
 
 .problemset-detail-page .answer-btn {
   height: 36px;
-  border: 1px solid #3297db;
-  background: #3297db;
+  border: 1px solid var(--app-primary);
+  background: var(--app-primary);
   color: #fff;
   border-radius: 4px;
   padding: 0 12px;
@@ -201,7 +201,7 @@
   gap: 10px;
   padding-bottom: 14px;
   margin-bottom: 14px;
-  border-bottom: 1px dashed #e5e7eb;
+  border-bottom: 1px dashed var(--app-border);
 }
 
 .problemset-detail-page .history-question-title {
@@ -215,11 +215,11 @@
 }
 
 .problemset-detail-page .history-question-title.correct {
-  color: #22c55e;
+  color: var(--app-success);
 }
 
 .problemset-detail-page .history-question-title.wrong {
-  color: #ef4444;
+  color: var(--app-danger);
 }
 
 .problemset-detail-page .history-answer,
@@ -235,17 +235,17 @@
   gap: 10px 14px;
   padding: 8px 10px;
   border-radius: 8px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: var(--app-bg-muted);
+  border: 1px solid var(--app-border);
 }
 
 .problemset-detail-page .history-toggle-btn {
   height: 30px;
   padding: 0 10px;
   font-size: 13px;
-  border-color: #60a5fa;
-  background: #eff6ff;
-  color: #1d4ed8;
+  border-color: var(--app-primary);
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
 }
 
 .problemset-detail-page .history-input {
@@ -265,7 +265,7 @@
 
 .problemset-detail-page .history-date {
   margin: 8px 0 10px;
-  color: #374151;
+  color: var(--app-text-muted);
 }
 
 .problemset-detail-page .history-header {
@@ -281,7 +281,7 @@
 .problemset-detail-page .toggle-btn {
   border: 0;
   background: transparent;
-  color: #2563eb;
+  color: var(--app-primary);
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
@@ -297,7 +297,7 @@
   text-align: left;
   border: 0;
   background: transparent;
-  color: #2563eb;
+  color: var(--app-primary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -305,7 +305,7 @@
 }
 
 .problemset-detail-page .history-item.active {
-  color: #111827;
+  color: var(--app-text);
   font-weight: 700;
 }
 
@@ -327,8 +327,8 @@
 .problemset-detail-page .question-btn {
   border: 0;
   border-radius: 4px;
-  background: #c7c7c7;
-  color: #fff;
+  background: var(--app-neutral-fill);
+  color: var(--app-text-on-inverse);
   height: 34px;
   padding: 0 10px;
   font-size: 14px;
@@ -344,22 +344,22 @@
 }
 
 .problemset-detail-page .question-btn.correct {
-  background: #22c55e;
+  background: var(--app-success);
 }
 
 .problemset-detail-page .question-btn.wrong {
-  background: #ef4444;
+  background: var(--app-danger);
 }
 
 .problemset-detail-page .loading-card {
   padding: 20px;
-  color: #666;
+  color: var(--app-text-soft);
 }
 
 .detail-modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(226, 232, 240, 0.72);
+  background: var(--app-mask);
   display: grid;
   place-items: center;
   z-index: 200;
@@ -367,18 +367,18 @@
 
 .detail-modal-card {
   width: min(640px, calc(100% - 24px));
-  background: rgba(255, 255, 255, 0.96);
+  background: var(--app-modal-surface);
   border-radius: var(--panel-radius);
   border: 1px solid var(--panel-border);
   padding: 18px;
   position: relative;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+  box-shadow: var(--surface-shadow-sm);
 }
 
 .detail-modal-card p {
   margin: 0;
   line-height: 1.7;
-  color: #374151;
+  color: var(--app-text-muted);
 }
 
 .detail-modal-close {
@@ -389,7 +389,7 @@
   background: transparent;
   font-size: 28px;
   line-height: 1;
-  color: #9ca3af;
+  color: var(--app-text-soft);
   cursor: pointer;
 }
 
@@ -401,7 +401,7 @@
 
 .detail-modal-actions button {
   border: 0;
-  background: #9ca3af;
+  background: var(--app-neutral-fill);
   color: #fff;
   height: 40px;
   border-radius: 6px;
@@ -412,7 +412,7 @@
 }
 
 .detail-modal-actions button.danger {
-  background: #ef4444;
+  background: var(--app-danger);
 }
 
 @media (max-width: 980px) {

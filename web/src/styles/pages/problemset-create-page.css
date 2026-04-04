@@ -34,9 +34,9 @@
 }
 
 :is(.problemset-create-page, .problemset-edit-page) .warning {
-  color: #92400e;
-  border: 1px solid #fcd34d;
-  background: #fffbeb;
+  color: var(--app-warning-text);
+  border: 1px solid var(--app-warning-border);
+  background: var(--app-warning-soft);
   border-radius: 4px;
   padding: 10px 12px;
 }
@@ -138,10 +138,10 @@
   padding: 8px 12px;
   list-style: disc;
   list-style-position: inside;
-  border: 1px solid #fecaca;
-  background: #fef2f2;
+  border: 1px solid var(--app-danger);
+  background: var(--app-danger-soft);
   border-radius: 4px;
-  color: #b91c1c;
+  color: var(--app-danger);
   font-size: 13px;
   line-height: 1.6;
 }
