@@ -659,7 +659,13 @@ function closeGuestLoginModal() {
 </script>
 
 <template>
-  <TiLayout :title="pageTitle" :subtitle="subtitle" :use-panel="false">
+  <TiLayout
+    :title="pageTitle"
+    :subtitle="subtitle"
+    :use-panel="false"
+    :loading="loading"
+    loading-label="题目加载中"
+  >
     <div class="problemset-mode-page page-shell">
       <div v-if="showGuestLoginModal" class="guest-login-modal-mask" @click.self="closeGuestLoginModal">
         <div class="guest-login-modal-card">
@@ -680,9 +686,8 @@ function closeGuestLoginModal() {
         <p>不小心关闭可到个人中心找回考试页面。</p>
       </div>
 
-      <div v-if="loading" class="panel-card">加载中...</div>
-      <div v-else-if="error" class="panel-card error-card">{{ error }}</div>
-      <template v-else-if="detail">
+      <div v-if="!loading && error" class="panel-card error-card">{{ error }}</div>
+      <template v-else-if="!loading && detail">
         <section class="mode-layout">
           <div class="mode-left">
             <article

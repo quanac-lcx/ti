@@ -309,6 +309,22 @@
   padding-top: 34px;
 }
 
+.layout-top-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  z-index: 999;
+  pointer-events: none;
+}
+
+.layout-top-progress .ui-loading-bar__track {
+  border-radius: 0 !important;
+  height: 3px !important;
+  box-shadow: none !important;
+}
+
 .page-title {
   margin: 2px auto 16px;
   max-width: var(--page-max-width);

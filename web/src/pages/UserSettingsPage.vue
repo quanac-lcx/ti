@@ -90,7 +90,12 @@ onMounted(loadSettings);
 </script>
 
 <template>
-  <TiLayout title="个人设置" subtitle="保存站有题 / 账户设置">
+  <TiLayout
+    title="个人设置"
+    subtitle="保存站有题 / 账户设置"
+    :loading="loading"
+    loading-label="设置加载中"
+  >
     <section class="settings-root">
       <div class="settings-notice">
         <i class="fa-solid fa-circle-info"></i>
@@ -100,9 +105,7 @@ onMounted(loadSettings);
         </div>
       </div>
 
-      <div v-if="loading" class="state-tip">加载设置中...</div>
-
-      <template v-else>
+      <template v-if="!loading">
         <div class="settings-item">
           <label class="item-title" for="records-public"><i class="fa-solid fa-eye"></i>做题记录公开可见</label>
           <div class="switch">

@@ -327,7 +327,13 @@ watch(
 </script>
 
 <template>
-  <TiLayout :title="pageTitle" subtitle="保存站有题 / 试题列表 / 试题详情" :use-panel="false">
+  <TiLayout
+    :title="pageTitle"
+    subtitle="保存站有题 / 试题列表 / 试题详情"
+    :use-panel="false"
+    :loading="loading"
+    loading-label="试题加载中"
+  >
     <div v-if="detail && !loading" class="problemset-detail-page page-shell">
       <section class="problemset-detail-summary panel-card">
         <div class="problemset-detail-actions">
@@ -498,8 +504,6 @@ watch(
         </aside>
       </section>
     </div>
-
-    <div v-else class="panel-card loading-card page-shell">加载中...</div>
 
     <div v-if="showExamConflictModal" class="detail-modal-mask" @click.self="closeConflictModal">
       <div class="detail-modal-card">

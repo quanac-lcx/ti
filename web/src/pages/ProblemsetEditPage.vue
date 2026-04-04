@@ -172,7 +172,13 @@ onMounted(loadEditable);
 </script>
 
 <template>
-  <TiLayout title="修改题目" subtitle="保存站有题 / 题库 / 修改题目" :use-panel="false">
+  <TiLayout
+    title="修改题目"
+    subtitle="保存站有题 / 题库 / 修改题目"
+    :use-panel="false"
+    :loading="loading"
+    loading-label="题目加载中"
+  >
     <section class="problemset-edit-page create-wrap page-shell">
       <div class="create-card create-main">
         <div class="title-actions">
@@ -187,9 +193,7 @@ onMounted(loadEditable);
           </div>
         </div>
 
-        <div v-if="loading">加载中...</div>
-
-        <template v-else>
+        <template v-if="!loading">
           <div class="form-grid">
             <label>
               <span>唯一标识符（ID）</span>

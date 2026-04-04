@@ -258,7 +258,7 @@
 }
 
 .problemset-detail-page .history-main-score {
-  font-size: 72px;
+  font-size: 36px;
   font-weight: 700;
   line-height: 1.1;
 }
@@ -425,6 +425,6 @@
   }
 
   .problemset-detail-page .history-main-score {
-    font-size: 48px;
+    font-size: 36px;
   }
 }

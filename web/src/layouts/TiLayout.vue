@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import TiFooter from "../components/TiFooter.vue";
+import UiLoadingBar from "../components/UiLoadingBar.vue";
 import { clearLocalUser, loadLocalUser, type AuthUser } from "../api/auth";
 
 interface LayoutProps {
@@ -10,6 +11,8 @@ interface LayoutProps {
   showTopBar?: boolean;
   showTitle?: boolean;
   usePanel?: boolean;
+  loading?: boolean;
+  loadingLabel?: string;
 }
 
 interface NavItem {
@@ -24,7 +27,9 @@ const props = withDefaults(defineProps<LayoutProps>(), {
   subtitle: "",
   showTopBar: true,
   showTitle: true,
-  usePanel: true
+  usePanel: true,
+  loading: false,
+  loadingLabel: "页面加载中"
 });
 
 const route = useRoute();
@@ -174,6 +179,10 @@ onUnmounted(() => {
           </template>
         </div>
       </header>
+
+      <div v-if="props.loading" class="layout-top-progress" role="status" aria-live="polite">
+        <UiLoadingBar :label="props.loadingLabel" />
+      </div>
 
       <div class="content" :class="{ 'content-no-top': !props.showTopBar }">
         <h1 v-if="props.showTitle" class="page-title">{{ props.title }}</h1>
