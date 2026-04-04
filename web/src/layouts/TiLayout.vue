@@ -29,7 +29,7 @@ const props = withDefaults(defineProps<LayoutProps>(), {
   showTitle: true,
   usePanel: true,
   loading: false,
-  loadingLabel: "页面加载中"
+  loadingLabel: "Loading..."
 });
 
 const route = useRoute();
@@ -219,13 +219,14 @@ watch(
       </div>
 
       <div class="content" :class="{ 'content-no-top': !props.showTopBar }">
-        <h1 v-if="props.showTitle" class="page-title">{{ props.title }}</h1>
+        <div class="content-body">
+          <h1 v-if="props.showTitle" class="page-title">{{ props.title }}</h1>
 
-        <div v-if="props.usePanel" class="panel">
-          <slot />
+          <div v-if="props.usePanel" class="panel">
+            <slot />
+          </div>
+          <slot v-else />
         </div>
-        <slot v-else />
-
         <TiFooter />
       </div>
     </div>

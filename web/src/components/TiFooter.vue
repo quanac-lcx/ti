@@ -13,7 +13,7 @@ const siteDays = computed<number>(() => {
 
 <template>
   <footer class="footer">
-    <div class="ui-grid">
+    <div class="footer-inner ui-grid">
       <div class="column firacode">
         <p>
           <i class="fa fa-copyright"></i>
@@ -22,18 +22,18 @@ const siteDays = computed<number>(() => {
           <span>）</span>
         </p>
         <p class="group">
-          <a href="https://github.com/laikit-dev/luogu-saver" target="_blank" rel="noreferrer" class="footer-link">
+          <a href="https://github.com/quanac-lcx/ti" target="_blank" rel="noreferrer" class="footer-link">
             <i class="fab fa-github"></i>
-            <span>GitHub</span>
+            <span>quanac-lcx/ti</span>
           </a>
-          <a href="https://help.luogu.me" target="_blank" rel="noreferrer" class="footer-link">
+          <!-- <a href="https://help.luogu.me" target="_blank" rel="noreferrer" class="footer-link">
             <i class="fa fa-book"></i>
             <span>帮助文档</span>
           </a>
           <a href="https://help.luogu.me/docs/update" target="_blank" rel="noreferrer" class="footer-link">
             <i class="fa fa-history"></i>
             <span>更新日志</span>
-          </a>
+          </a> -->
         </p>
         <p>
           <i class="fa fa-clock"></i>
@@ -41,12 +41,12 @@ const siteDays = computed<number>(() => {
           <span id="site-days">{{ siteDays }}</span>
           <span>天</span>
         </p>
-        <p>
-          <a href="https://github.com/laikit-dev/luogu-saver/graphs/contributors" target="_blank" rel="noreferrer" class="footer-link">
+        <!-- <p>
+          <a href="https://github.com/quanac-lcx/ti/graphs/contributors" target="_blank" rel="noreferrer" class="footer-link">
             <i class="fas fa-users"></i>
             <span>项目贡献者</span>
           </a>
-        </p>
+        </p> -->
       </div>
 
       <div class="column right firacode">
@@ -54,7 +54,7 @@ const siteDays = computed<number>(() => {
           <i class="fa fa-code"></i>
           <span>开发者：Federico2903 &amp; Murasame &amp; quanac-lcx</span>
         </p>
-        <p class="group">
+        <!-- <p class="group">
           <a href="https://help.luogu.me/docs/license/privacy" target="_blank" rel="noreferrer" class="footer-link">
             <i class="fa fa-user-shield"></i>
             <span>隐私协议</span>
@@ -67,14 +67,14 @@ const siteDays = computed<number>(() => {
             <i class="fa fa-trash-alt"></i>
             <span>数据移除政策</span>
           </a>
-        </p>
+        </p> -->
         <p>
           <a href="https://qm.qq.com/q/QVM9YFEb26" target="_blank" rel="noreferrer" class="footer-link">
             <i class="fab fa-qq"></i>
             <span>洛谷保存站用户群：1017248143（点击加入）</span>
           </a>
         </p>
-        <p>
+        <p style="font-weight: bold;">
           <a href="https://www.rainyun.com/MjUxMDAy_?s=saver" target="_blank" rel="noreferrer" class="footer-link">
             <i class="fa fa-server"></i>
             <span>由 雨云 提供支持</span>
@@ -84,4 +84,3 @@ const siteDays = computed<number>(() => {
     </div>
   </footer>
 </template>
-
