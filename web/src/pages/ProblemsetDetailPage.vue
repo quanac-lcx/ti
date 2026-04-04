@@ -327,7 +327,7 @@ watch(
 </script>
 
 <template>
-  <TiLayout :title="pageTitle" subtitle="洛谷有题 / 试题列表 / 试题详情" :use-panel="false">
+  <TiLayout :title="pageTitle" subtitle="保存站有题 / 试题列表 / 试题详情" :use-panel="false">
     <div v-if="detail && !loading" class="problemset-detail-page page-shell">
       <section class="problemset-detail-summary panel-card">
         <div class="problemset-detail-actions">

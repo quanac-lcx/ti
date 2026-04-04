@@ -172,7 +172,7 @@ onMounted(loadEditable);
 </script>
 
 <template>
-  <TiLayout title="修改题目" subtitle="洛谷有题 / 题库 / 修改题目" :use-panel="false">
+  <TiLayout title="修改题目" subtitle="保存站有题 / 题库 / 修改题目" :use-panel="false">
     <section class="problemset-edit-page create-wrap page-shell">
       <div class="create-card create-main">
         <div class="title-actions">

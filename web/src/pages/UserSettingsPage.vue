@@ -90,7 +90,7 @@ onMounted(loadSettings);
 </script>
 
 <template>
-  <TiLayout title="个人设置" subtitle="洛谷有题 / 账户设置">
+  <TiLayout title="个人设置" subtitle="保存站有题 / 账户设置">
     <section class="settings-root">
       <div class="settings-notice">
         <i class="fa-solid fa-circle-info"></i>

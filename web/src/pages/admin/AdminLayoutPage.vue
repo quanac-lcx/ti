@@ -23,7 +23,7 @@ const pageTitle = computed(() => {
 </script>
 
 <template>
-  <TiLayout :title="pageTitle" subtitle="洛谷有题 / 管理后台" :use-panel="false">
+  <TiLayout :title="pageTitle" subtitle="保存站有题 / 管理后台" :use-panel="false">
     <section class="admin-shell page-shell">
       <div v-if="!user" class="admin-card admin-notice">
         <p>请先登录</p>

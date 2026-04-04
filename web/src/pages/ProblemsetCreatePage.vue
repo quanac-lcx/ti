@@ -196,7 +196,7 @@ const createProblemset = async () => {
 </script>
 
 <template>
-  <TiLayout title="新建题目" subtitle="洛谷有题 / 题库 / 新建题目" :use-panel="false">
+  <TiLayout title="新建题目" subtitle="保存站有题 / 题库 / 新建题目" :use-panel="false">
     <section class="problemset-create-page create-wrap page-shell">
       <div class="create-card create-main">
         <h2>创建试卷</h2>

@@ -81,7 +81,7 @@ const pageTitle = computed(() => {
   const summary = detail.value?.summary;
   return summary ? `${summary.id} - ${summary.title}` : `${problemsetId.value} - ${modeTitle.value}`;
 });
-const subtitle = computed(() => `洛谷有题 / 试题列表 / ${modeTitle.value}`);
+const subtitle = computed(() => `保存站有题 / 试题列表 / ${modeTitle.value}`);
 const isGuest = computed(() => !currentUser?.uid);
 const guestPlayable = computed(() => {
   const type = String(detail.value?.summary.problemsetType ?? "");

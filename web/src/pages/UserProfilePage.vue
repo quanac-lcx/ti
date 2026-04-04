@@ -152,7 +152,7 @@ watch(() => route.params.uid, loadPage);
 <template>
   <TiLayout
     :title="`有题个人中心 - ${profile?.uid ?? profileUid}`"
-    subtitle="洛谷有题 / 用户中心"
+    subtitle="保存站有题 / 用户中心"
     :use-panel="false"
   >
     <div class="profile-root">
