@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { getUserByUid, loadLocalUser, type AuthUser } from "../api/auth";
+import UiCard from "../components/UiCard.vue";
 import { problemsetApi, type ProblemsetSummary } from "../api/problemset";
 import { fetchActiveExam, fetchUserSubmissions, type SubmissionRecord } from "../api/submission";
 import TiLayout from "../layouts/TiLayout.vue";
@@ -151,13 +152,13 @@ watch(() => route.params.uid, loadPage);
 
 <template>
   <TiLayout
-    :title="`有题个人中心 - ${profile?.uid ?? profileUid}`"
+    :title="`个人中心 - ${profile?.uid ?? profileUid}`"
     subtitle="保存站有题 / 用户中心"
     :use-panel="false"
   >
     <div class="profile-root">
       <div class="left-col">
-        <section class="card tab-card">
+        <UiCard class="card tab-card" compact>
           <button
             class="tab"
             :class="{ active: topTab === 'records' }"
@@ -176,20 +177,20 @@ watch(() => route.params.uid, loadPage);
             <i class="fa-solid fa-book"></i>
             TA 的题目
           </button>
-        </section>
+        </UiCard>
 
         <section v-if="loading" class="card">加载用户信息中...</section>
         <section v-else-if="error" class="card error">{{ error }}</section>
 
-        <section v-else-if="topTab === 'records' && canViewRecords && activeExam" class="card active-exam">
+        <UiCard v-else-if="topTab === 'records' && canViewRecords && activeExam" class="card active-exam">
           <p class="active-title">正在进行中：</p>
           <button class="link-btn" type="button" @click="resumeExam">
             <i class="fa-solid fa-play"></i>
             {{ activeExam.problemsetId }} - {{ activeExam.problemsetTitle || "继续本场考试" }}
           </button>
-        </section>
+        </UiCard>
 
-        <section v-if="!loading && topTab === 'records' && canViewRecords" class="card records-card">
+        <UiCard v-if="!loading && topTab === 'records' && canViewRecords" class="card records-card" compact>
           <div v-if="recordsLoading" class="records-loading">加载记录中...</div>
           <div v-else-if="recordsError" class="records-error">{{ recordsError }}</div>
           <div v-else-if="submissions.length === 0" class="records-empty">暂无历史答卷。</div>
@@ -214,9 +215,9 @@ watch(() => route.params.uid, loadPage);
               </button>
             </div>
           </article>
-        </section>
+        </UiCard>
 
-        <section v-if="!loading && topTab === 'problemsets'" class="card records-card">
+        <UiCard v-if="!loading && topTab === 'problemsets'" class="card records-card" compact>
           <div class="problemset-header">
             <h3>TA 的题目</h3>
             <div class="problemset-tabs">
@@ -246,16 +247,16 @@ watch(() => route.params.uid, loadPage);
               <span class="record-date">ID {{ item.id }}</span>
             </div>
           </article>
-        </section>
+        </UiCard>
 
-        <section v-if="!loading && topTab === 'records' && !canViewRecords" class="card records-empty-state">
+        <UiCard v-if="!loading && topTab === 'records' && !canViewRecords" class="card records-empty-state">
           <div class="empty-icon"><i class="fa-solid fa-user-secret"></i></div>
           <p class="empty-main">该用户设置了隐私保护，无法查看练习记录。</p>
-        </section>
+        </UiCard>
       </div>
 
       <aside v-if="profile" class="right-col">
-        <section class="profile-card">
+        <UiCard class="profile-card" flush>
           <div class="cover" :style="coverStyle"></div>
           <div class="profile-body">
             <img :src="profile.avatarUrl" alt="avatar" />
@@ -264,16 +265,16 @@ watch(() => route.params.uid, loadPage);
               <p class="uid">@{{ profile.uid }}</p>
             </div>
           </div>
-        </section>
+        </UiCard>
 
-        <section class="profile-card profile-bio-card">
+        <UiCard class="profile-card profile-bio-card">
           <div class="profile-bio-header">
             <i class="fa-solid fa-signature"></i>
             <span>TA 的个人简介</span>
           </div>
           <div v-if="!String(profile.bio ?? '').trim()" class="profile-bio-empty">TA 还没有填写简介。</div>
           <div v-else class="bio-content luogu-markdown" v-html="bioHtml"></div>
-        </section>
+        </UiCard>
       </aside>
     </div>
   </TiLayout>

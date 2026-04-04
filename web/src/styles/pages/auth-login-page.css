@@ -7,11 +7,11 @@
 
 .auth-login-page .auth-card {
   width: min(100%, 440px);
-  background: #f7f7f7;
-  border: 1px solid #e3e3e3;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
-  padding: 30px 34px 22px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: none;
+  padding: 28px 30px 22px;
 }
 
 .auth-login-page .brand-logo {
@@ -23,7 +23,7 @@
 .auth-login-page .brand-logo-icon {
   width: 48px;
   height: 48px;
-  color: rgb(24, 160, 88);
+  color: var(--app-primary);
   display: grid;
   place-items: center;
   margin: 0 auto 10px;
@@ -38,14 +38,14 @@
 .auth-login-page .auth-title {
   margin: 0 0 18px;
   text-align: center;
-  color: #2d2d2d;
+  color: var(--app-text);
   font-size: 30px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .auth-login-page .auth-tip {
   margin: 0 0 14px;
-  color: #64748b;
+  color: var(--app-text-soft);
   font-size: 14px;
   text-align: center;
   line-height: 1.6;
@@ -53,7 +53,7 @@
 
 .auth-login-page .btn {
   width: 100%;
-  height: 40px;
+  min-height: 40px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 15px;
@@ -67,19 +67,19 @@
 }
 
 .auth-login-page .btn-cpoauth {
-  border: 1px solid #f97316;
-  background: #fff;
-  color: #f97316;
+  border: 1px solid var(--app-primary);
+  background: var(--panel-bg);
+  color: var(--app-primary);
 }
 
 .auth-login-page .btn-cpoauth:hover {
-  background: #fff4ec;
+  background: var(--app-primary-soft);
 }
 
 .auth-login-page .admin-token-box {
   margin-top: 16px;
   padding-top: 14px;
-  border-top: 1px dashed #d6d6d6;
+  border-top: 1px solid var(--app-border-subtle);
   display: grid;
   gap: 8px;
 }
@@ -87,22 +87,23 @@
 .auth-login-page .admin-token-title {
   margin: 0;
   font-size: 13px;
-  color: #64748b;
+  color: var(--app-text-soft);
 }
 
 .auth-login-page .admin-token-input {
   width: 100%;
-  height: 38px;
-  border: 1px solid #d2d2d2;
+  min-height: 38px;
+  border: 1px solid var(--app-border-strong);
   border-radius: 4px;
   padding: 0 10px;
   font-size: 14px;
+  background: var(--panel-bg);
 }
 
 .auth-login-page .btn-admin-token {
-  border: 1px solid #334155;
-  background: #fff;
-  color: #334155;
+  border: 1px solid var(--app-border-strong);
+  background: var(--panel-bg);
+  color: var(--app-text-muted);
 }
 
 .auth-login-page .btn-admin-token:disabled {
@@ -112,6 +113,6 @@
 
 .auth-login-page .admin-token-error {
   margin: 0;
-  color: #dc2626;
+  color: var(--app-danger);
   font-size: 13px;
 }

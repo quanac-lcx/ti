@@ -7,68 +7,51 @@
   flex-wrap: wrap;
 }
 
-.problemset-page .tabs {
+.problemset-page .tabs,
+.problemset-page .toolbar-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.problemset-page .toolbar-actions {
-  display: inline-flex;
   align-items: center;
-  gap: 8px;
 }
 
 .problemset-page .tab {
-  height: 34px;
+  min-height: 34px;
   min-width: 108px;
-  border: 1px solid #d4d4d4;
-  background: #fff;
+  border: 1px solid var(--app-border-strong);
+  background: var(--panel-bg);
   border-radius: 4px;
   padding: 0 12px;
   font-size: 14px;
   font-weight: 600;
-  font-family: inherit;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-}
-
-.problemset-page .tab i {
-  width: 1em;
-  text-align: center;
-}
-
-.problemset-page .tab.ghost {
-  color: #334155;
+  color: var(--app-text-muted);
 }
 
 .problemset-page .tab.active {
-  background: #fff4e8;
-  color: #b45309;
-  border-color: #f1972c;
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+  border-color: var(--app-primary);
+}
+
+.problemset-page .loading,
+.problemset-page .error {
+  padding: 20px 26px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .problemset-page .loading {
-  padding: 20px 26px;
-  color: #777;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  color: var(--app-text-soft);
 }
 
 .problemset-page .error {
-  padding: 20px 26px;
-  color: #dc2626;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.problemset-page .actions {
-  padding: 12px 20px 0;
+  color: var(--app-danger);
 }
 
 .problemset-page .create-btn {
@@ -76,19 +59,19 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 34px;
+  min-height: 34px;
   padding: 0 14px;
   border-radius: 4px;
-  border: 1px solid #f1972c;
-  color: #f1972c;
-  background: #fff;
+  border: 1px solid var(--app-primary);
+  color: var(--app-primary);
+  background: var(--panel-bg);
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
 }
 
 .problemset-page .create-btn:hover {
-  background: #fff7ed;
+  background: var(--app-primary-soft);
 }
 
 .problemset-page .list {
@@ -105,8 +88,7 @@
   padding: 0 16px;
   text-decoration: none;
   color: inherit;
-  border-top: 1px solid #efefef;
-  transition: background-color 140ms ease;
+  border-top: 1px solid var(--app-border-subtle);
 }
 
 .problemset-page .row:first-child {
@@ -114,30 +96,28 @@
 }
 
 .problemset-page .row:hover {
-  background: #fafcff;
+  background: var(--app-bg-muted);
 }
 
 .problemset-page .row:hover .title {
-  color: #0d58d9;
+  color: var(--app-primary);
 }
 
 .problemset-page .id {
-  color: #1c1c1c;
+  color: var(--app-text);
   font-size: 18px;
-  margin-left: 0;
   font-weight: 700;
 }
 
 .problemset-page .title {
-  color: #0c67f3;
+  color: var(--app-primary);
   font-size: 15px;
-  margin-left: 0;
   font-weight: 500;
 }
 
 .problemset-page .row-arrow {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--app-text-soft);
 }
 
 @media (max-width: 860px) {
@@ -150,6 +130,5 @@
   .problemset-page .id,
   .problemset-page .title {
     font-size: 15px;
-    margin-left: 0;
   }
 }

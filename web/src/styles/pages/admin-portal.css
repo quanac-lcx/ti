@@ -15,10 +15,10 @@
 }
 
 .admin-card {
-  background: #fff;
-  border: 1px solid #ececec;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  box-shadow: none;
   padding: 14px;
 }
 
@@ -33,18 +33,21 @@
   gap: 10px;
 }
 
-.admin-head h3 {
+.admin-head h3,
+.admin-nav h3 {
   margin: 0;
+  color: var(--app-text);
 }
 
 .admin-hint {
   margin: 6px 0 0;
-  color: #6b7280;
+  color: var(--app-text-soft);
   font-size: 13px;
 }
 
 .admin-toolbar,
-.admin-actions {
+.admin-actions,
+.admin-head .actions {
   margin-top: 10px;
   display: flex;
   flex-wrap: wrap;
@@ -54,10 +57,6 @@
 
 .admin-head .actions {
   margin-top: 0;
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
 }
 
 .admin-form-grid {
@@ -75,8 +74,8 @@
   gap: 6px;
 }
 
-.admin-form-grid label>span {
-  color: #374151;
+.admin-form-grid label > span {
+  color: var(--app-text);
   font-weight: 600;
   font-size: 14px;
 }
@@ -86,11 +85,12 @@
 .admin-form-grid textarea,
 .admin-toolbar select {
   width: 100%;
-  border: 1px solid #d5d5d5;
+  border: 1px solid var(--app-border-strong);
   border-radius: 4px;
   padding: 8px 10px;
   box-sizing: border-box;
   font-size: 14px;
+  background: var(--panel-bg);
 }
 
 .admin-table {
@@ -101,7 +101,7 @@
 
 .admin-table th,
 .admin-table td {
-  border-top: 1px solid #efefef;
+  border-top: 1px solid var(--app-border-subtle);
   padding: 8px;
   text-align: left;
   vertical-align: middle;
@@ -112,7 +112,7 @@
   white-space: nowrap;
 }
 
-.admin-table td.actions .admin-btn+.admin-btn {
+.admin-table td.actions .admin-btn + .admin-btn {
   margin-left: 8px;
 }
 
@@ -128,28 +128,25 @@
   white-space: nowrap;
 }
 
-.admin-nav h3 {
-  margin: 0 0 8px;
-}
-
 .admin-nav-link {
   display: block;
   text-decoration: none;
-  color: #374151;
-  border-radius: 6px;
+  color: var(--app-text-muted);
+  border-radius: 4px;
   padding: 8px 10px;
-  margin-bottom: 6px;
+  margin-top: 8px;
   border: 1px solid transparent;
 }
 
 .admin-nav-link:hover {
-  background: #f8fafc;
+  background: var(--app-bg-muted);
+  color: var(--app-text);
 }
 
 .admin-nav-link.active {
-  border-color: #f1972c;
-  background: #fff7ed;
-  color: #b45309;
+  border-color: var(--app-primary);
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
 }
 
 .admin-anchor-nav {
@@ -160,14 +157,14 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 8px 10px;
-  border: 1px solid #ececec;
-  border-radius: 6px;
-  background: #fff;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  background: var(--panel-bg);
 }
 
 .admin-anchor-nav a {
   text-decoration: none;
-  color: #2563eb;
+  color: var(--app-primary);
   font-size: 13px;
 }
 
@@ -176,24 +173,25 @@
 }
 
 .admin-btn {
-  height: 32px;
-  border: 1px solid #d0d0d0;
+  min-height: 32px;
+  border: 1px solid var(--app-border-strong);
   border-radius: 4px;
-  background: #fff;
+  background: var(--panel-bg);
   padding: 0 10px;
   cursor: pointer;
   font-size: 14px;
+  color: var(--app-text-muted);
 }
 
 .admin-btn.primary {
-  border-color: #f1972c;
-  background: #f1972c;
+  border-color: var(--app-primary);
+  background: var(--app-primary);
   color: #fff;
 }
 
 .admin-btn.danger {
-  border-color: #ef4444;
-  color: #ef4444;
+  border-color: var(--app-danger);
+  color: var(--app-danger);
 }
 
 @media (max-width: 1100px) {

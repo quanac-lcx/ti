@@ -32,7 +32,7 @@ async function submitAdminToken() {
 </script>
 
 <template>
-  <TiLayout :show-top-bar="false" :show-title="false" :use-panel="false">
+  <TiLayout subtitle="登录 / 注册" :show-top-bar="false" :show-title="false" :use-panel="false">
     <section class="auth-wrap auth-login-page">
       <div class="auth-card">
         <span class="brand-logo-icon" role="img" aria-label="洛谷保存站有题">
@@ -71,5 +71,4 @@ async function submitAdminToken() {
     </section>
   </TiLayout>
 </template>
-
 

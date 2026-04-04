@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import UiCard from "../components/UiCard.vue";
 import TiLayout from "../layouts/TiLayout.vue";
 import { loadLocalUser } from "../api/auth";
 import { problemsetApi } from "../api/problemset";
@@ -180,7 +181,7 @@ onMounted(loadEditable);
     loading-label="题目加载中"
   >
     <section class="problemset-edit-page create-wrap page-shell">
-      <div class="create-card create-main">
+      <UiCard as="div" class="create-card create-main">
         <div class="title-actions">
           <h2>修改试卷</h2>
           <div class="actions actions-top">
@@ -327,7 +328,7 @@ onMounted(loadEditable);
           <p v-if="error" class="error">{{ error }}</p>
           <p v-if="success" class="success">{{ success }}</p>
         </template>
-      </div>
+      </UiCard>
     </section>
   </TiLayout>
 </template>

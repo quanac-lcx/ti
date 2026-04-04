@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
+import UiCard from "../components/UiCard.vue";
 import TiLayout from "../layouts/TiLayout.vue";
 import { loadLocalUser } from "../api/auth";
 import { problemsetApi } from "../api/problemset";
@@ -198,7 +199,7 @@ const createProblemset = async () => {
 <template>
   <TiLayout title="新建题目" subtitle="保存站有题 / 题库 / 新建题目" :use-panel="false">
     <section class="problemset-create-page create-wrap page-shell">
-      <div class="create-card create-main">
+      <UiCard as="div" class="create-card create-main">
         <h2>创建试卷</h2>
 
         <div v-if="!currentUser" class="warning">
@@ -353,7 +354,7 @@ const createProblemset = async () => {
           <p v-if="error" class="error">{{ error }}</p>
           <p v-if="success" class="success">{{ success }}</p>
         </template>
-      </div>
+      </UiCard>
     </section>
   </TiLayout>
 </template>

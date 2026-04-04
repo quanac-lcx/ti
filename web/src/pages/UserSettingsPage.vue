@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import UiCard from "../components/UiCard.vue";
 import TiLayout from "../layouts/TiLayout.vue";
 import {
   getMySettings,
@@ -97,16 +98,16 @@ onMounted(loadSettings);
     loading-label="设置加载中"
   >
     <section class="settings-root">
-      <div class="settings-notice">
+      <UiCard as="div" class="settings-notice" compact>
         <i class="fa-solid fa-circle-info"></i>
         <div>
           <strong>注意</strong>
           <p>修改后记得点击底部“保存设置”。如需修改头像、显示名称、个人简介，请<a href="https://auth.luogu.me/profile" target="_blank" rel="noopener noreferrer">前往此处</a>，修改后重新登录才会同步。</p>
         </div>
-      </div>
+      </UiCard>
 
       <template v-if="!loading">
-        <div class="settings-item">
+        <UiCard as="div" class="settings-item" compact>
           <label class="item-title" for="records-public"><i class="fa-solid fa-eye"></i>做题记录公开可见</label>
           <div class="switch">
             <label>
@@ -120,9 +121,9 @@ onMounted(loadSettings);
               <span>仅自己和管理员可见</span>
             </label>
           </div>
-        </div>
+        </UiCard>
 
-        <div class="settings-item">
+        <UiCard as="div" class="settings-item" compact>
           <label class="item-title" for="submission-analysis-mode"><i class="fa-solid fa-file-circle-check"></i>Submission 解析展开策略</label>
           <div class="switch">
             <label>
@@ -142,9 +143,9 @@ onMounted(loadSettings);
             </label>
           </div>
           <p class="item-desc">作用于提交记录页（/problemset/:id?submission=:sid）。</p>
-        </div>
+        </UiCard>
 
-        <div class="settings-item">
+        <UiCard as="div" class="settings-item" compact>
           <label class="item-title"><i class="fa-regular fa-floppy-disk"></i>作答自动保存间隔</label>
           <div class="switch">
             <label v-for="option in autosaveOptions" :key="option.value">
@@ -154,9 +155,9 @@ onMounted(loadSettings);
             </label>
           </div>
           <p class="item-desc">用于限时测试和自由练习的本地自动保存恢复。</p>
-        </div>
+        </UiCard>
 
-        <div class="settings-item">
+        <UiCard as="div" class="settings-item" compact>
           <label class="item-title" for="profile-cover-url"><i class="fa-regular fa-image"></i>个人资料背景图 URL</label>
           <input
             id="profile-cover-url"
@@ -175,7 +176,7 @@ onMounted(loadSettings);
           <div class="cover-preview" :style="profileCoverUrl ? { backgroundImage: `url(${profileCoverUrl})` } : {}">
             <div class="preview-tip"><i class="fa-solid fa-panorama"></i>预览</div>
           </div>
-        </div>
+        </UiCard>
 
         <div class="actions">
           <button type="button" class="save-btn" :disabled="saving" @click="submitSettings">

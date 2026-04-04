@@ -5,13 +5,38 @@
 :root {
   color-scheme: light;
   --page-max-width: 1180px;
-  --page-padding: 16px;
-  --panel-bg: #fff;
-  --panel-border: #ececec;
-  --panel-radius: 6px;
-  --panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  --color-success: #22c55e;
-  --color-danger: #ef4444;
+  --page-padding: 20px;
+  --app-radius: 6px;
+  --app-bg: #f8fafc;
+  --app-surface: #ffffff;
+  --app-bg-muted: #f8fafc;
+  --app-bg-subtle: #f1f5f9;
+  --app-border: #e2e8f0;
+  --app-border-strong: #cbd5e1;
+  --app-border-subtle: #f1f5f9;
+  --app-text: #0f172a;
+  --app-text-muted: #475569;
+  --app-text-soft: #64748b;
+  --app-primary: #2563eb;
+  --app-primary-soft: #eff6ff;
+  --app-success: #16a34a;
+  --app-danger: #dc2626;
+  --layout-sider-bg: #ffffff;
+  --layout-sider-border: #e2e8f0;
+  --layout-header-bg: #ffffff;
+  --layout-header-border: #e2e8f0;
+  --layout-brand-bg: #f8fafc;
+  --layout-nav-hover-bg: #f1f5f9;
+  --layout-nav-active-bg: #eff6ff;
+  --layout-nav-active-indicator: #2563eb;
+  --dropdown-shadow: 0 8px 24px #e2e8f0;
+  --panel-bg: var(--app-surface);
+  --panel-border: var(--app-border);
+  --panel-radius: var(--app-radius);
+  --panel-shadow: none;
+  --surface-shadow-sm: 0 8px 24px #e2e8f0;
+  --color-success: var(--app-success);
+  --color-danger: var(--app-danger);
 }
 
 *,
@@ -24,6 +49,7 @@ html,
 body {
   height: 100%;
   width: 100%;
+  background: var(--app-bg);
 }
 
 body {
@@ -31,6 +57,8 @@ body {
   font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
   overflow-x: hidden;
   scrollbar-gutter: stable;
+  background: var(--app-bg);
+  color: var(--app-text);
 }
 
 #app {
@@ -39,6 +67,14 @@ body {
 }
 
 a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
   color: inherit;
 }
 
@@ -60,7 +96,7 @@ a i {
 }
 
 .luogu-markdown {
-  color: #222;
+  color: var(--app-text);
   line-height: 1.75;
   word-break: break-word;
 }
@@ -91,7 +127,7 @@ a i {
   overflow: auto;
   background: #0f172a;
   color: #e5e7eb;
-  border-radius: 6px;
+  border-radius: var(--panel-radius);
   padding: 10px 0;
 }
 
@@ -101,16 +137,16 @@ a i {
 }
 
 .luogu-markdown :not(pre)>code {
-  background: #f1f5f9;
+  background: var(--app-bg-subtle);
   border-radius: 4px;
   padding: 1px 4px;
 }
 
 .luogu-markdown blockquote {
-  border-left: 3px solid #d0d7de;
+  border-left: 3px solid var(--app-border-strong);
   margin-left: 0;
   padding-left: 12px;
-  color: #4b5563;
+  color: var(--app-text-muted);
 }
 
 .luogu-markdown table {
@@ -120,7 +156,7 @@ a i {
 
 .luogu-markdown th,
 .luogu-markdown td {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border);
   padding: 6px 8px;
   text-align: left;
 }
@@ -145,14 +181,14 @@ a i {
 }
 
 .luogu-markdown .line-no {
-  color: #94a3b8;
+  color: var(--app-text-soft);
   text-align: right;
   padding: 0 10px 0 12px;
   min-width: 4ch;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   user-select: none;
-  border-right: 1px solid rgba(148, 163, 184, 0.25);
+  border-right: 1px solid var(--app-border);
   margin-right: 10px;
 }
 

@@ -43,7 +43,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <TiLayout :show-top-bar="false" :show-title="false" :use-panel="false">
+  <TiLayout subtitle="CP OAuth 登录" :show-top-bar="false" :show-title="false" :use-panel="false">
     <section class="callback-wrap auth-callback-page">
       <div class="callback-card">
         <h2>{{ message }}</h2>
@@ -56,5 +56,4 @@ onMounted(async () => {
     </section>
   </TiLayout>
 </template>
-
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
 import TiFooter from "../components/TiFooter.vue";
 import UiLoadingBar from "../components/UiLoadingBar.vue";
@@ -40,12 +40,26 @@ const currentUser = ref<AuthUser | null>(null);
 
 const navItems: NavItem[] = [
   { to: "/problemset", iconClass: "fa-solid fa-book", label: "题库", title: "题库" },
-  { to: "/", iconClass: "fa-solid fa-house", label: "主站", title: "返回主站" }
+  { to: "/problemset/_new", iconClass: "fa-solid fa-plus", label: "新建题目", title: "新建题目" },
+  { to: "https://www.luogu.me/", iconClass: "fa-solid fa-house", label: "保存站", title: "前往保存站" }
 ];
 
 const isLoggedIn = computed(() => !!currentUser.value);
 const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin));
 const avatarUrl = computed(() => currentUser.value?.avatarUrl ?? "");
+const pageDocumentTitle = computed(() => {
+  const pageTitle = String(props.title ?? "").trim();
+  if (pageTitle) {
+    return `${pageTitle} - 保存站有题`;
+  }
+
+  const subtitle = String(props.subtitle ?? "").trim();
+  if (subtitle) {
+    return `${subtitle} - 保存站有题`;
+  }
+
+  return "保存站有题";
+});
 
 const refreshUser = () => {
   currentUser.value = loadLocalUser();
@@ -103,6 +117,14 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("storage", refreshUser);
 });
+
+watch(
+  pageDocumentTitle,
+  (title) => {
+    document.title = title;
+  },
+  { immediate: true }
+);
 </script>
 
 <template>
@@ -115,23 +137,35 @@ onUnmounted(() => {
     >
       <div class="brand">
         <div class="logo">
-          <img src="https://cdn.luogu.com.cn/youti-fe/logo-single.png?98632e1daed253842bc0846d56f869e3" alt="洛谷保存站" />
+          <img src="https://lgs-cdn.cn-nb1.rains3.com/luogu-saver/logo-icon.png" alt="保存站有题" />
         </div>
-        <div class="brand-text" v-show="!sidebarCollapsed">洛谷保存站</div>
+        <div class="brand-text" v-show="!sidebarCollapsed">保存站有题</div>
       </div>
 
       <nav class="nav">
-        <RouterLink
-          v-for="item in navItems"
-          :key="item.to"
-          :to="item.to"
-          :title="item.title"
-          class="nav-item"
-          :class="{ active: route.path === item.to }"
-        >
-          <div class="icon"><i :class="item.iconClass"></i></div>
-          <div class="text" v-show="!sidebarCollapsed">{{ item.label }}</div>
-        </RouterLink>
+        <template v-for="item in navItems" :key="item.to">
+          <a
+            v-if="item.to.startsWith('http')"
+            :href="item.to"
+            :title="item.title"
+            class="nav-item"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <div class="icon"><i :class="item.iconClass"></i></div>
+            <div class="text" v-show="!sidebarCollapsed">{{ item.label }}</div>
+          </a>
+          <RouterLink
+            v-else
+            :to="item.to"
+            :title="item.title"
+            class="nav-item"
+            :class="{ active: route.path === item.to }"
+          >
+            <div class="icon"><i :class="item.iconClass"></i></div>
+            <div class="text" v-show="!sidebarCollapsed">{{ item.label }}</div>
+          </RouterLink>
+        </template>
       </nav>
 
       <button

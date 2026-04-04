@@ -27,8 +27,8 @@ withDefaults(
   height: 4px;
   overflow: hidden;
   border-radius: 999px;
-  background: #fde7cb;
-  box-shadow: inset 0 0 0 1px rgba(241, 151, 44, 0.18);
+  background: var(--app-bg-subtle);
+  box-shadow: inset 0 0 0 1px var(--app-border);
 }
 
 .ui-loading-bar__value {
@@ -37,8 +37,8 @@ withDefaults(
   width: min(28%, 220px);
   min-width: 72px;
   border-radius: inherit;
-  background: linear-gradient(90deg, #f7b65d 0%, #f1972c 52%, #db7a13 100%);
-  box-shadow: 0 0 16px rgba(241, 151, 44, 0.32);
+  background: var(--app-primary);
+  box-shadow: none;
   animation: ui-loading-bar-slide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
