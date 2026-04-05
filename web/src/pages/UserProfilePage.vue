@@ -25,6 +25,10 @@ const error = ref("");
 const recordsError = ref("");
 
 const profileUid = computed(() => String(route.params.uid ?? "").trim());
+const showBannedNotice = computed(() => {
+  if (!profile.value?.isBanned) return false;
+  return currentUser.value?.uid !== profile.value.uid;
+});
 
 const canViewPrivateProblemsets = computed(() => {
   const current = currentUser.value;
@@ -263,6 +267,7 @@ watch(() => route.params.uid, loadPage);
             <div class="meta">
               <p class="name">{{ profile.username }}</p>
               <p class="uid">@{{ profile.uid }}</p>
+              <p v-if="showBannedNotice" class="banned-note">该用户已被封禁。</p>
             </div>
           </div>
         </UiCard>

@@ -3,6 +3,7 @@ import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import TiLayout from "../layouts/TiLayout.vue";
 import { clearAdminTokenSession, redeemCpoauthTicket, saveLocalUser } from "../api/auth";
+import { BANNED_ROUTE_PATH, isBannedMessage } from "../utils/authRedirect";
 
 const route = useRoute();
 const router = useRouter();
@@ -16,6 +17,10 @@ onMounted(async () => {
   const fallbackReturnTo = String(route.query.returnTo ?? "/problemset");
 
   if (directError) {
+    if (isBannedMessage(directError)) {
+      await router.replace(BANNED_ROUTE_PATH);
+      return;
+    }
     pending.value = false;
     error.value = decodeURIComponent(directError);
     message.value = "CP OAuth 登录失败";
@@ -33,7 +38,7 @@ onMounted(async () => {
     const { user, returnTo } = await redeemCpoauthTicket(ticket);
     clearAdminTokenSession();
     saveLocalUser(user);
-    await router.replace(returnTo || fallbackReturnTo || "/problemset");
+    await router.replace(user.isBanned ? BANNED_ROUTE_PATH : (returnTo || fallbackReturnTo || "/problemset"));
   } catch (err) {
     pending.value = false;
     error.value = String((err as Error)?.message ?? err);
@@ -56,4 +61,3 @@ onMounted(async () => {
     </section>
   </TiLayout>
 </template>
-

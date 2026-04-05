@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import TiLayout from "../layouts/TiLayout.vue";
 import { buildCpoauthAuthorizeUrl, loginWithAdminToken, saveLocalUser } from "../api/auth";
+import { BANNED_ROUTE_PATH } from "../utils/authRedirect";
 
 const route = useRoute();
 const router = useRouter();
@@ -22,7 +23,7 @@ async function submitAdminToken() {
   try {
     const user = await loginWithAdminToken(token);
     saveLocalUser(user);
-    await router.push("/admin");
+    await router.push(user.isBanned ? BANNED_ROUTE_PATH : "/admin");
   } catch (err) {
     adminError.value = String((err as Error)?.message ?? err);
   } finally {
@@ -72,4 +73,3 @@ async function submitAdminToken() {
     </section>
   </TiLayout>
 </template>
-
