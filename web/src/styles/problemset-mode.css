@@ -1,3 +1,5 @@
+@import "./problemset-status.css";
+
 .problemset-mode-page {
   display: grid;
   gap: 12px;
@@ -6,7 +8,7 @@
 .problemset-mode-page .guest-login-modal-mask {
   position: fixed;
   inset: 0;
-  background: rgba(226, 232, 240, 0.72);
+  background: var(--app-mask);
   display: grid;
   place-items: center;
   z-index: 170;
@@ -14,10 +16,10 @@
 
 .problemset-mode-page .guest-login-modal-card {
   width: min(92vw, 460px);
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid #e5e7eb;
+  background: var(--app-modal-surface);
+  border: 1px solid var(--app-border);
   border-radius: 10px;
-  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.10);
+  box-shadow: var(--surface-shadow-sm);
   padding: 18px;
   position: relative;
 }
@@ -25,11 +27,12 @@
 .problemset-mode-page .guest-login-modal-card h3 {
   margin: 0 0 8px;
   font-size: 22px;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .guest-login-modal-card p {
   margin: 0;
-  color: #475569;
+  color: var(--app-text-muted);
 }
 
 .problemset-mode-page .guest-login-actions {
@@ -47,8 +50,12 @@
   background: transparent;
   font-size: 22px;
   line-height: 1;
-  color: #64748b;
+  color: var(--app-text-soft);
   cursor: pointer;
+}
+
+.problemset-mode-page .guest-login-close:hover {
+  color: var(--app-text);
 }
 
 .problemset-mode-page .exam-notice {
@@ -57,17 +64,19 @@
   top: 18px;
   width: 360px;
   z-index: 160;
-  background: #0f172a;
-  color: #fff;
+  background: var(--app-modal-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 12px 14px;
-  box-shadow: none;
+  box-shadow: var(--surface-shadow-sm);
 }
 
 .problemset-mode-page .exam-notice p {
   margin: 0 0 6px;
   font-size: 13px;
   line-height: 1.55;
+  color: inherit;
 }
 
 .problemset-mode-page .exam-notice p:last-child {
@@ -75,7 +84,7 @@
 }
 
 .problemset-mode-page .error-card {
-  color: #dc2626;
+  color: var(--app-danger);
   padding: 16px;
 }
 
@@ -89,11 +98,12 @@
 .problemset-mode-page .mode-header h2 {
   margin: 0 0 8px;
   font-size: 34px;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .mode-hint {
   margin: 0;
-  color: #6b7280;
+  color: var(--app-text-soft);
 }
 
 .problemset-mode-page .mode-meta {
@@ -105,15 +115,15 @@
 .problemset-mode-page .mode-timer {
   font-size: 26px;
   font-weight: 700;
-  color: #111827;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .mode-timer.danger {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 
 .problemset-mode-page .autosave-tip {
-  color: #2563eb;
+  color: var(--app-primary);
   font-size: 13px;
 }
 
@@ -134,32 +144,32 @@
   gap: 2px;
   padding: 10px 12px;
   border-radius: 8px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--app-bg-elevated);
+  border: 1px solid var(--app-border);
 }
 
 .problemset-mode-page .mode-timer-label {
   font-size: 11px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--app-text-soft);
 }
 
 .problemset-mode-page .mode-timer-value {
   font-size: 26px;
   line-height: 1;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--app-text);
   letter-spacing: 0.01em;
 }
 
 .problemset-mode-page .mode-timer-card.danger {
-  background: #fff;
-  border-color: #fca5a5;
+  background: var(--app-danger-soft);
+  border-color: var(--app-danger);
 }
 
 .problemset-mode-page .mode-timer-card.danger .mode-timer-label,
 .problemset-mode-page .mode-timer-card.danger .mode-timer-value {
-  color: #dc2626;
+  color: var(--app-danger);
 }
 
 .problemset-mode-page .question-card {
@@ -177,7 +187,7 @@
   gap: 8px;
   cursor: pointer;
   margin-bottom: 8px;
-  color: #1f2937;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .shared-material-summary::-webkit-details-marker {
@@ -189,7 +199,7 @@
   height: 0;
   border-top: 6px solid transparent;
   border-bottom: 6px solid transparent;
-  border-left: 8px solid #1f2937;
+  border-left: 8px solid var(--app-text);
   transition: transform 0.18s ease;
   transform-origin: 35% 50%;
 }
@@ -199,16 +209,16 @@
 }
 
 .problemset-mode-page .shared-material-block {
-  border: 1px solid #1f2937;
+  border: 1px solid var(--app-border-strong);
   border-radius: 8px;
-  background: #f1f4f8;
+  background: var(--app-bg-muted);
   padding: 12px 14px;
 }
 
 .problemset-mode-page .shared-material-title {
   font-weight: 700;
   font-size: 16px;
-  color: #1f2937;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .shared-material-content {
@@ -219,6 +229,7 @@
 .problemset-mode-page .question-card h3 {
   margin: 0 0 10px;
   font-size: 20px;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .question-stem {
@@ -240,6 +251,7 @@
 
 .problemset-mode-page .mode-option-row input {
   margin: 0;
+  accent-color: var(--app-primary);
 }
 
 .problemset-mode-page .mode-option-key {
@@ -261,10 +273,16 @@
 .problemset-mode-page .input-wrap input {
   width: 100%;
   height: 40px;
-  border: 1px solid #d5d5d5;
+  border: 1px solid var(--app-border-strong);
   border-radius: 4px;
   padding: 0 10px;
   box-sizing: border-box;
+  background: var(--app-input-bg);
+  color: var(--app-text);
+}
+
+.problemset-mode-page .input-wrap input::placeholder {
+  color: var(--app-text-soft);
 }
 
 .problemset-mode-page .question-score {
@@ -273,17 +291,17 @@
 
 .problemset-mode-page .result {
   margin-top: 10px;
-  border-top: 1px dashed #e5e7eb;
+  border-top: 1px dashed var(--app-border);
   padding-top: 10px;
 }
 
 .problemset-mode-page .ok {
-  color: #22c55e;
+  color: var(--app-success);
   font-weight: 700;
 }
 
 .problemset-mode-page .ng {
-  color: #dc2626;
+  color: var(--app-danger);
   font-weight: 700;
 }
 
@@ -312,18 +330,18 @@
   gap: 2px;
   padding: 7px 8px;
   border-radius: 8px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
+  background: var(--app-bg-elevated);
+  border: 1px solid var(--app-border);
 }
 
 .problemset-mode-page .mode-summary-label {
   font-size: 10px;
-  color: #6b7280;
+  color: var(--app-text-soft);
 }
 
 .problemset-mode-page .mode-summary-card strong {
   font-size: 15px;
-  color: #0f172a;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .actions {
@@ -335,18 +353,23 @@
 .problemset-mode-page .mode-actions {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--app-border);
 }
 
 .problemset-mode-page .btn {
   height: 32px;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--app-border-strong);
   border-radius: 7px;
   padding: 0 12px;
   cursor: pointer;
-  background: #fff;
+  background: var(--app-bg-elevated);
+  color: var(--app-text);
   font-weight: 700;
   font-size: 13px;
+}
+
+.problemset-mode-page .btn:hover {
+  background: var(--layout-nav-hover-bg);
 }
 
 .problemset-mode-page .btn.primary {
@@ -356,8 +379,8 @@
 }
 
 .problemset-mode-page .btn.warn {
-  border-color: #d1d5db;
-  color: #374151;
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
 }
 
 .problemset-mode-page .mode-question-nav {
@@ -374,6 +397,7 @@
 .problemset-mode-page .mode-question-nav-head h3 {
   margin: 0;
   font-size: 16px;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .question-group-list {
@@ -384,23 +408,23 @@
 }
 
 .problemset-mode-page .question-group-block {
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--app-border);
   border-radius: 8px;
   padding: 7px;
-  background: #fff;
+  background: var(--app-bg-elevated);
   width: 100%;
 }
 
 .problemset-mode-page .question-group-block.material {
-  border-color: #e5e7eb;
-  background: #fff;
+  border-color: var(--app-border);
+  background: var(--app-bg-elevated);
 }
 
 .problemset-mode-page .question-group-title {
   font-weight: 700;
   font-size: 12px;
   margin-bottom: 5px;
-  color: #0f172a;
+  color: var(--app-text);
 }
 
 .problemset-mode-page .question-grid {
@@ -416,8 +440,7 @@
 .problemset-mode-page .num-btn {
   border: 0;
   border-radius: 5px;
-  background: #c7c7c7;
-  color: #fff;
+  color: var(--app-text-on-inverse);
   height: 26px;
   min-width: 26px;
   padding: 0 6px;
@@ -432,18 +455,6 @@
   min-width: 26px;
   padding-inline: 6px;
   margin-left: 7px;
-}
-
-.problemset-mode-page .num-btn.answered {
-  background: #e67e22;
-}
-
-.problemset-mode-page .num-btn.correct {
-  background: #22c55e;
-}
-
-.problemset-mode-page .num-btn.wrong {
-  background: #ef4444;
 }
 
 @media (max-width: 1160px) {

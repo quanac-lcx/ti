@@ -74,7 +74,7 @@
 :is(.problemset-create-page, .problemset-edit-page) select:focus,
 :is(.problemset-create-page, .problemset-edit-page) textarea:focus {
   border-color: var(--app-primary);
-  outline: 2px solid #bfdbfe;
+  outline: 2px solid var(--app-primary-soft);
   outline-offset: 0;
 }
 

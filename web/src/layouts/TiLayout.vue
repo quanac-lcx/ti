@@ -42,6 +42,7 @@ const currentUser = ref<AuthUser | null>(null);
 const navItems: NavItem[] = [
   { to: "/problemset", iconClass: "fa-solid fa-book", label: "题库", title: "题库" },
   { to: "/problemset/_new", iconClass: "fa-solid fa-plus", label: "新建题目", title: "新建题目" },
+  { to: "/search", iconClass: "fa-solid fa-magnifying-glass", label: "搜索", title: "搜索题目" },
   { to: "https://www.luogu.me/", iconClass: "fa-solid fa-house", label: "保存站", title: "前往保存站" }
 ];
 

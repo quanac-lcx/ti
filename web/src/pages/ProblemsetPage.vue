@@ -43,6 +43,10 @@ onMounted(loadList);
           </button>
         </div>
         <div class="toolbar-actions">
+          <router-link class="tab ghost" to="/search">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            搜索
+          </router-link>
           <button class="tab ghost" type="button" @click="loadList">
             <i class="fa-solid fa-rotate-right"></i>
             刷新
@@ -65,5 +69,4 @@ onMounted(loadList);
     </div>
   </TiLayout>
 </template>
-
 

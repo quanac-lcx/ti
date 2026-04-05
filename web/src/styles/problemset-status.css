@@ -1,0 +1,44 @@
+.problemset-detail-page,
+.problemset-mode-page {
+  --status-btn-neutral: var(--app-neutral-fill);
+  --status-btn-active: var(--app-primary);
+  --status-btn-answered: var(--app-primary);
+  --status-btn-correct: var(--app-success);
+  --status-btn-wrong: var(--app-danger);
+}
+
+html[data-theme="light"] .problemset-detail-page,
+html[data-theme="light"] .problemset-mode-page {
+  --status-btn-neutral: #aebfe1;
+  --status-btn-active: #4668ff;
+  --status-btn-answered: #4668ff;
+  --status-btn-correct: #28a861;
+  --status-btn-wrong: #ff0000;
+}
+
+.problemset-detail-page .question-btn,
+.problemset-mode-page .num-btn {
+  background: var(--status-btn-neutral);
+  color: var(--app-text-on-inverse);
+}
+
+.problemset-detail-page .question-btn.active {
+  background: var(--status-btn-active);
+}
+
+.problemset-mode-page .num-btn.answered {
+  background: var(--status-btn-answered);
+  color: #fff;
+}
+
+.problemset-detail-page .question-btn.correct,
+.problemset-mode-page .num-btn.correct {
+  background: var(--status-btn-correct);
+  color: #fff;
+}
+
+.problemset-detail-page .question-btn.wrong,
+.problemset-mode-page .num-btn.wrong {
+  background: var(--status-btn-wrong);
+  color: #fff;
+}
