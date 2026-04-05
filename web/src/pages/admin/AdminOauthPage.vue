@@ -45,7 +45,7 @@ async function saveConfig() {
       clientId: form.clientId.trim(),
       clientSecret: form.clientSecret.trim(),
       callbackUrl: form.callbackUrl.trim(),
-      scope: form.scope.trim() || "openid profile email"
+      scope: form.scope
     });
     form.clientId = config.clientId;
     form.clientSecret = config.clientSecret;
@@ -127,7 +127,7 @@ onMounted(async () => {
         </label>
         <label>
           <span>Scope</span>
-          <input v-model.trim="form.scope" type="text" placeholder="openid profile email" />
+          <input v-model="form.scope" type="text" placeholder="openid profile email" />
         </label>
       </div>
       <div class="admin-actions">

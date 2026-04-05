@@ -279,12 +279,11 @@ function resolveWebBaseUrl(req, candidate) {
 }
 
 function normalizeOauthScope(scopeRaw) {
-  const existing = String(scopeRaw ?? "")
+  return String(scopeRaw ?? "")
     .split(/\s+/)
     .map((item) => item.trim())
-    .filter(Boolean);
-  const merged = Array.from(new Set([...existing, "openid", "profile", "email"]));
-  return merged.join(" ");
+    .filter(Boolean)
+    .join(" ");
 }
 
 async function getAppSettings(keys) {
@@ -2479,4 +2478,3 @@ export function buildRouter() {
 
   return router;
 }
-
