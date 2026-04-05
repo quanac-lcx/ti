@@ -101,7 +101,7 @@ export const softDarkThemeTokens = {
   colorBgMask: "rgba(4, 7, 12, 0.68)",
   colorBgModal: "rgba(23, 29, 39, 0.96)",
   colorSurfaceInverse: "#ecf1f8",
-  colorTextOnInverse: "#18202c",
+  colorTextOnInverse: "#f8fbff",
   colorBorder: "#2c3648",
   colorBorderStrong: "#3a4760",
   colorBorderSubtle: "#232c3d",

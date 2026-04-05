@@ -681,9 +681,7 @@ function closeGuestLoginModal() {
       </div>
 
       <div v-if="showingNotice" class="exam-notice">
-        <p>考试开始后倒计时开始，途中无法暂停。</p>
-        <p>你的答案将间隔一定时间自动保存。</p>
-        <p>不小心关闭可到个人中心找回考试页面。</p>
+        <p>考试开始后倒计时开始，途中可以暂停，你的答案将间隔一定时间自动保存（<a href="/user/_me/settings" target="_blank">此处设置自动保存间隔</a>）。不小心关闭可到个人中心找回考试页面。</p>
       </div>
 
       <div v-if="!loading && error" class="panel-card error-card">{{ error }}</div>
