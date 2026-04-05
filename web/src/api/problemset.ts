@@ -74,6 +74,7 @@ interface ProblemsetEditResponse {
 
 export interface ProblemsetApi {
   list(tab?: "official" | "all" | "featured"): Promise<ProblemsetSummary[]>;
+  search(keyword: string): Promise<ProblemsetSummary[]>;
   detail(problemsetId: number): Promise<ProblemsetDetail>;
   create(payload: CreateProblemsetPayload): Promise<ProblemsetSummary>;
   getEditable(problemsetId: number): Promise<ProblemsetEditDetail>;
@@ -85,6 +86,11 @@ export interface ProblemsetApi {
 class HttpProblemsetApi implements ProblemsetApi {
   async list(tab: "official" | "all" | "featured" = "official"): Promise<ProblemsetSummary[]> {
     const remote = await apiGet<ProblemsetListResponse>(`/api/problemsets?tab=${tab}`);
+    return remote.problemsets ?? [];
+  }
+
+  async search(keyword: string): Promise<ProblemsetSummary[]> {
+    const remote = await apiGet<ProblemsetListResponse>(`/api/problemsets/search?q=${encodeURIComponent(keyword)}`);
     return remote.problemsets ?? [];
   }
 

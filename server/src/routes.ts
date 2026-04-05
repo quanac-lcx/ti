@@ -763,6 +763,64 @@ export function buildRouter() {
     });
   });
 
+  router.get("/problemsets/search", async (req, res) => {
+    const keyword = String(req.query?.q ?? "").trim();
+    if (!keyword) {
+      return res.json({ problemsets: [] });
+    }
+
+    const escapedKeyword = keyword.replace(/[\\%_]/g, "\\$&");
+    const fuzzyKeyword = `%${escapedKeyword}%`;
+    const titlePrefixKeyword = `${escapedKeyword}%`;
+    const exactId = Number.isInteger(Number(keyword)) && Number(keyword) > 0 ? Number(keyword) : 0;
+
+    const [rows] = await dbPool.query(
+      `
+        SELECT
+          p.id,
+          p.title,
+          p.description,
+          p.duration_minutes,
+          p.problemset_type,
+          p.created_by_uid,
+          COALESCE(COUNT(q.id), 0) AS question_count
+        FROM problemsets p
+        LEFT JOIN questions q ON q.problemset_id = p.id
+        WHERE p.problemset_type IN ('official_public', 'personal_featured', 'personal_public')
+          AND (
+            p.title LIKE ?
+            OR p.description LIKE ?
+            OR p.created_by_uid LIKE ?
+            OR CAST(p.id AS CHAR) LIKE ?
+          )
+        GROUP BY p.id, p.title, p.description, p.duration_minutes, p.problemset_type, p.created_by_uid
+        ORDER BY
+          CASE
+            WHEN ? > 0 AND p.id = ? THEN 0
+            WHEN p.title LIKE ? THEN 1
+            WHEN p.created_by_uid LIKE ? THEN 2
+            ELSE 3
+          END,
+          p.id ASC
+        LIMIT 100
+      `,
+      [
+        fuzzyKeyword,
+        fuzzyKeyword,
+        fuzzyKeyword,
+        fuzzyKeyword,
+        exactId,
+        exactId,
+        titlePrefixKeyword,
+        titlePrefixKeyword
+      ]
+    );
+
+    return res.json({
+      problemsets: rows.map((row) => toProblemsetSummary(row))
+    });
+  });
+
   router.get("/problemsets/:id", async (req, res) => {
     const problemsetId = Number(req.params.id);
     if (!Number.isFinite(problemsetId)) {

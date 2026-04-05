@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import ProblemsetPage from "./pages/ProblemsetPage.vue";
+import ProblemsetSearchPage from "./pages/ProblemsetSearchPage.vue";
 import ProblemsetCreatePage from "./pages/ProblemsetCreatePage.vue";
 import ProblemsetEditPage from "./pages/ProblemsetEditPage.vue";
 import ProblemsetDetailPage from "./pages/ProblemsetDetailPage.vue";
@@ -28,6 +29,7 @@ function readCurrentUid() {
 const routes: RouteRecordRaw[] = [
   { path: "/", redirect: "/problemset" },
   { path: "/problemset", component: ProblemsetPage },
+  { path: "/search", component: ProblemsetSearchPage },
   { path: "/problemset/_new", component: ProblemsetCreatePage },
   { path: "/problemset/:id/edit", component: ProblemsetEditPage },
   { path: "/problemset/:id/exam", component: ProblemsetModePage },

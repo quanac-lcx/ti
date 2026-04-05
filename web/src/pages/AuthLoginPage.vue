@@ -46,7 +46,8 @@ async function submitAdminToken() {
           </svg>
         </span>
         <h2 class="auth-title">登录/注册</h2>
-        <p class="auth-tip">请使用 <a href="//auth.luogu.me" target="_blank" rel="noopener noreferrer">CP OAuth</a> 登录/注册。未注册的用户将自动注册。</p>
+        <p class="auth-tip">请使用 <a href="//www.cpoauth.com" target="_blank" rel="noopener noreferrer">CP OAuth</a> 登录/注册。未注册的用户将自动注册。</p>
+        <p class="auth-tip">点击下方按钮，即代表您同意洛谷保存站有题<span style="font-weight: bolder">和</span>CP OAuth的任何协议、条款和政策（如有）。若您不同意，请取消登录。</p>
         <a :href="cpoauthEntryUrl" class="btn btn-cpoauth">
           <i class="fa-solid fa-right-to-bracket"></i>
           使用 CP OAuth 继续
