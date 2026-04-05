@@ -21,6 +21,11 @@ const recordsPublic = ref(true);
 const profileCoverUrl = ref("");
 const submissionAnalysisMode = ref<"none" | "wrong_only" | "all">("wrong_only");
 const autosaveIntervalSeconds = ref<AutosaveIntervalSeconds>(30);
+const defaultProfileCovers = [
+  "https://resources.cn-sy1.rains3.com/ti/banner_1.webp",
+  "https://resources.cn-sy1.rains3.com/ti/banner_2.webp",
+  "https://resources.cn-sy1.rains3.com/ti/banner_3.webp"
+] as const;
 
 const autosaveOptions: Array<{ value: AutosaveIntervalSeconds; label: string }> = [
   { value: 30, label: "30 秒" },
@@ -39,8 +44,13 @@ function normalizeAutosaveInterval(value: unknown): AutosaveIntervalSeconds {
   return 30;
 }
 
+function pickDefaultProfileCover() {
+  const index = Math.floor(Math.random() * defaultProfileCovers.length);
+  return defaultProfileCovers[index];
+}
+
 function clearCoverUrl() {
-  profileCoverUrl.value = "";
+  profileCoverUrl.value = pickDefaultProfileCover();
 }
 
 async function loadSettings() {
@@ -79,6 +89,7 @@ async function submitSettings() {
       autosaveIntervalSeconds: autosaveIntervalSeconds.value
     });
     saveLocalUser(result.user);
+    profileCoverUrl.value = String(result.settings.profileCoverUrl ?? result.user.profileCoverUrl ?? "");
     success.value = "设置已保存。";
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
