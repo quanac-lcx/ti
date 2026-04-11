@@ -64,12 +64,52 @@ function parseInlineAttrs(raw: unknown): Record<string, string> {
 }
 
 function getSection(rawBlock: string, sectionName: string) {
-  const regex = new RegExp(`\\[${sectionName}([^\\]]*)\\]([\\s\\S]*?)\\[\\/${sectionName}\\]`, "i");
-  const matched = regex.exec(rawBlock);
-  if (!matched) return null;
+  const source = String(rawBlock ?? "");
+  const openTag = `[${sectionName}`;
+  const closeTag = `[/${sectionName}]`;
+  const openIndex = source.search(new RegExp(`\\[${sectionName}(?=[\\s\\]])`, "i"));
+  if (openIndex < 0) return null;
+
+  let cursor = openIndex + openTag.length;
+  let quote: "\"" | "'" | null = null;
+  let escaped = false;
+
+  while (cursor < source.length) {
+    const ch = source[cursor];
+    if (escaped) {
+      escaped = false;
+      cursor += 1;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      cursor += 1;
+      continue;
+    }
+    if (quote) {
+      if (ch === quote) quote = null;
+      cursor += 1;
+      continue;
+    }
+    if (ch === "\"" || ch === "'") {
+      quote = ch;
+      cursor += 1;
+      continue;
+    }
+    if (ch === "]") break;
+    cursor += 1;
+  }
+
+  if (cursor >= source.length || source[cursor] !== "]") return null;
+
+  const attrsSource = source.slice(openIndex + openTag.length, cursor);
+  const bodyStart = cursor + 1;
+  const closeIndex = source.toLowerCase().indexOf(closeTag.toLowerCase(), bodyStart);
+  if (closeIndex < 0) return null;
+
   return {
-    attrs: parseInlineAttrs(matched[1] ?? ""),
-    body: String(matched[2] ?? "").trim()
+    attrs: parseInlineAttrs(attrsSource),
+    body: source.slice(bodyStart, closeIndex).trim()
   };
 }
 
