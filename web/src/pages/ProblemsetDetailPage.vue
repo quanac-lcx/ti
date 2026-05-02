@@ -1,6 +1,7 @@
 ﻿<script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
 import { getMySettings, loadLocalUser } from "../api/auth";
 import { problemsetApi, type ProblemQuestion, type ProblemsetDetail } from "../api/problemset";
@@ -17,6 +18,7 @@ type DetailTab = "description" | "question" | "history";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const currentUser = loadLocalUser();
 
 const loading = ref(true);
@@ -40,7 +42,7 @@ const problemsetId = computed(() => {
 });
 
 const pageTitle = computed(() => {
-  if (!detail.value) return `题库 ${problemsetId.value}`;
+  if (!detail.value) return t("problemset.detail.pageTitleFallback", { id: problemsetId.value });
   return `${detail.value.summary.id} - ${detail.value.summary.title}`;
 });
 
@@ -95,7 +97,7 @@ function isMaterialGroupStart(question: ProblemQuestion, index: number, question
 }
 
 function questionMaterialTitle(question: ProblemQuestion) {
-  return question.groupTitle?.trim() || "共享材料";
+  return question.groupTitle?.trim() || t("problemset.detail.sharedMaterial");
 }
 
 function normalizeOptionAnswer(raw: string) {
@@ -329,34 +331,34 @@ watch(
 <template>
   <TiLayout
     :title="pageTitle"
-    subtitle="保存站有题 / 试题列表 / 试题详情"
+    :subtitle="t('problemset.detail.subtitle')"
     :use-panel="false"
     :loading="loading"
-    loading-label="试题加载中"
+    :loading-label="t('problemset.detail.loading')"
   >
     <div v-if="detail && !loading" class="problemset-detail-page page-shell">
       <section class="problemset-detail-summary panel-card">
         <div class="problemset-detail-actions">
-          <button class="action-btn action-btn-primary" type="button" @click="goExam">限时测试</button>
-          <button class="action-btn" type="button" @click="goTraining">自由练习</button>
+          <button class="action-btn action-btn-primary" type="button" @click="goExam">{{ t("problemset.detail.exam") }}</button>
+          <button class="action-btn" type="button" @click="goTraining">{{ t("problemset.detail.training") }}</button>
           <button
             v-if="canEdit"
             class="action-btn"
             type="button"
             @click="router.push(`/problemset/${problemsetId}/edit`)"
           >
-            修改题目
+            {{ t("problemset.detail.edit") }}
           </button>
         </div>
         <div class="problemset-detail-stats">
           <div class="stat-item">
-            <span class="stat-label">题目数量</span>
+            <span class="stat-label">{{ t("problemset.detail.questionCount") }}</span>
             <strong class="stat-value">{{ detail.summary.questionCount }}</strong>
           </div>
           <div class="stat-divider"></div>
           <div class="stat-item">
-            <span class="stat-label">测试时间</span>
-            <strong class="stat-value">{{ detail.summary.durationHours }} 小时</strong>
+            <span class="stat-label">{{ t("problemset.detail.duration") }}</span>
+            <strong class="stat-value">{{ detail.summary.durationHours }} {{ t("common.hours") }}</strong>
           </div>
         </div>
       </section>
@@ -364,9 +366,9 @@ watch(
       <section class="problemset-detail-grid">
         <div class="left-column">
           <div class="panel-card tabs-card">
-            <button class="tab-btn" :class="{ active: activeTab === 'description' }" type="button" @click="activeTab = 'description'">试题描述</button>
-            <button class="tab-btn" :class="{ active: activeTab === 'question' }" type="button" @click="activeTab = 'question'">查看题目</button>
-            <button v-if="hasHistory" class="tab-btn" :class="{ active: activeTab === 'history' }" type="button" @click="activeTab = 'history'">历史答卷</button>
+            <button class="tab-btn" :class="{ active: activeTab === 'description' }" type="button" @click="activeTab = 'description'">{{ t("problemset.detail.tabs.description") }}</button>
+            <button class="tab-btn" :class="{ active: activeTab === 'question' }" type="button" @click="activeTab = 'question'">{{ t("problemset.detail.tabs.question") }}</button>
+            <button v-if="hasHistory" class="tab-btn" :class="{ active: activeTab === 'history' }" type="button" @click="activeTab = 'history'">{{ t("problemset.detail.tabs.history") }}</button>
           </div>
 
           <div v-if="activeTab === 'description'" class="panel-card body-card">
@@ -374,14 +376,14 @@ watch(
           </div>
 
           <div v-else-if="activeTab === 'question' && currentQuestion" class="panel-card body-card">
-            <h3 class="question-title">第 {{ currentQuestion.index }} 题</h3>
+            <h3 class="question-title">{{ t("problemset.common.questionNumber", { index: currentQuestion.index }) }}</h3>
             <div v-if="currentQuestion.sharedMaterial" class="shared-material-block">
               <div class="shared-material-title">
                 {{ questionMaterialTitle(currentQuestion) }}
                 <span v-if="currentQuestion.groupQuestionIndex">
-                  · 第 {{ currentQuestion.groupQuestionIndex }}
+                  · {{ currentQuestion.groupQuestionIndex }}
                   <span v-if="currentQuestion.groupQuestionCount"> / {{ currentQuestion.groupQuestionCount }}</span>
-                  小题
+                  {{ t("problemset.common.subQuestion") }}
                 </span>
               </div>
               <div class="shared-material-content luogu-markdown" v-html="questionMaterialHtml"></div>
@@ -401,17 +403,17 @@ watch(
             </div>
 
             <div v-else class="input-preview">
-              <label>作答输入框预览</label>
-              <input type="text" :placeholder="currentQuestion.inputPlaceholder || '请输入答案'" disabled />
+              <label>{{ t("problemset.detail.inputPreview") }}</label>
+              <input type="text" :placeholder="currentQuestion.inputPlaceholder || t('problemset.common.answerPlaceholder')" disabled />
             </div>
 
-            <p class="question-score">本题共 {{ currentQuestion.score }} 分</p>
+            <p class="question-score">{{ t("problemset.detail.score", { score: currentQuestion.score }) }}</p>
             <button class="answer-btn" type="button" @click="answerVisible = !answerVisible">
-              {{ answerVisible ? '隐藏答案与解析' : '显示答案与解析' }}
+              {{ answerVisible ? t("problemset.detail.hideAnswer") : t("problemset.detail.showAnswer") }}
             </button>
 
             <div v-if="answerVisible" class="answer-block">
-              <p class="answer-text">正确答案：{{ currentQuestion.answer }}</p>
+              <p class="answer-text">{{ t("problemset.common.answerLabel", { answer: currentQuestion.answer }) }}</p>
               <div class="luogu-markdown" v-html="answerAnalysisHtml"></div>
             </div>
           </div>
@@ -428,11 +430,11 @@ watch(
                 <div class="shared-material-content luogu-markdown" v-html="renderMd(question.sharedMaterial)"></div>
               </div>
               <h3 class="history-question-title" :class="historyQuestionTitleClass(question)">
-                第 {{ question.index }} 题
+                {{ t("problemset.common.questionNumber", { index: question.index }) }}
                 <span v-if="question.groupQuestionIndex">
-                  · 第 {{ question.groupQuestionIndex }}
+                  · {{ question.groupQuestionIndex }}
                   <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
-                  小题
+                  {{ t("problemset.common.subQuestion") }}
                 </span>
               </h3>
               <div class="question-stem luogu-markdown" v-html="renderMd(question.stem)"></div>
@@ -449,29 +451,29 @@ watch(
                   <span class="detail-option-text luogu-markdown" v-html="renderMd(option.text)"></span>
                 </label>
               </div>
-              <div v-else class="history-input">你的作答：{{ submissionResultMap[question.id]?.userAnswer || '（空）' }}</div>
+              <div v-else class="history-input">{{ t("problemset.detail.yourAnswer", { answer: submissionResultMap[question.id]?.userAnswer || t("problemset.detail.emptyAnswer") }) }}</div>
 
               <div class="history-meta">
-                <p class="history-answer">正确答案：{{ submissionResultMap[question.id]?.standardAnswer || question.answer }}</p>
-                <p class="history-score">得分：{{ submissionResultMap[question.id]?.earned ?? 0 }} / {{ question.score }} 分</p>
+                <p class="history-answer">{{ t("problemset.common.answerLabel", { answer: submissionResultMap[question.id]?.standardAnswer || question.answer }) }}</p>
+                <p class="history-score">{{ t("problemset.detail.earned", { earned: submissionResultMap[question.id]?.earned ?? 0, score: question.score }) }}</p>
                 <button class="answer-btn history-toggle-btn" type="button" @click="toggleHistoryAnalysis(question)">
-                  {{ shouldShowHistoryAnalysis(question) ? '隐藏解析' : '显示解析' }}
+                  {{ shouldShowHistoryAnalysis(question) ? t("problemset.detail.hideAnalysis") : t("problemset.detail.showAnalysis") }}
                 </button>
               </div>
               <div v-if="shouldShowHistoryAnalysis(question)" class="history-analysis luogu-markdown" v-html="renderMd(question.analysis)"></div>
             </article>
           </div>
 
-          <div v-else-if="activeTab === 'history' && !hasHistory" class="panel-card body-card">暂无历史提交。</div>
+          <div v-else-if="activeTab === 'history' && !hasHistory" class="panel-card body-card">{{ t("problemset.detail.noHistory") }}</div>
         </div>
 
         <aside class="right-column">
           <div v-if="hasHistory" class="panel-card history-card">
-            <div class="history-main-score">{{ selectedSubmission?.score ?? submissions[0]?.score ?? 0 }} 分</div>
-            <p class="history-date">提交于 {{ formatDate(selectedSubmission?.submittedAt ?? submissions[0]?.submittedAt) }}</p>
+            <div class="history-main-score">{{ selectedSubmission?.score ?? submissions[0]?.score ?? 0 }} {{ t("common.points") }}</div>
+            <p class="history-date">{{ t("problemset.detail.submittedAt", { time: formatDate(selectedSubmission?.submittedAt ?? submissions[0]?.submittedAt) }) }}</p>
             <div class="history-header">
-              <h3>最近提交记录</h3>
-              <button class="toggle-btn" @click="historyCollapsed = !historyCollapsed">{{ historyCollapsed ? '展开' : '收起' }}</button>
+              <h3>{{ t("problemset.detail.recentSubmissions") }}</h3>
+              <button class="toggle-btn" @click="historyCollapsed = !historyCollapsed">{{ historyCollapsed ? t("problemset.detail.expand") : t("problemset.detail.collapse") }}</button>
             </div>
             <div v-if="!historyCollapsed" class="history-list">
               <button
@@ -481,13 +483,13 @@ watch(
                 :class="{ active: item.id === selectedSubmissionSummary?.id }"
                 @click="openSubmission(item.id)"
               >
-                {{ item.score }} 分 - 提交于 {{ formatDate(item.submittedAt) }}
+                {{ item.score }} {{ t("common.points") }} - {{ t("problemset.detail.submittedAt", { time: formatDate(item.submittedAt) }) }}
               </button>
             </div>
           </div>
 
           <div class="panel-card list-card">
-            <h3 class="list-title">题目列表</h3>
+            <h3 class="list-title">{{ t("problemset.detail.questionList") }}</h3>
             <div class="question-list">
               <button
                 v-for="(question, index) in detail.questions"
@@ -497,7 +499,7 @@ watch(
                 type="button"
                 @click="jumpQuestion(question, index)"
               >
-                第 {{ question.index }} 题
+                {{ t("problemset.common.questionNumber", { index: question.index }) }}
               </button>
             </div>
           </div>
@@ -509,16 +511,13 @@ watch(
       <div class="detail-modal-card">
         <button class="detail-modal-close" @click="closeConflictModal">×</button>
         <p>
-          {{ activeExam?.problemsetId }} - {{ activeExam?.problemsetTitle }} 正在进行中，是否删除上次状态并开始新的测试？
-          （你也可以去个人中心恢复上次考试。）
+          {{ t("problemset.detail.conflictMessage", { id: activeExam?.problemsetId, title: activeExam?.problemsetTitle }) }}
         </p>
         <div class="detail-modal-actions">
-          <button class="danger" @click="forceStartExam">覆盖并开始新测试</button>
-          <button @click="closeConflictModal">取消</button>
+          <button class="danger" @click="forceStartExam">{{ t("problemset.detail.forceStart") }}</button>
+          <button @click="closeConflictModal">{{ t("common.cancel") }}</button>
         </div>
       </div>
     </div>
   </TiLayout>
 </template>
-
-

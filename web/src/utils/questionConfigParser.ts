@@ -1,3 +1,5 @@
+import { translate } from "../i18n";
+
 export interface ParsedOption {
   key: string;
   text: string;
@@ -177,7 +179,7 @@ function extractBlocks(source: string, errors: string[], startLine = 1): ParsedB
     }
 
     if (depth !== 0) {
-      errors.push(`第 ${blockLine} 行开始的 :::${kind} 没有找到结束标记 :::`);
+      errors.push(translate("parser.blockNotClosed", { line: blockLine, kind }));
       break;
     }
 
@@ -200,15 +202,15 @@ function parseQuestionBlock(block: ParsedBlock, errors: string[], context: Quest
   const analysisSection = getSection(block.body, "analysis");
 
   if (!questionType || (questionType !== "option" && questionType !== "input")) {
-    errors.push(`第 ${block.line} 行的题目 type 只支持 option 或 input`);
+    errors.push(translate("parser.questionTypeInvalid", { line: block.line }));
     return null;
   }
   if (!Number.isFinite(score) || score <= 0) {
-    errors.push(`第 ${block.line} 行的题目 score 必须为正数`);
+    errors.push(translate("parser.questionScoreInvalid", { line: block.line }));
     return null;
   }
   if (!stemSection?.body) {
-    errors.push(`第 ${block.line} 行的题目缺少 [stem]...[/stem]`);
+    errors.push(translate("parser.questionStemMissing", { line: block.line }));
     return null;
   }
 
@@ -217,15 +219,15 @@ function parseQuestionBlock(block: ParsedBlock, errors: string[], context: Quest
     const answer = normalizeOptionAnswer(optionSection?.attrs?.answer ?? "");
     const options = parseOptionLines(optionSection?.body ?? "");
     if (!optionSection) {
-      errors.push(`第 ${block.line} 行的选择题缺少 [options answer=A]...[/options]`);
+      errors.push(translate("parser.optionSectionMissing", { line: block.line }));
       return null;
     }
     if (options.length < 2 || options.length > 26) {
-      errors.push(`第 ${block.line} 行的选择题选项数量必须在 2 到 26 之间`);
+      errors.push(translate("parser.optionCountInvalid", { line: block.line }));
       return null;
     }
     if (!answer) {
-      errors.push(`第 ${block.line} 行的选择题 answer 不能为空，例如 answer=A 或 answer=A,C`);
+      errors.push(translate("parser.optionAnswerMissing", { line: block.line }));
       return null;
     }
 
@@ -248,11 +250,11 @@ function parseQuestionBlock(block: ParsedBlock, errors: string[], context: Quest
   const inputSection = getSection(block.body, "input");
   const answer = String(inputSection?.attrs?.answer ?? "").trim();
   if (!inputSection) {
-    errors.push(`第 ${block.line} 行的填空题缺少 [input answer=xxx placeholder=提示]...[/input]`);
+    errors.push(translate("parser.inputSectionMissing", { line: block.line }));
     return null;
   }
   if (!answer) {
-    errors.push(`第 ${block.line} 行的填空题 answer 不能为空`);
+    errors.push(translate("parser.inputAnswerMissing", { line: block.line }));
     return null;
   }
 
@@ -290,22 +292,22 @@ function parseGroupBlock(block: ParsedBlock, errors: string[], materialGroupInde
     getSection(preamble, "passage");
 
   if (!materialSection?.body) {
-    errors.push(`第 ${block.line} 行的 :::group 缺少 [material]...[/material]`);
+    errors.push(translate("parser.groupMaterialMissing", { line: block.line }));
     return null;
   }
   if (!nestedSource) {
-    errors.push(`第 ${block.line} 行的 :::group 下面至少要包含一道 :::question`);
+    errors.push(translate("parser.groupQuestionMissing", { line: block.line }));
     return null;
   }
 
   const nestedBlocks = extractBlocks(nestedSource, errors, block.line + firstNestedIndex + 1);
   const questionBlocks = nestedBlocks.filter((item) => item.kind === "question");
   if (questionBlocks.length === 0) {
-    errors.push(`第 ${block.line} 行的 :::group 下面至少要包含一道 :::question`);
+    errors.push(translate("parser.groupQuestionMissing", { line: block.line }));
     return null;
   }
   if (nestedBlocks.some((item) => item.kind !== "question")) {
-    errors.push(`第 ${block.line} 行的 :::group 内暂不支持再嵌套 :::group`);
+    errors.push(translate("parser.groupNestedUnsupported", { line: block.line }));
     return null;
   }
 
@@ -368,7 +370,7 @@ export function parseQuestionConfig(configRaw: unknown): ParseQuestionConfigResu
   }
 
   if (questions.length === 0 && errors.length === 0) {
-    errors.push("没有解析到题目，请检查配置格式。");
+    errors.push(translate("parser.noQuestionParsed"));
   }
 
   return { questions, groups, errors };

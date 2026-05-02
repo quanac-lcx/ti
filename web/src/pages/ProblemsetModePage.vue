@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
 import { getMySettings, loadLocalUser, type AutosaveIntervalSeconds } from "../api/auth";
 import { problemsetApi, type ProblemQuestion, type ProblemsetDetail } from "../api/problemset";
@@ -38,6 +39,7 @@ const DEFAULT_AUTOSAVE_INTERVAL_SECONDS: AutosaveIntervalSeconds = 30;
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const currentUser = loadLocalUser();
 
 const loading = ref(true);
@@ -76,12 +78,12 @@ const localDraftStorageKey = computed(
 const shouldConfirmLeave = computed(
   () => !loading.value && !error.value && !!detail.value && !submitted.value && !skipLeaveConfirmOnce.value
 );
-const modeTitle = computed(() => (isExam.value ? "限时测试" : "自由练习"));
+const modeTitle = computed(() => (isExam.value ? t("problemset.mode.exam") : t("problemset.mode.training")));
 const pageTitle = computed(() => {
   const summary = detail.value?.summary;
   return summary ? `${summary.id} - ${summary.title}` : `${problemsetId.value} - ${modeTitle.value}`;
 });
-const subtitle = computed(() => `保存站有题 / 试题列表 / ${modeTitle.value}`);
+const subtitle = computed(() => `${t("problemset.list.subtitle")} / ${modeTitle.value}`);
 const isGuest = computed(() => !currentUser?.uid);
 const guestPlayable = computed(() => {
   const type = String(detail.value?.summary.problemsetType ?? "");
@@ -108,7 +110,7 @@ const sidebarQuestionGroups = computed<SidebarQuestionGroup[]>(() => {
     if (!hasMaterial || question.materialGroupIndex === null) {
       groups.push({
         key: `single-${question.id}`,
-        title: `第 ${question.index} 题`,
+        title: t("problemset.common.questionNumber", { index: question.index }),
         questions: [question],
         materialGroupIndex: null,
         isMaterialGroup: false
@@ -124,7 +126,7 @@ const sidebarQuestionGroups = computed<SidebarQuestionGroup[]>(() => {
 
     const group: SidebarQuestionGroup = {
       key: `material-${question.materialGroupIndex}`,
-      title: question.groupTitle?.trim() || `材料题 ${question.materialGroupIndex}`,
+      title: question.groupTitle?.trim() || t("problemset.common.materialGroupWithIndex", { index: question.materialGroupIndex }),
       questions: [question],
       materialGroupIndex: question.materialGroupIndex,
       isMaterialGroup: true
@@ -256,10 +258,10 @@ function allowNextLeaveWithoutConfirm() {
 async function confirmLeaveIfNeeded() {
   if (!shouldConfirmLeave.value) return true;
   const confirmed = await askConfirm({
-    title: "确认离开当前作答？",
-    message: "你正在作答中，离开或刷新可能丢失最新进度。确定继续吗？",
-    confirmText: "离开",
-    cancelText: "继续作答",
+    title: t("unsaved.answerTitle"),
+    message: t("unsaved.answerMessage"),
+    confirmText: t("unsaved.leave"),
+    cancelText: t("unsaved.continueAnswering"),
     danger: true
   });
   if (confirmed) {
@@ -374,7 +376,7 @@ function renderMd(text: string) {
 }
 
 function questionMaterialTitle(question: ProblemQuestion) {
-  return question.groupTitle?.trim() || "共享材料";
+  return question.groupTitle?.trim() || t("problemset.detail.sharedMaterial");
 }
 
 function isOptionChecked(question: ProblemQuestion, key: string) {
@@ -482,7 +484,7 @@ async function loadPage() {
     await loadAutosaveIntervalSetting();
     detail.value = await problemsetApi.detail(problemsetId.value);
     if (isGuest.value && !guestPlayable.value) {
-      error.value = "请先登录";
+      error.value = t("common.loginFirst");
       return;
     }
     for (const question of questions.value) {
@@ -502,7 +504,7 @@ async function loadPage() {
 
     const restored = restoreFromLocalDraft();
     if (restored) {
-      notifySuccess("已恢复本地自动保存草稿。");
+      notifySuccess(t("problemset.mode.restoredDraft"));
     }
     if (isExam.value && !submitted.value) {
       startCountdown();
@@ -527,7 +529,7 @@ async function loadPage() {
           navigatingByUserAction = false;
         }
       }
-      error.value = "检测到你有未完成的限时测试，请先到个人中心恢复。";
+      error.value = t("problemset.mode.activeExamConflict");
     } else {
       error.value = String((err as Error)?.message ?? err);
     }
@@ -564,17 +566,17 @@ async function submitExam(reason: "manual" | "timeout") {
   if (submitted.value) return;
   if (reason === "manual") {
     const confirmed = await askConfirm({
-      title: "确认交卷",
-      message: "交卷后会保存记录并显示解析，确认继续吗？",
-      confirmText: "确认交卷",
-      cancelText: "再检查一下",
+      title: t("problemset.mode.submitTitle"),
+      message: t("problemset.mode.submitMessage"),
+      confirmText: t("problemset.mode.submitConfirm"),
+      cancelText: t("problemset.mode.submitCancel"),
       danger: true
     });
     if (!confirmed) return;
   }
   if (isGuest.value) {
     calculateLocalSubmission();
-    notifySuccess("已完成本地判分。登录后可保存历史记录。");
+    notifySuccess(t("problemset.mode.localExamScored"));
     return;
   }
 
@@ -592,7 +594,7 @@ async function submitExam(reason: "manual" | "timeout") {
     hydrateResults(submission);
     resetIntervals();
     clearLocalDraft();
-    notifySuccess("交卷成功，已生成历史答卷。");
+    notifySuccess(t("problemset.mode.examSubmitted"));
     await router.replace(`/problemset/${problemsetId.value}?submission=${submission.id}`);
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
@@ -604,7 +606,7 @@ async function saveTrainingRecord() {
   if (submitted.value) return;
   if (isGuest.value) {
     calculateLocalSubmission();
-    notifySuccess("已完成本地判分。登录后可保存练习记录。");
+    notifySuccess(t("problemset.mode.localTrainingScored"));
     return;
   }
   try {
@@ -617,7 +619,7 @@ async function saveTrainingRecord() {
     maxScore.value = Number(submission.maxScore ?? totalScore.value);
     hydrateResults(submission);
     clearLocalDraft();
-    notifySuccess("练习记录已保存。");
+    notifySuccess(t("problemset.mode.trainingSaved"));
     await router.replace(`/problemset/${problemsetId.value}?submission=${submission.id}`);
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
@@ -664,24 +666,23 @@ function closeGuestLoginModal() {
     :subtitle="subtitle"
     :use-panel="false"
     :loading="loading"
-    loading-label="题目加载中"
+    :loading-label="t('problemset.mode.loading')"
   >
     <div class="problemset-mode-page page-shell">
       <div v-if="showGuestLoginModal" class="guest-login-modal-mask" @click.self="closeGuestLoginModal">
         <div class="guest-login-modal-card">
           <button class="guest-login-close" type="button" @click="closeGuestLoginModal">×</button>
-          <h3>你未登录！</h3>
-          <p>你当前正在以游客模式作答，成绩不会被保存到个人中心，也无法查看做题记录或调用AI来获取提示及解析。
-          </p>
+          <h3>{{ t("problemset.mode.guestTitle") }}</h3>
+          <p>{{ t("problemset.mode.guestMessage") }}</p>
           <div class="guest-login-actions">
-            <button class="btn" type="button" @click="closeGuestLoginModal">继续作答</button>
-            <button class="btn primary" type="button" @click="router.push('/auth/login')">去登录</button>
+            <button class="btn" type="button" @click="closeGuestLoginModal">{{ t("unsaved.continueAnswering") }}</button>
+            <button class="btn primary" type="button" @click="router.push('/auth/login')">{{ t("common.goLogin") }}</button>
           </div>
         </div>
       </div>
 
       <div v-if="showingNotice" class="exam-notice">
-        <p>考试开始后倒计时开始，途中可以暂停，你的答案将间隔一定时间自动保存（<a href="/user/_me/settings" target="_blank">此处设置自动保存间隔</a>）。不小心关闭可到个人中心找回考试页面。</p>
+        <p>{{ t("problemset.mode.noticePrefix") }}<a href="/user/_me/settings" target="_blank">{{ t("problemset.mode.noticeLink") }}</a>{{ t("problemset.mode.noticeSuffix") }}</p>
       </div>
 
       <div v-if="!loading && error" class="panel-card error-card">{{ error }}</div>
@@ -695,11 +696,11 @@ function closeGuestLoginModal() {
               class="panel-card question-card"
             >
               <h3>
-                第 {{ question.index }} 题
+                {{ t("problemset.common.questionNumber", { index: question.index }) }}
                 <span v-if="question.groupQuestionIndex">
-                  · 第 {{ question.groupQuestionIndex }}
+                  · {{ question.groupQuestionIndex }}
                   <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
-                  小题
+                  {{ t("problemset.common.subQuestion") }}
                 </span>
               </h3>
               <details v-if="question.sharedMaterial?.trim()" class="shared-material-panel" open>
@@ -731,19 +732,19 @@ function closeGuestLoginModal() {
                 <input
                   type="text"
                   :value="answers[question.id]"
-                  :placeholder="question.inputPlaceholder || '请输入答案'"
+                  :placeholder="question.inputPlaceholder || t('problemset.common.answerPlaceholder')"
                   :disabled="submitted"
                   @input="setInputAnswer(question, ($event.target as HTMLInputElement).value)"
                 />
               </div>
 
-              <p class="question-score">本题共 {{ question.score }} 分</p>
+              <p class="question-score">{{ t("problemset.detail.score", { score: question.score }) }}</p>
               <div v-if="submitted && results[question.id]" class="result">
                 <p :class="results[question.id].correct ? 'ok' : 'ng'">
-                  {{ results[question.id].correct ? "回答正确" : "回答错误" }}
+                  {{ results[question.id].correct ? t("problemset.mode.correct") : t("problemset.mode.wrong") }}
                 </p>
-                <p>正确答案：{{ results[question.id].standardAnswer }}</p>
-                <p>得分：{{ results[question.id].earned }} / {{ question.score }}</p>
+                <p>{{ t("problemset.common.answerLabel", { answer: results[question.id].standardAnswer }) }}</p>
+                <p>{{ t("problemset.detail.earned", { earned: results[question.id].earned, score: question.score }) }}</p>
                 <div class="luogu-markdown" v-html="renderMd(question.analysis)"></div>
               </div>
             </article>
@@ -751,36 +752,36 @@ function closeGuestLoginModal() {
 
           <aside class="panel-card mode-right">
             <div v-if="isExam" class="mode-timer-card" :class="{ danger: remainingSeconds <= 300 }">
-              <span class="mode-timer-label">剩余时间</span>
+              <span class="mode-timer-label">{{ t("problemset.mode.remainingTime") }}</span>
               <strong class="mode-timer-value">{{ formatDuration(remainingSeconds) }}</strong>
             </div>
 
             <div class="mode-summary-cards">
               <div class="mode-summary-card">
-                <span class="mode-summary-label">已作答</span>
+                <span class="mode-summary-label">{{ t("problemset.mode.answered") }}</span>
                 <strong>{{ answeredCount }} / {{ detail.summary.questionCount }}</strong>
               </div>
               <div v-if="submitted" class="mode-summary-card">
-                <span class="mode-summary-label">正确题数</span>
-                <strong>{{ correctCount }} 题</strong>
+                <span class="mode-summary-label">{{ t("problemset.mode.correctCount") }}</span>
+                <strong>{{ correctCount }} {{ t("common.questions") }}</strong>
               </div>
               <div v-if="submitted" class="mode-summary-card">
-                <span class="mode-summary-label">得分</span>
+                <span class="mode-summary-label">{{ t("problemset.mode.score") }}</span>
                 <strong>{{ submissionScore }} / {{ maxScore }}</strong>
               </div>
             </div>
 
             <div class="actions mode-actions">
-              <button v-if="isExam && !submitted && !!currentUser?.uid" class="btn warn" @click="pauseExam">暂停</button>
-              <button v-if="isExam && !submitted" class="btn primary" @click="submitExam('manual')">交卷</button>
+              <button v-if="isExam && !submitted && !!currentUser?.uid" class="btn warn" @click="pauseExam">{{ t("problemset.mode.pause") }}</button>
+              <button v-if="isExam && !submitted" class="btn primary" @click="submitExam('manual')">{{ t("problemset.mode.submitNow") }}</button>
               <button v-if="!isExam && !submitted" class="btn primary" @click="saveTrainingRecord">
-                {{ isGuest ? "提交并查看结果" : "保存练习记录" }}
+                {{ isGuest ? t("problemset.mode.submitAndView") : t("problemset.mode.saveTraining") }}
               </button>
             </div>
 
             <div class="mode-question-nav">
               <div class="mode-question-nav-head">
-                <h3>题目列表</h3>
+                <h3>{{ t("problemset.detail.questionList") }}</h3>
               </div>
               <div class="question-group-list">
                 <template v-for="group in sidebarQuestionGroups" :key="group.key">

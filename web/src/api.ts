@@ -1,4 +1,5 @@
 import { handleForbiddenNavigation } from "./utils/authRedirect";
+import { translate } from "./i18n";
 
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/$/, "");
@@ -47,7 +48,7 @@ function readLocalUser(): LocalUser | null {
 function toNetworkError(err: unknown): Error {
   const message = String((err as Error)?.message ?? err);
   if (message.includes("Failed to fetch") || message.includes("ERR_CONNECTION_REFUSED")) {
-    return new Error(`后端服务不可用：${apiBaseUrl}（请先启动 server）`);
+    return new Error(translate("api.backendUnavailable", { url: apiBaseUrl }));
   }
   return new Error(message);
 }

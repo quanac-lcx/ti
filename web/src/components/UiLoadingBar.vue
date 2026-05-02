@@ -1,16 +1,18 @@
 <script setup lang="ts">
-withDefaults(
-  defineProps<{
-    label?: string;
-  }>(),
-  {
-    label: "页面加载中"
-  }
-);
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
+
+const props = defineProps<{
+  label?: string;
+}>();
+
+const accessibleLabel = computed(() => props.label || t("common.loadingPage"));
 </script>
 
 <template>
-  <div class="ui-loading-bar" role="status" aria-live="polite" :aria-label="label">
+  <div class="ui-loading-bar" role="status" aria-live="polite" :aria-label="accessibleLabel">
     <div class="ui-loading-bar__track">
       <span class="ui-loading-bar__value"></span>
     </div>

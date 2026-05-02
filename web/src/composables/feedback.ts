@@ -1,4 +1,5 @@
 import { reactive } from "vue";
+import { translate } from "../i18n";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 
@@ -58,15 +59,15 @@ export function notify(input: string | ToastOptions): number {
   return item.id;
 }
 
-export function notifySuccess(message: string, title = "成功") {
+export function notifySuccess(message: string, title = translate("common.success")) {
   return notify({ type: "success", title, message });
 }
 
-export function notifyError(message: string, title = "失败") {
+export function notifyError(message: string, title = translate("common.error")) {
   return notify({ type: "error", title, message, duration: 4200 });
 }
 
-export function notifyWarning(message: string, title = "提示") {
+export function notifyWarning(message: string, title = translate("common.tip")) {
   return notify({ type: "warning", title, message, duration: 3600 });
 }
 
@@ -83,10 +84,10 @@ export function askConfirm(options: ConfirmOptions): Promise<boolean> {
   return new Promise<boolean>((resolve) => {
     state.confirm = {
       visible: true,
-      title: options.title ?? "请确认",
+      title: options.title ?? translate("common.pleaseConfirm"),
       message: options.message,
-      confirmText: options.confirmText ?? "确定",
-      cancelText: options.cancelText ?? "取消",
+      confirmText: options.confirmText ?? translate("confirm.ok"),
+      cancelText: options.cancelText ?? translate("confirm.cancel"),
       danger: Boolean(options.danger),
       resolve
     };

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   createQuestion,
   deleteQuestion,
@@ -11,6 +12,7 @@ import {
 import type { ChoiceOption, ProblemQuestion } from "../../api/problemset";
 import { askConfirm, notifyError, notifySuccess, notifyWarning } from "../../composables/feedback";
 
+const { t } = useI18n();
 const loadingProblemsets = ref(false);
 const loadingQuestions = ref(false);
 const problemsets = ref<AdminProblemset[]>([]);
@@ -28,7 +30,7 @@ const questionForm = reactive({
   type: "option" as "option" | "input",
   stem: "",
   inputPlaceholder: "",
-  optionsText: "A. 选项A\nB. 选项B",
+  optionsText: "A. Option A\nB. Option B",
   score: 1.5,
   answer: "",
   analysis: ""
@@ -68,7 +70,7 @@ function resetQuestionForm() {
   questionForm.type = "option";
   questionForm.stem = "";
   questionForm.inputPlaceholder = "";
-  questionForm.optionsText = "A. 选项A\nB. 选项B";
+  questionForm.optionsText = "A. Option A\nB. Option B";
   questionForm.score = 1.5;
   questionForm.answer = "";
   questionForm.analysis = "";
@@ -141,14 +143,14 @@ function toggleOne(id: string | number) {
 
 async function deleteSelected() {
   if (selectedQuestionIds.value.length === 0) {
-    notifyWarning("请先勾选要删除的题目。");
+    notifyWarning(t("admin.questions.selectFirst"));
     return;
   }
   const confirmed = await askConfirm({
-    title: "批量删除题目",
-    message: `确认删除 ${selectedQuestionIds.value.length} 道题目吗？`,
-    confirmText: "确认删除",
-    cancelText: "取消",
+    title: t("admin.questions.bulkDeleteTitle"),
+    message: t("admin.questions.bulkDeleteMessage", { count: selectedQuestionIds.value.length }),
+    confirmText: t("admin.questions.bulkDeleteConfirm"),
+    cancelText: t("common.cancel"),
     danger: true
   });
   if (!confirmed) return;
@@ -159,17 +161,17 @@ async function deleteSelected() {
       await deleteQuestion(id);
       success += 1;
     } catch (err) {
-      notifyError(`题目 #${id} 删除失败：${String((err as Error)?.message ?? err)}`);
+      notifyError(t("admin.questions.deleteFailed", { id, reason: String((err as Error)?.message ?? err) }));
     }
   }
-  notifySuccess(`批量删除完成：${success}/${selectedQuestionIds.value.length}`);
+  notifySuccess(t("admin.questions.bulkDeleted", { success, total: selectedQuestionIds.value.length }));
   selectedQuestionIds.value = [];
   await loadQuestions();
 }
 
 async function submitQuestion() {
   if (!selectedProblemsetId.value) {
-    notifyWarning("请先选择试卷。");
+    notifyWarning(t("admin.questions.selectProblemsetFirst"));
     return;
   }
   try {
@@ -196,10 +198,10 @@ async function submitQuestion() {
 
     if (questionForm.id) {
       await updateQuestion(questionForm.id, payload);
-      notifySuccess(`题目 #${questionForm.id} 更新成功。`);
+      notifySuccess(t("admin.questions.updated", { id: questionForm.id }));
     } else {
       await createQuestion(selectedProblemsetId.value, payload);
-      notifySuccess("题目创建成功。");
+      notifySuccess(t("admin.questions.created"));
     }
     resetQuestionForm();
     await loadQuestions();
@@ -211,17 +213,17 @@ async function submitQuestion() {
 async function deleteCurrentQuestion() {
   if (!questionForm.id) return;
   const confirmed = await askConfirm({
-    title: "删除题目",
-    message: `确认删除题目 #${questionForm.id} 吗？`,
-    confirmText: "删除",
-    cancelText: "取消",
+    title: t("admin.questions.deleteTitle"),
+    message: t("admin.questions.deleteMessage", { id: questionForm.id }),
+    confirmText: t("common.delete"),
+    cancelText: t("common.cancel"),
     danger: true
   });
   if (!confirmed) return;
 
   try {
     await deleteQuestion(questionForm.id);
-    notifySuccess(`题目 #${questionForm.id} 已删除。`);
+    notifySuccess(t("admin.questions.deleted", { id: questionForm.id }));
     resetQuestionForm();
     await loadQuestions();
   } catch (err) {
@@ -238,36 +240,36 @@ onMounted(async () => {
 <template>
   <div class="admin-page">
     <nav class="admin-anchor-nav">
-      <a href="#question-list">题目列表</a>
-      <a href="#question-edit">编辑题目</a>
+      <a href="#question-list">{{ t("admin.questions.listAnchor") }}</a>
+      <a href="#question-edit">{{ t("admin.questions.editAnchor") }}</a>
     </nav>
 
     <section id="question-list" class="admin-card">
       <div class="admin-head">
-        <h3>题目管理</h3>
+        <h3>{{ t("admin.questions.heading") }}</h3>
         <div class="actions">
           <select v-model.number="selectedProblemsetId" @change="loadQuestions">
             <option v-for="item in problemsets" :key="item.id" :value="item.id">
               {{ item.id }} - {{ item.title }}
             </option>
           </select>
-          <button class="admin-btn" type="button" @click="loadProblemsets">刷新试卷</button>
-          <button class="admin-btn" type="button" @click="loadQuestions">刷新题目</button>
-          <button class="admin-btn" type="button" @click="toggleAll">{{ allSelected ? "取消全选" : "全选" }}</button>
-          <button class="admin-btn danger" type="button" @click="deleteSelected">批量删除</button>
+          <button class="admin-btn" type="button" @click="loadProblemsets">{{ t("admin.questions.refreshProblemsets") }}</button>
+          <button class="admin-btn" type="button" @click="loadQuestions">{{ t("admin.questions.refreshQuestions") }}</button>
+          <button class="admin-btn" type="button" @click="toggleAll">{{ allSelected ? t("admin.common.clearSelection") : t("admin.common.selectAll") }}</button>
+          <button class="admin-btn danger" type="button" @click="deleteSelected">{{ t("admin.common.bulkDelete") }}</button>
         </div>
       </div>
-      <p v-if="loadingProblemsets || loadingQuestions">加载中...</p>
+      <p v-if="loadingProblemsets || loadingQuestions">{{ t("common.loading") }}</p>
       <table v-else class="admin-table">
         <thead>
           <tr>
-            <th>选择</th>
+            <th>{{ t("admin.common.select") }}</th>
             <th>#</th>
-            <th>类型</th>
-            <th>题干</th>
-            <th>分值</th>
-            <th>答案</th>
-            <th>操作</th>
+            <th>{{ t("problemset.common.type") }}</th>
+            <th>{{ t("admin.questions.stem") }}</th>
+            <th>{{ t("admin.questions.score") }}</th>
+            <th>{{ t("admin.questions.answer") }}</th>
+            <th>{{ t("admin.common.actions") }}</th>
           </tr>
         </thead>
         <tbody>
@@ -279,7 +281,7 @@ onMounted(async () => {
             <td>{{ item.score }}</td>
             <td>{{ item.answer }}</td>
             <td class="actions">
-              <button class="admin-btn" type="button" @click="selectQuestion(item)">编辑</button>
+              <button class="admin-btn" type="button" @click="selectQuestion(item)">{{ t("common.edit") }}</button>
             </td>
           </tr>
         </tbody>
@@ -287,52 +289,52 @@ onMounted(async () => {
     </section>
 
     <section id="question-edit" class="admin-card">
-      <h3>{{ questionForm.id ? `编辑题目 #${questionForm.id}` : "新建题目" }}</h3>
+      <h3>{{ questionForm.id ? t("admin.questions.editTitle", { id: questionForm.id }) : t("admin.questions.createTitle") }}</h3>
       <div class="admin-form-grid two-col">
         <label>
-          <span>题号</span>
-          <input v-model.number="questionForm.index" type="number" min="1" placeholder="留空自动追加" />
+          <span>{{ t("admin.questions.index") }}</span>
+          <input v-model.number="questionForm.index" type="number" min="1" :placeholder="t('admin.questions.indexPlaceholder')" />
         </label>
         <label>
-          <span>题型</span>
+          <span>{{ t("admin.questions.questionType") }}</span>
           <select v-model="questionForm.type">
-            <option value="option">选择题</option>
-            <option value="input">填空题</option>
+            <option value="option">{{ t("problemset.common.option") }}</option>
+            <option value="input">{{ t("problemset.common.input") }}</option>
           </select>
         </label>
       </div>
       <div class="admin-form-grid">
         <label>
-          <span>题干</span>
+          <span>{{ t("admin.questions.stem") }}</span>
           <textarea v-model="questionForm.stem" rows="3"></textarea>
         </label>
         <label v-if="questionForm.type === 'option'">
-          <span>选项（每行一个，示例 A. 选项A）</span>
+          <span>{{ t("admin.questions.options") }}</span>
           <textarea v-model="questionForm.optionsText" rows="6"></textarea>
         </label>
         <label v-else>
-          <span>输入框提示</span>
+          <span>{{ t("admin.questions.inputPlaceholder") }}</span>
           <input v-model.trim="questionForm.inputPlaceholder" type="text" />
         </label>
         <div class="admin-form-grid two-col">
           <label>
-            <span>分值</span>
+            <span>{{ t("admin.questions.score") }}</span>
             <input v-model.number="questionForm.score" type="number" min="0.1" step="0.1" />
           </label>
           <label>
-            <span>答案</span>
-            <input v-model.trim="questionForm.answer" type="text" placeholder="选择题示例 A,C" />
+            <span>{{ t("admin.questions.answer") }}</span>
+            <input v-model.trim="questionForm.answer" type="text" :placeholder="t('admin.questions.answerPlaceholder')" />
           </label>
         </div>
         <label>
-          <span>解析</span>
+          <span>{{ t("problemset.common.analysis") }}</span>
           <textarea v-model="questionForm.analysis" rows="3"></textarea>
         </label>
       </div>
       <div class="admin-actions">
-        <button class="admin-btn primary" type="button" @click="submitQuestion">{{ questionForm.id ? "保存" : "创建" }}</button>
-        <button class="admin-btn" type="button" @click="resetQuestionForm">重置</button>
-        <button v-if="questionForm.id" class="admin-btn danger" type="button" @click="deleteCurrentQuestion">删除当前题目</button>
+        <button class="admin-btn primary" type="button" @click="submitQuestion">{{ questionForm.id ? t("common.save") : t("common.create") }}</button>
+        <button class="admin-btn" type="button" @click="resetQuestionForm">{{ t("common.reset") }}</button>
+        <button v-if="questionForm.id" class="admin-btn danger" type="button" @click="deleteCurrentQuestion">{{ t("admin.questions.deleteCurrent") }}</button>
       </div>
     </section>
   </div>

@@ -215,7 +215,7 @@
   gap: 10px;
 }
 
-.theme-toggle {
+.top-control {
   width: 40px;
   height: 40px;
   padding: 0;
@@ -225,12 +225,44 @@
   color: var(--app-text-muted);
   display: grid;
   place-items: center;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.top-control:hover {
+  background: var(--layout-nav-hover-bg);
+  color: var(--app-text);
+}
+
+.locale-control {
+  position: relative;
+  overflow: hidden;
+}
+
+.locale-control__icon {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.locale-control:focus-within {
+  background: var(--layout-nav-hover-bg);
+  color: var(--app-text);
+}
+
+.locale-control__select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
   cursor: pointer;
 }
 
-.theme-toggle:hover {
-  background: var(--layout-nav-hover-bg);
-  color: var(--app-text);
+.theme-toggle {
+  cursor: pointer;
 }
 
 .account {
@@ -239,27 +271,16 @@
   align-items: center;
   padding-bottom: 8px;
   margin-bottom: -8px;
+  flex-shrink: 0;
 }
 
 .avatar-btn {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  background: var(--app-bg-elevated);
-  border: 1px solid var(--app-border-strong);
-  border-radius: var(--panel-radius);
-  display: grid;
-  place-items: center;
   cursor: pointer;
 }
 
-.avatar-btn:hover {
-  background: var(--app-bg-muted);
-}
-
 .avatar-img {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -270,22 +291,14 @@
 }
 
 .guest-link {
-  height: 34px;
+  height: 40px;
   padding: 0 12px;
-  border-radius: 4px;
-  border: 1px solid var(--app-border-strong);
-  background: var(--app-surface);
-  color: var(--app-text-muted);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-}
-
-.guest-link:hover {
-  background: var(--layout-nav-hover-bg);
-  color: var(--app-text);
+  min-width: 96px;
 }
 
 .account-pop {
@@ -397,9 +410,15 @@
     gap: 8px;
   }
 
-  .theme-toggle {
+  .top-control,
+  .locale-control {
     width: 36px;
     height: 36px;
+  }
+
+  .guest-link {
+    min-width: 84px;
+    padding: 0 10px;
   }
 
   .content {

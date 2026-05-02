@@ -1,3 +1,5 @@
+import { translate } from "../i18n";
+
 export const BANNED_ROUTE_PATH = "/auth/banned";
 
 const LOCAL_USER_KEY = "ti.user";
@@ -34,7 +36,7 @@ export function isBannedMessage(message: unknown): boolean {
 }
 
 export function handleForbiddenNavigation(message: unknown): string {
-  const text = String(message ?? "forbidden");
+  const text = String(message ?? translate("api.forbidden"));
 
   if (isBannedMessage(text)) {
     try {

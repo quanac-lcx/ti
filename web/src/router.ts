@@ -10,11 +10,13 @@ import AuthCpoauthCallbackPage from "./pages/AuthCpoauthCallbackPage.vue";
 import AuthBannedPage from "./pages/AuthBannedPage.vue";
 import UserProfilePage from "./pages/UserProfilePage.vue";
 import UserSettingsPage from "./pages/UserSettingsPage.vue";
+import SystemPageView from "./pages/SystemPageView.vue";
 import AdminLayoutPage from "./pages/admin/AdminLayoutPage.vue";
 import AdminUsersPage from "./pages/admin/AdminUsersPage.vue";
 import AdminProblemsetsPage from "./pages/admin/AdminProblemsetsPage.vue";
 import AdminQuestionsPage from "./pages/admin/AdminQuestionsPage.vue";
 import AdminOauthPage from "./pages/admin/AdminOauthPage.vue";
+import AdminSystemPagesPage from "./pages/admin/AdminSystemPagesPage.vue";
 import { loadLocalUser } from "./api/auth";
 import { BANNED_ROUTE_PATH } from "./utils/authRedirect";
 
@@ -41,6 +43,7 @@ const routes: RouteRecordRaw[] = [
   { path: "/auth/login", component: AuthLoginPage },
   { path: "/auth/cpoauth/callback", component: AuthCpoauthCallbackPage },
   { path: BANNED_ROUTE_PATH, component: AuthBannedPage },
+  { path: "/system/:slug", component: SystemPageView },
   {
     path: "/user/_me",
     redirect: () => {
@@ -58,7 +61,8 @@ const routes: RouteRecordRaw[] = [
       { path: "users", component: AdminUsersPage },
       { path: "problemsets", component: AdminProblemsetsPage },
       { path: "questions", component: AdminQuestionsPage },
-      { path: "oauth", component: AdminOauthPage }
+      { path: "oauth", component: AdminOauthPage },
+      { path: "system-pages", component: AdminSystemPagesPage }
     ]
   },
   { path: "/web/admin", redirect: "/admin" }

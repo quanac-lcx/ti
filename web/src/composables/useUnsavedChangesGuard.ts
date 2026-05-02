@@ -1,5 +1,6 @@
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate } from "vue-router";
+import { translate } from "../i18n";
 import { askConfirm } from "./feedback";
 
 interface UnsavedChangesGuardOptions {
@@ -36,10 +37,10 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions) {
     }
     if (!hasUnsavedChanges.value) return true;
     return askConfirm({
-      title: options.title ?? "确认离开当前编辑？",
-      message: options.message ?? "你有尚未保存的修改，离开或刷新页面会丢失这些内容。确定继续吗？",
-      confirmText: options.confirmText ?? "离开",
-      cancelText: options.cancelText ?? "继续编辑",
+      title: options.title ?? translate("unsaved.title"),
+      message: options.message ?? translate("unsaved.message"),
+      confirmText: options.confirmText ?? translate("unsaved.leave"),
+      cancelText: options.cancelText ?? translate("unsaved.stay"),
       danger: true
     });
   }

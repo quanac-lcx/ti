@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from "vue";
 import { RouterLink, useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TiFooter from "../components/TiFooter.vue";
 import UiLoadingBar from "../components/UiLoadingBar.vue";
 import { clearLocalUser, loadLocalUser, type AuthUser } from "../api/auth";
+import { useAppLocale } from "../i18n";
+import type { AppLocale } from "../i18n/messages";
 import { toggleThemeMode, useThemeMode } from "../theme/useTheme";
 
 interface LayoutProps {
@@ -35,87 +38,123 @@ const props = withDefaults(defineProps<LayoutProps>(), {
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const sidebarCollapsed = ref(true);
 const manualToggle = ref(false);
 const currentUser = ref<AuthUser | null>(null);
 
-const navItems: NavItem[] = [
-  { to: "/problemset", iconClass: "fa-solid fa-book", label: "题库", title: "题库" },
-  { to: "/problemset/_new", iconClass: "fa-solid fa-plus", label: "新建题目", title: "新建题目" },
-  { to: "/search", iconClass: "fa-solid fa-magnifying-glass", label: "搜索", title: "搜索题目" },
-  { to: "https://www.luogu.me/", iconClass: "fa-solid fa-house", label: "保存站", title: "前往保存站" }
-];
+const { currentLocale, localeOptions, setLocale } = useAppLocale();
+const { themeMode, isDarkTheme } = useThemeMode();
 
-const isLoggedIn = computed(() => !!currentUser.value);
-const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin));
-const avatarUrl = computed(() => currentUser.value?.avatarUrl ?? "");
-const { isDarkTheme } = useThemeMode();
+const navItems = computed<NavItem[]>(() => [
+  {
+    to: "/problemset",
+    iconClass: "fa-solid fa-book",
+    label: t("layout.nav.problemsets"),
+    title: t("layout.navTitle.problemsets")
+  },
+  {
+    to: "/problemset/_new",
+    iconClass: "fa-solid fa-plus",
+    label: t("layout.nav.createProblemset"),
+    title: t("layout.navTitle.createProblemset")
+  },
+  {
+    to: "/search",
+    iconClass: "fa-solid fa-magnifying-glass",
+    label: t("layout.nav.search"),
+    title: t("layout.navTitle.search")
+  },
+  {
+    to: "https://www.luogu.me/",
+    iconClass: "fa-solid fa-house",
+    label: t("layout.nav.home"),
+    title: t("layout.navTitle.home")
+  }
+]);
 
 const pageDocumentTitle = computed(() => {
+  const suffix = t("layout.siteTitleSuffix");
   const pageTitle = String(props.title ?? "").trim();
   if (pageTitle) {
-    return `${pageTitle} - 保存站有题`;
+    return `${pageTitle} - ${suffix}`;
   }
 
   const subtitle = String(props.subtitle ?? "").trim();
   if (subtitle) {
-    return `${subtitle} - 保存站有题`;
+    return `${subtitle} - ${suffix}`;
   }
 
-  return "保存站有题";
+  return suffix;
 });
 
-const refreshUser = () => {
-  currentUser.value = loadLocalUser();
-};
+const isLoggedIn = computed(() => !!currentUser.value);
+const isAdmin = computed(() => Boolean(currentUser.value?.isAdmin));
+const avatarUrl = computed(() => currentUser.value?.avatarUrl ?? "");
 
-const handleMouseEnter = (): void => {
+function refreshUser() {
+  currentUser.value = loadLocalUser();
+}
+
+function handleMouseEnter() {
   if (sidebarCollapsed.value && !manualToggle.value) {
     sidebarCollapsed.value = false;
   }
-};
+}
 
-const handleMouseLeave = (): void => {
+function handleMouseLeave() {
   if (!sidebarCollapsed.value && !manualToggle.value) {
     sidebarCollapsed.value = true;
   }
-};
+}
 
-const handleManualCollapse = (): void => {
+function handleManualCollapse() {
   manualToggle.value = true;
   sidebarCollapsed.value = true;
-};
+}
 
-const handleManualExpand = (): void => {
+function handleManualExpand() {
   manualToggle.value = true;
   sidebarCollapsed.value = false;
-};
+}
 
-const goProfile = () => {
+function goProfile() {
   if (!currentUser.value?.uid) {
     router.push("/auth/login");
     return;
   }
   router.push(`/user/${currentUser.value.uid}`);
-};
+}
 
-const goSettings = () => {
+function goSettings() {
   if (!currentUser.value?.uid) {
     router.push("/auth/login");
     return;
   }
   router.push("/user/_me/settings");
-};
+}
 
-const logout = () => {
+function logout() {
   clearLocalUser();
   currentUser.value = null;
   router.push("/auth/login");
-};
+}
 
-const handleThemeToggle = () => {
+const currentThemeIconClass = computed(() => {
+  return themeMode.value === "dark" ? "fa-regular fa-moon" : "fa-regular fa-sun";
+});
+
+const currentThemeLabel = computed(() => {
+  return themeMode.value === "dark" ? t("layout.themeDark") : t("layout.themeLight");
+});
+
+function handleThemeToggle() {
   toggleThemeMode();
-};
+}
+
+function handleLocaleChange(event: Event) {
+  setLocale((event.target as HTMLSelectElement).value as AppLocale);
+}
 
 onMounted(() => {
   refreshUser();
@@ -145,9 +184,9 @@ watch(
     >
       <div class="brand">
         <div class="logo">
-          <img src="https://lgs-cdn.cn-nb1.rains3.com/luogu-saver/logo-icon.png" alt="保存站有题" />
+          <img src="https://lgs-cdn.cn-nb1.rains3.com/luogu-saver/logo-icon.png" :alt="t('common.appName')" />
         </div>
-        <div v-show="!sidebarCollapsed" class="brand-text">保存站有题</div>
+        <div v-show="!sidebarCollapsed" class="brand-text">{{ t("common.appName") }}</div>
       </div>
 
       <nav class="nav">
@@ -190,45 +229,56 @@ watch(
         <div class="crumb">{{ props.subtitle }}</div>
 
         <div class="top-actions">
+          <label class="locale-control top-control">
+            <span class="locale-control__icon" aria-hidden="true">
+              <i class="fa-solid fa-language"></i>
+            </span>
+            <select class="locale-control__select" :aria-label="t('locale.label')" :value="currentLocale" @change="handleLocaleChange">
+              <option v-for="option in localeOptions" :key="option.value" :value="option.value">
+                {{ t(option.labelKey) }}
+              </option>
+            </select>
+          </label>
+
           <button
             type="button"
-            class="theme-toggle"
-            :title="isDarkTheme ? '切换到浅色模式' : '切换到深色模式'"
-            :aria-label="isDarkTheme ? '切换到浅色模式' : '切换到深色模式'"
+            class="theme-toggle top-control"
+            :title="`${t('layout.themeLabel')}: ${currentThemeLabel}`"
+            :aria-label="`${t('layout.themeLabel')}: ${currentThemeLabel}`"
             :aria-pressed="isDarkTheme"
             @click="handleThemeToggle"
           >
-            <i :class="isDarkTheme ? 'fa-regular fa-sun' : 'fa-regular fa-moon'"></i>
+            <i :class="currentThemeIconClass"></i>
           </button>
 
           <div class="account">
             <template v-if="isLoggedIn">
-              <button type="button" class="avatar-btn" @click="goProfile">
-                <img class="avatar-img" :src="avatarUrl" alt="avatar" />
+              <button type="button" class="avatar-btn top-control" @click="goProfile">
+                <img class="avatar-img" :src="avatarUrl" :alt="t('layout.profile')" />
               </button>
               <div class="account-pop">
                 <button type="button" class="pop-item" @click="goProfile">
                   <i class="fa-regular fa-user"></i>
-                  个人中心
+                  {{ t("layout.profile") }}
                 </button>
                 <button type="button" class="pop-item" @click="goSettings">
                   <i class="fa-solid fa-gear"></i>
-                  个人设置
+                  {{ t("layout.settings") }}
                 </button>
                 <RouterLink v-if="isAdmin" to="/admin" class="pop-item pop-link">
                   <i class="fa-solid fa-shield-halved"></i>
-                  管理后台
+                  {{ t("layout.admin") }}
                 </RouterLink>
                 <button type="button" class="pop-item danger" @click="logout">
                   <i class="fa-solid fa-right-from-bracket"></i>
-                  退出登录
+                  {{ t("layout.logout") }}
                 </button>
               </div>
             </template>
 
             <template v-else>
               <div class="guest-actions">
-                <RouterLink to="/auth/login" class="guest-link">登录/注册</RouterLink>
+                <RouterLink to="/auth/login" class="guest-link top-control">{{ t("layout.loginOrRegister") }}</RouterLink>
               </div>
             </template>
           </div>

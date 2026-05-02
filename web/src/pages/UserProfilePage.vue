@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import { getUserByUid, loadLocalUser, type AuthUser } from "../api/auth";
 import UiCard from "../components/UiCard.vue";
 import { problemsetApi, type ProblemsetSummary } from "../api/problemset";
@@ -10,6 +11,7 @@ import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const currentUser = ref<AuthUser | null>(null);
 const profile = ref<AuthUser | null>(null);
@@ -67,10 +69,10 @@ function switchTopTab(tab: "records" | "problemsets") {
 }
 
 function problemsetTypeLabel(type: ProblemsetSummary["problemsetType"]) {
-  if (type === "official_public") return "官方公开";
-  if (type === "personal_featured") return "个人精选";
-  if (type === "personal_public") return "个人公开";
-  return "个人私有";
+  if (type === "official_public") return t("problemset.types.officialPublic");
+  if (type === "personal_featured") return t("problemset.types.personalFeatured");
+  if (type === "personal_public") return t("problemset.types.personalPublic");
+  return t("problemset.types.personalPrivate");
 }
 
 function formatDate(value: string | null | undefined) {
@@ -95,7 +97,7 @@ function resumeExam() {
 }
 
 function modeText(mode: SubmissionRecord["mode"]) {
-  return mode === "exam" ? "限时训练" : "练习";
+  return mode === "exam" ? t("profile.modeExam") : t("profile.modeTraining");
 }
 
 async function loadPage() {
@@ -110,7 +112,7 @@ async function loadPage() {
 
   const uid = profileUid.value;
   if (!uid) {
-    error.value = "无效用户。";
+    error.value = t("common.invalidUser");
     loading.value = false;
     recordsLoading.value = false;
     return;
@@ -156,8 +158,8 @@ watch(() => route.params.uid, loadPage);
 
 <template>
   <TiLayout
-    :title="`个人中心 - ${profile?.uid ?? profileUid}`"
-    subtitle="保存站有题 / 用户中心"
+    :title="t('profile.title', { uid: profile?.uid ?? profileUid })"
+    :subtitle="t('profile.subtitle')"
     :use-panel="false"
   >
     <div class="profile-root">
@@ -170,7 +172,7 @@ watch(() => route.params.uid, loadPage);
             @click="switchTopTab('records')"
           >
             <i class="fa-solid fa-clock-rotate-left"></i>
-            做题记录
+            {{ t("profile.records") }}
           </button>
           <button
             class="tab"
@@ -179,25 +181,24 @@ watch(() => route.params.uid, loadPage);
             @click="switchTopTab('problemsets')"
           >
             <i class="fa-solid fa-book"></i>
-            TA 的题目
+            {{ t("profile.problemsets") }}
           </button>
         </UiCard>
 
-        <section v-if="loading" class="card">加载用户信息中...</section>
+        <section v-if="loading" class="card">{{ t("profile.loading") }}</section>
         <section v-else-if="error" class="card error">{{ error }}</section>
 
         <UiCard v-else-if="topTab === 'records' && canViewRecords && activeExam" class="card active-exam">
-          <p class="active-title">正在进行中：</p>
+          <p class="active-title">{{ t("profile.activeExam") }}</p>
           <button class="link-btn" type="button" @click="resumeExam">
-            <i class="fa-solid fa-play"></i>
-            {{ activeExam.problemsetId }} - {{ activeExam.problemsetTitle || "继续本场考试" }}
+            <i class="fa-solid fa-play"></i>{{ activeExam.problemsetId }} - {{ activeExam.problemsetTitle || t("profile.resumeExam") }}
           </button>
         </UiCard>
 
         <UiCard v-if="!loading && topTab === 'records' && canViewRecords" class="card records-card" compact>
-          <div v-if="recordsLoading" class="records-loading">加载记录中...</div>
+          <div v-if="recordsLoading" class="records-loading">{{ t("profile.loadingRecords") }}</div>
           <div v-else-if="recordsError" class="records-error">{{ recordsError }}</div>
-          <div v-else-if="submissions.length === 0" class="records-empty">暂无历史答卷。</div>
+          <div v-else-if="submissions.length === 0" class="records-empty">{{ t("profile.noSubmissions") }}</div>
           <article
             v-else
             v-for="record in submissions"
@@ -206,16 +207,16 @@ watch(() => route.params.uid, loadPage);
           >
             <div class="record-head">
               <button class="record-title" type="button" @click="openSubmission(record)">
-                {{ record.problemsetTitle || `试卷 ${record.problemsetId}` }}
+                {{ record.problemsetTitle || t("profile.problemsetFallback", { id: record.problemsetId }) }}
               </button>
               <span class="record-mode">{{ modeText(record.mode) }}</span>
-              <strong class="record-score">{{ record.score }} 分</strong>
+              <strong class="record-score">{{ record.score }} {{ t("common.points") }}</strong>
               <span class="record-date">{{ formatDate(record.submittedAt || record.updatedAt) }}</span>
             </div>
             <div class="record-actions">
               <button class="view-paper" type="button" @click="openSubmission(record)">
                 <i class="fa-regular fa-file-lines"></i>
-                查看历史答卷
+                {{ t("profile.viewSubmission") }}
               </button>
             </div>
           </article>
@@ -223,31 +224,31 @@ watch(() => route.params.uid, loadPage);
 
         <UiCard v-if="!loading && topTab === 'problemsets'" class="card records-card" compact>
           <div class="problemset-header">
-            <h3>TA 的题目</h3>
+            <h3>{{ t("profile.problemsets") }}</h3>
             <div class="problemset-tabs">
-              <button class="problemset-tab" :class="{ active: problemsetTab === 'all' }" @click="problemsetTab = 'all'">全部</button>
-              <button class="problemset-tab" :class="{ active: problemsetTab === 'official_public' }" @click="problemsetTab = 'official_public'">官方公开</button>
-              <button class="problemset-tab" :class="{ active: problemsetTab === 'personal_featured' }" @click="problemsetTab = 'personal_featured'">个人精选</button>
-              <button class="problemset-tab" :class="{ active: problemsetTab === 'personal_public' }" @click="problemsetTab = 'personal_public'">个人公开</button>
+              <button class="problemset-tab" :class="{ active: problemsetTab === 'all' }" @click="problemsetTab = 'all'">{{ t("common.all") }}</button>
+              <button class="problemset-tab" :class="{ active: problemsetTab === 'official_public' }" @click="problemsetTab = 'official_public'">{{ t("problemset.types.officialPublic") }}</button>
+              <button class="problemset-tab" :class="{ active: problemsetTab === 'personal_featured' }" @click="problemsetTab = 'personal_featured'">{{ t("problemset.types.personalFeatured") }}</button>
+              <button class="problemset-tab" :class="{ active: problemsetTab === 'personal_public' }" @click="problemsetTab = 'personal_public'">{{ t("problemset.types.personalPublic") }}</button>
               <button
                 v-if="canViewPrivateProblemsets"
                 class="problemset-tab"
                 :class="{ active: problemsetTab === 'personal_private' }"
                 @click="problemsetTab = 'personal_private'"
               >
-                个人私有
+                {{ t("problemset.types.personalPrivate") }}
               </button>
             </div>
           </div>
 
-          <div v-if="filteredProblemsets.length === 0" class="records-empty">当前分栏下暂无题目。</div>
+          <div v-if="filteredProblemsets.length === 0" class="records-empty">{{ t("problemset.list.empty") }}</div>
           <article v-else v-for="item in filteredProblemsets" :key="item.id" class="record-item">
             <div class="record-head">
               <button class="record-title" type="button" @click="router.push(`/problemset/${item.id}`)">
                 {{ item.title }}
               </button>
               <span class="record-mode">{{ problemsetTypeLabel(item.problemsetType) }}</span>
-              <strong class="record-score">{{ item.questionCount }} 题</strong>
+              <strong class="record-score">{{ item.questionCount }} {{ t("common.questions") }}</strong>
               <span class="record-date">ID {{ item.id }}</span>
             </div>
           </article>
@@ -255,7 +256,7 @@ watch(() => route.params.uid, loadPage);
 
         <UiCard v-if="!loading && topTab === 'records' && !canViewRecords" class="card records-empty-state">
           <div class="empty-icon"><i class="fa-solid fa-user-secret"></i></div>
-          <p class="empty-main">该用户设置了隐私保护，无法查看练习记录。</p>
+          <p class="empty-main">{{ t("profile.recordsHidden") }}</p>
         </UiCard>
       </div>
 
@@ -267,7 +268,7 @@ watch(() => route.params.uid, loadPage);
             <div class="meta">
               <p class="name">{{ profile.username }}</p>
               <p class="uid">@{{ profile.uid }}</p>
-              <p v-if="showBannedNotice" class="banned-note">该用户已被封禁。</p>
+              <p v-if="showBannedNotice" class="banned-note">{{ t("profile.banned") }}</p>
             </div>
           </div>
         </UiCard>
@@ -275,9 +276,9 @@ watch(() => route.params.uid, loadPage);
         <UiCard class="profile-card profile-bio-card">
           <div class="profile-bio-header">
             <i class="fa-solid fa-signature"></i>
-            <span>TA 的个人简介</span>
+            <span>{{ t("profile.bio") }}</span>
           </div>
-          <div v-if="!String(profile.bio ?? '').trim()" class="profile-bio-empty">TA 还没有填写简介。</div>
+          <div v-if="!String(profile.bio ?? '').trim()" class="profile-bio-empty">{{ t("profile.bioEmpty") }}</div>
           <div v-else class="bio-content luogu-markdown" v-html="bioHtml"></div>
         </UiCard>
       </aside>

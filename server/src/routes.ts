@@ -197,6 +197,90 @@ const CPOAUTH_SETTING_KEYS = {
   scope: "cpoauth.scope"
 };
 
+const SITE_SETTING_KEYS = {
+  loginNoticeMarkdown: "site.login_notice_markdown"
+};
+
+const SYSTEM_PAGE_KEYS = {
+  userAgreement: "user_agreement",
+  privacyPolicy: "privacy_policy"
+};
+
+const SYSTEM_PAGE_SLUGS = {
+  [SYSTEM_PAGE_KEYS.userAgreement]: "user-agreement",
+  [SYSTEM_PAGE_KEYS.privacyPolicy]: "privacy-policy"
+};
+
+function normalizeSystemPageSystemKey(raw) {
+  const value = String(raw ?? "").trim().toLowerCase();
+  if (value === SYSTEM_PAGE_KEYS.userAgreement || value === SYSTEM_PAGE_KEYS.privacyPolicy) {
+    return value;
+  }
+  return "";
+}
+
+function normalizeSystemPageSlug(raw) {
+  const value = String(raw ?? "").trim().toLowerCase();
+  if (!/^[a-z0-9](?:[a-z0-9_-]{0,62}[a-z0-9])?$/.test(value)) return "";
+  return value;
+}
+
+function normalizeSystemPageTitle(raw) {
+  return String(raw ?? "")
+    .replace(/\r\n/g, "\n")
+    .trim()
+    .slice(0, 191);
+}
+
+function normalizeSystemPageContent(raw) {
+  return String(raw ?? "")
+    .replace(/\r\n/g, "\n")
+    .trim()
+    .slice(0, 200000);
+}
+
+function getReservedSystemPageSlug(systemKey) {
+  return String(SYSTEM_PAGE_SLUGS[systemKey] ?? "").trim();
+}
+
+function toSystemPage(row) {
+  return {
+    id: Number(row.id),
+    systemKey: String(row.system_key ?? ""),
+    slug: String(row.slug ?? ""),
+    title: String(row.title ?? ""),
+    content: String(row.content ?? ""),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+}
+
+function toSystemPageSummary(row) {
+  return {
+    slug: String(row.slug ?? ""),
+    title: String(row.title ?? ""),
+    systemKey: String(row.system_key ?? "")
+  };
+}
+
+function readSystemPageInput(raw) {
+  const slug = normalizeSystemPageSlug(raw?.slug);
+  const title = normalizeSystemPageTitle(raw?.title);
+  const content = normalizeSystemPageContent(raw?.content);
+  if (!slug) return { error: "slug must be 1-64 chars of lowercase letters, numbers, - or _" };
+  if (!title) return { error: "title is required" };
+  return { slug, title, content };
+}
+
+function readReservedSystemPageInput(raw, systemKey) {
+  const slug = getReservedSystemPageSlug(systemKey);
+  const title = normalizeSystemPageTitle(raw?.title);
+  const content = normalizeSystemPageContent(raw?.content);
+  if (!slug) return { error: "invalid reserved system page slug" };
+  if (!title) return { error: "title is required" };
+  return { slug, title, content };
+}
+
 function buildDefaultCallbackUrl(req) {
   return `${resolvePublicApiBaseUrl(req).replace(/\/$/, "")}/api/oauth/cpoauth/callback`;
 }
@@ -316,6 +400,74 @@ async function setAppSetting(key, value) {
     "INSERT INTO app_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
     [key, value]
   );
+}
+
+async function getSystemPageBySlug(slug) {
+  const [rows] = await dbPool.query(
+    "SELECT id, system_key, slug, title, content, created_at, updated_at FROM system_pages WHERE slug = ? LIMIT 1",
+    [slug]
+  );
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return rows[0];
+}
+
+async function getSystemPageById(id) {
+  const [rows] = await dbPool.query(
+    "SELECT id, system_key, slug, title, content, created_at, updated_at FROM system_pages WHERE id = ? LIMIT 1",
+    [id]
+  );
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return rows[0];
+}
+
+async function getSystemPageBySystemKey(systemKey) {
+  const [rows] = await dbPool.query(
+    "SELECT id, system_key, slug, title, content, created_at, updated_at FROM system_pages WHERE system_key = ? LIMIT 1",
+    [systemKey]
+  );
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return rows[0];
+}
+
+async function listCustomSystemPages() {
+  const [rows] = await dbPool.query(
+    `
+      SELECT id, system_key, slug, title, content, created_at, updated_at
+      FROM system_pages
+      WHERE system_key IS NULL
+      ORDER BY updated_at DESC, id DESC
+    `
+  );
+  return Array.isArray(rows) ? rows : [];
+}
+
+async function getSitePublicContent() {
+  const settings = await getAppSettings([SITE_SETTING_KEYS.loginNoticeMarkdown]);
+  const [pages] = await dbPool.query(
+    `
+      SELECT id, system_key, slug, title, content, created_at, updated_at
+      FROM system_pages
+      WHERE system_key IN (?, ?)
+    `,
+    [SYSTEM_PAGE_KEYS.userAgreement, SYSTEM_PAGE_KEYS.privacyPolicy]
+  );
+
+  const result = {
+    loginNoticeMarkdown: String(settings[SITE_SETTING_KEYS.loginNoticeMarkdown] ?? ""),
+    userAgreementPage: null,
+    privacyPolicyPage: null
+  };
+
+  for (const row of Array.isArray(pages) ? pages : []) {
+    const systemKey = String(row.system_key ?? "");
+    if (systemKey === SYSTEM_PAGE_KEYS.userAgreement) {
+      result.userAgreementPage = toSystemPageSummary(row);
+    } else if (systemKey === SYSTEM_PAGE_KEYS.privacyPolicy) {
+      result.privacyPolicyPage = toSystemPageSummary(row);
+    }
+  }
+
+  return result;
 }
 
 async function getCpoauthConfig(req) {
@@ -730,6 +882,23 @@ export function buildRouter() {
     } catch (err) {
       res.status(500).json({ ok: false, error: String(err?.message ?? err) });
     }
+  });
+
+  router.get("/site-content", async (_req, res) => {
+    const content = await getSitePublicContent();
+    return res.json(content);
+  });
+
+  router.get("/system-pages/:slug", async (req, res) => {
+    const slug = normalizeSystemPageSlug(req.params.slug);
+    if (!slug) {
+      return res.status(400).json({ error: "invalid system page slug" });
+    }
+    const page = await getSystemPageBySlug(slug);
+    if (!page) {
+      return res.status(404).json({ error: "system page not found" });
+    }
+    return res.json({ page: toSystemPage(page) });
   });
 
   router.get("/problemsets", async (req, res) => {
@@ -2241,6 +2410,197 @@ export function buildRouter() {
     if (!admin) return;
     const config = await getCpoauthConfig(req);
     return res.json({ config });
+  });
+
+  router.get("/admin/system-pages", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const [settings, userAgreementPage, privacyPolicyPage, customPages] = await Promise.all([
+      getAppSettings([SITE_SETTING_KEYS.loginNoticeMarkdown]),
+      getSystemPageBySystemKey(SYSTEM_PAGE_KEYS.userAgreement),
+      getSystemPageBySystemKey(SYSTEM_PAGE_KEYS.privacyPolicy),
+      listCustomSystemPages()
+    ]);
+
+    return res.json({
+      loginNoticeMarkdown: String(settings[SITE_SETTING_KEYS.loginNoticeMarkdown] ?? ""),
+      userAgreementPage: userAgreementPage ? toSystemPage(userAgreementPage) : null,
+      privacyPolicyPage: privacyPolicyPage ? toSystemPage(privacyPolicyPage) : null,
+      pages: customPages.map(toSystemPage)
+    });
+  });
+
+  router.put("/admin/system-pages/settings", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const userAgreementInput = readReservedSystemPageInput(req.body?.userAgreementPage, SYSTEM_PAGE_KEYS.userAgreement);
+    if (userAgreementInput.error) {
+      return res.status(400).json({ error: `userAgreementPage: ${userAgreementInput.error}` });
+    }
+    const privacyPolicyInput = readReservedSystemPageInput(req.body?.privacyPolicyPage, SYSTEM_PAGE_KEYS.privacyPolicy);
+    if (privacyPolicyInput.error) {
+      return res.status(400).json({ error: `privacyPolicyPage: ${privacyPolicyInput.error}` });
+    }
+
+    const loginNoticeMarkdown = normalizeSystemPageContent(req.body?.loginNoticeMarkdown);
+    const connection = await dbPool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      await connection.query(
+        `
+          INSERT INTO system_pages (system_key, slug, title, content)
+          VALUES (?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            slug = VALUES(slug),
+            title = VALUES(title),
+            content = VALUES(content)
+        `,
+        [
+          SYSTEM_PAGE_KEYS.userAgreement,
+          userAgreementInput.slug,
+          userAgreementInput.title,
+          userAgreementInput.content
+        ]
+      );
+
+      await connection.query(
+        `
+          INSERT INTO system_pages (system_key, slug, title, content)
+          VALUES (?, ?, ?, ?)
+          ON DUPLICATE KEY UPDATE
+            slug = VALUES(slug),
+            title = VALUES(title),
+            content = VALUES(content)
+        `,
+        [
+          SYSTEM_PAGE_KEYS.privacyPolicy,
+          privacyPolicyInput.slug,
+          privacyPolicyInput.title,
+          privacyPolicyInput.content
+        ]
+      );
+
+      await connection.query(
+        "INSERT INTO app_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+        [SITE_SETTING_KEYS.loginNoticeMarkdown, loginNoticeMarkdown]
+      );
+
+      await connection.commit();
+    } catch (err) {
+      await connection.rollback();
+      const message = String(err?.message ?? "");
+      if (message.includes("Duplicate entry")) {
+        return res.status(409).json({ error: "system page slug already exists" });
+      }
+      return res.status(500).json({ error: "save system page settings failed" });
+    } finally {
+      connection.release();
+    }
+
+    const [settings, userAgreementPage, privacyPolicyPage, customPages] = await Promise.all([
+      getAppSettings([SITE_SETTING_KEYS.loginNoticeMarkdown]),
+      getSystemPageBySystemKey(SYSTEM_PAGE_KEYS.userAgreement),
+      getSystemPageBySystemKey(SYSTEM_PAGE_KEYS.privacyPolicy),
+      listCustomSystemPages()
+    ]);
+
+    return res.json({
+      loginNoticeMarkdown: String(settings[SITE_SETTING_KEYS.loginNoticeMarkdown] ?? ""),
+      userAgreementPage: userAgreementPage ? toSystemPage(userAgreementPage) : null,
+      privacyPolicyPage: privacyPolicyPage ? toSystemPage(privacyPolicyPage) : null,
+      pages: customPages.map(toSystemPage)
+    });
+  });
+
+  router.post("/admin/system-pages", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const input = readSystemPageInput(req.body);
+    if (input.error) {
+      return res.status(400).json({ error: input.error });
+    }
+
+    try {
+      const [result] = await dbPool.query(
+        "INSERT INTO system_pages (system_key, slug, title, content) VALUES (NULL, ?, ?, ?)",
+        [input.slug, input.title, input.content]
+      );
+      const page = await getSystemPageById(Number(result.insertId));
+      return res.status(201).json({ page: toSystemPage(page) });
+    } catch (err) {
+      const message = String(err?.message ?? "");
+      if (message.includes("Duplicate entry")) {
+        return res.status(409).json({ error: "system page slug already exists" });
+      }
+      return res.status(500).json({ error: "create system page failed" });
+    }
+  });
+
+  router.patch("/admin/system-pages/:id", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const pageId = Number(req.params.id);
+    if (!Number.isFinite(pageId)) {
+      return res.status(400).json({ error: "invalid system page id" });
+    }
+
+    const current = await getSystemPageById(pageId);
+    if (!current) {
+      return res.status(404).json({ error: "system page not found" });
+    }
+    if (String(current.system_key ?? "").trim()) {
+      return res.status(400).json({ error: "reserved system page must be updated from settings" });
+    }
+
+    const input = readSystemPageInput({
+      slug: req.body?.slug ?? current.slug,
+      title: req.body?.title ?? current.title,
+      content: req.body?.content ?? current.content
+    });
+    if (input.error) {
+      return res.status(400).json({ error: input.error });
+    }
+
+    try {
+      await dbPool.query(
+        "UPDATE system_pages SET slug = ?, title = ?, content = ? WHERE id = ?",
+        [input.slug, input.title, input.content, pageId]
+      );
+      const page = await getSystemPageById(pageId);
+      return res.json({ page: toSystemPage(page) });
+    } catch (err) {
+      const message = String(err?.message ?? "");
+      if (message.includes("Duplicate entry")) {
+        return res.status(409).json({ error: "system page slug already exists" });
+      }
+      return res.status(500).json({ error: "update system page failed" });
+    }
+  });
+
+  router.delete("/admin/system-pages/:id", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const pageId = Number(req.params.id);
+    if (!Number.isFinite(pageId)) {
+      return res.status(400).json({ error: "invalid system page id" });
+    }
+
+    const current = await getSystemPageById(pageId);
+    if (!current) {
+      return res.status(404).json({ error: "system page not found" });
+    }
+    if (String(current.system_key ?? "").trim()) {
+      return res.status(400).json({ error: "reserved system page cannot be deleted" });
+    }
+
+    await dbPool.query("DELETE FROM system_pages WHERE id = ?", [pageId]);
+    return res.status(204).send();
   });
 
   router.put("/admin/oauth/cpoauth", async (req, res) => {

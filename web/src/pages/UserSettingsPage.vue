@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import UiCard from "../components/UiCard.vue";
 import TiLayout from "../layouts/TiLayout.vue";
 import {
@@ -12,6 +13,7 @@ import {
 } from "../api/auth";
 
 const router = useRouter();
+const { t } = useI18n();
 const loading = ref(true);
 const saving = ref(false);
 const error = ref("");
@@ -28,12 +30,12 @@ const defaultProfileCovers = [
 ] as const;
 
 const autosaveOptions: Array<{ value: AutosaveIntervalSeconds; label: string }> = [
-  { value: 30, label: "30 秒" },
-  { value: 60, label: "60 秒" },
-  { value: 120, label: "120 秒" },
-  { value: 300, label: "5 分钟" },
-  { value: 600, label: "10 分钟" },
-  { value: 0, label: "不开启" }
+  { value: 30, label: t("settings.autosave.30") },
+  { value: 60, label: t("settings.autosave.60") },
+  { value: 120, label: t("settings.autosave.120") },
+  { value: 300, label: t("settings.autosave.300") },
+  { value: 600, label: t("settings.autosave.600") },
+  { value: 0, label: t("settings.autosave.off") }
 ];
 
 function normalizeAutosaveInterval(value: unknown): AutosaveIntervalSeconds {
@@ -90,7 +92,7 @@ async function submitSettings() {
     });
     saveLocalUser(result.user);
     profileCoverUrl.value = String(result.settings.profileCoverUrl ?? result.user.profileCoverUrl ?? "");
-    success.value = "设置已保存。";
+    success.value = t("settings.saved");
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
   } finally {
@@ -103,61 +105,61 @@ onMounted(loadSettings);
 
 <template>
   <TiLayout
-    title="个人设置"
-    subtitle="保存站有题 / 账户设置"
+    :title="t('settings.title')"
+    :subtitle="t('settings.subtitle')"
     :loading="loading"
-    loading-label="设置加载中"
+    :loading-label="t('settings.loading')"
   >
     <section class="settings-root">
       <UiCard as="div" class="settings-notice" compact>
         <i class="fa-solid fa-circle-info"></i>
         <div>
-          <strong>注意</strong>
-          <p>修改后记得点击底部“保存设置”。如需修改头像、显示名称、个人简介，请<a href="https://auth.luogu.me/profile" target="_blank" rel="noopener noreferrer">前往此处</a>，修改后重新登录才会同步。</p>
+          <strong>{{ t("settings.noticeTitle") }}</strong>
+          <p>{{ t("settings.noticePrefix") }}<a href="https://auth.luogu.me/profile" target="_blank" rel="noopener noreferrer">{{ t("settings.noticeLink") }}</a>{{ t("settings.noticeSuffix") }}</p>
         </div>
       </UiCard>
 
       <template v-if="!loading">
         <UiCard as="div" class="settings-item" compact>
-          <label class="item-title" for="records-public"><i class="fa-solid fa-eye"></i>做题记录公开可见</label>
+          <label class="item-title" for="records-public"><i class="fa-solid fa-eye"></i>{{ t("settings.recordsPublic") }}</label>
           <div class="switch">
             <label>
               <input v-model="recordsPublic" type="radio" :value="true" />
               <i class="fa-solid fa-globe"></i>
-              <span>公开</span>
+              <span>{{ t("settings.public") }}</span>
             </label>
             <label>
               <input v-model="recordsPublic" type="radio" :value="false" />
               <i class="fa-solid fa-user-shield"></i>
-              <span>仅自己和管理员可见</span>
+              <span>{{ t("settings.private") }}</span>
             </label>
           </div>
         </UiCard>
 
         <UiCard as="div" class="settings-item" compact>
-          <label class="item-title" for="submission-analysis-mode"><i class="fa-solid fa-file-circle-check"></i>Submission 解析展开策略</label>
+          <label class="item-title" for="submission-analysis-mode"><i class="fa-solid fa-file-circle-check"></i>{{ t("settings.analysisMode") }}</label>
           <div class="switch">
             <label>
               <input v-model="submissionAnalysisMode" type="radio" value="wrong_only" />
               <i class="fa-solid fa-circle-exclamation"></i>
-              <span>仅展开错题解析</span>
+              <span>{{ t("settings.analysisWrongOnly") }}</span>
             </label>
             <label>
               <input v-model="submissionAnalysisMode" type="radio" value="none" />
               <i class="fa-regular fa-eye-slash"></i>
-              <span>不展开任何解析</span>
+              <span>{{ t("settings.analysisNone") }}</span>
             </label>
             <label>
               <input v-model="submissionAnalysisMode" type="radio" value="all" />
               <i class="fa-regular fa-eye"></i>
-              <span>展开所有解析</span>
+              <span>{{ t("settings.analysisAll") }}</span>
             </label>
           </div>
-          <p class="item-desc">作用于提交记录页（/problemset/:id?submission=:sid）。</p>
+          <p class="item-desc">{{ t("settings.analysisDesc") }}</p>
         </UiCard>
 
         <UiCard as="div" class="settings-item" compact>
-          <label class="item-title"><i class="fa-regular fa-floppy-disk"></i>作答自动保存间隔</label>
+          <label class="item-title"><i class="fa-regular fa-floppy-disk"></i>{{ t("settings.autosaveTitle") }}</label>
           <div class="switch">
             <label v-for="option in autosaveOptions" :key="option.value">
               <input v-model="autosaveIntervalSeconds" type="radio" :value="option.value" />
@@ -165,34 +167,34 @@ onMounted(loadSettings);
               <span>{{ option.label }}</span>
             </label>
           </div>
-          <p class="item-desc">用于限时测试和自由练习的本地自动保存恢复。</p>
+          <p class="item-desc">{{ t("settings.autosaveDesc") }}</p>
         </UiCard>
 
         <UiCard as="div" class="settings-item" compact>
-          <label class="item-title" for="profile-cover-url"><i class="fa-regular fa-image"></i>个人资料背景图 URL</label>
+          <label class="item-title" for="profile-cover-url"><i class="fa-regular fa-image"></i>{{ t("settings.coverUrl") }}</label>
           <input
             id="profile-cover-url"
             v-model.trim="profileCoverUrl"
             class="text-input"
             type="url"
-            placeholder="留空则使用默认背景"
+            :placeholder="t('settings.coverPlaceholder')"
           />
-          <p class="item-desc">仅支持 http(s) 链接。</p>
+          <p class="item-desc">{{ t("settings.coverDesc") }}</p>
           <div class="cover-actions">
             <button type="button" class="minor-btn" @click="clearCoverUrl">
               <i class="fa-solid fa-eraser"></i>
-              清空背景图
+              {{ t("settings.clearCover") }}
             </button>
           </div>
           <div class="cover-preview" :style="profileCoverUrl ? { backgroundImage: `url(${profileCoverUrl})` } : {}">
-            <div class="preview-tip"><i class="fa-solid fa-panorama"></i>预览</div>
+            <div class="preview-tip"><i class="fa-solid fa-panorama"></i>{{ t("common.preview") }}</div>
           </div>
         </UiCard>
 
         <div class="actions">
           <button type="button" class="save-btn" :disabled="saving" @click="submitSettings">
             <i class="fa-regular fa-floppy-disk"></i>
-            {{ saving ? "保存中..." : "保存设置" }}
+            {{ saving ? t("common.saving") : t("settings.save") }}
           </button>
         </div>
 

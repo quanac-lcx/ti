@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
 import { problemsetApi, type ProblemsetSummary } from "../api/problemset";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const loading = ref(false);
 const problems = ref<ProblemsetSummary[]>([]);
@@ -13,10 +15,10 @@ const error = ref("");
 const searchInput = ref("");
 
 function typeLabel(type: ProblemsetSummary["problemsetType"]) {
-  if (type === "official_public") return "官方公开";
-  if (type === "personal_featured") return "个人精选";
-  if (type === "personal_public") return "个人公开";
-  return "其他";
+  if (type === "official_public") return t("problemset.types.officialPublic");
+  if (type === "personal_featured") return t("problemset.types.personalFeatured");
+  if (type === "personal_public") return t("problemset.types.personalPublic");
+  return t("problemset.types.other");
 }
 
 function syncInputFromRoute() {
@@ -64,7 +66,7 @@ watch(
 </script>
 
 <template>
-  <TiLayout title="搜索" subtitle="保存站有题 / 搜索">
+  <TiLayout :title="t('problemset.search.title')" :subtitle="t('problemset.search.subtitle')">
     <div class="problemset-search-page">
       <div class="toolbar">
         <form class="search-form" @submit.prevent="submitSearch">
@@ -73,36 +75,36 @@ watch(
             v-model="searchInput"
             class="search-input"
             type="search"
-            placeholder="搜索题目 ID、标题、描述或作者用户名"
+            :placeholder="t('problemset.search.placeholder')"
           />
         </form>
 
         <div class="toolbar-actions">
           <button class="tab search-submit" type="button" @click="submitSearch">
             <i class="fa-solid fa-magnifying-glass"></i>
-            搜索
+            {{ t("common.search") }}
           </button>
           <router-link class="tab ghost link-btn" to="/problemset">
             <i class="fa-solid fa-arrow-left"></i>
-            返回题库
+            {{ t("problemset.search.back") }}
           </router-link>
         </div>
       </div>
 
       <div v-if="loading" class="loading">
         <i class="fa-solid fa-spinner fa-spin"></i>
-        搜索中...
+        {{ t("problemset.search.searching") }}
       </div>
       <div v-else-if="error" class="error">
         <i class="fa-solid fa-circle-exclamation"></i>
         {{ error }}
       </div>
       <div v-else-if="!String(route.query.q ?? '').trim()" class="loading">
-        请输入文本。按下 Enter 键开始搜索。
+        {{ t("problemset.search.idle") }}
       </div>
       <div v-else-if="problems.length === 0" class="loading">
         <i class="fa-regular fa-folder-open"></i>
-        没有找到匹配的官方公开、个人精选或个人公开题目
+        {{ t("problemset.search.empty") }}
       </div>
       <div v-else class="list">
         <router-link v-for="p in problems" :key="p.id" class="row search-row" :to="`/problemset/${p.id}`">
@@ -113,7 +115,7 @@ watch(
           </div>
           <div class="search-meta">
             <span class="type-tag" :class="p.problemsetType">{{ typeLabel(p.problemsetType) }}</span>
-            <span class="search-count">{{ p.questionCount }} 题</span>
+            <span class="search-count">{{ p.questionCount }} {{ t("common.questions") }}</span>
           </div>
           <i class="fa-solid fa-chevron-right row-arrow"></i>
         </router-link>
