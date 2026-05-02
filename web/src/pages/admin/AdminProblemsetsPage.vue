@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { RouterLink } from "vue-router";
+import { useI18n } from "vue-i18n";
 import {
   deleteAdminProblemset,
   fetchAdminProblemsets,
@@ -9,6 +10,7 @@ import {
 } from "../../api/admin";
 import { askConfirm, notifyError, notifySuccess, notifyWarning } from "../../composables/feedback";
 
+const { t } = useI18n();
 const loading = ref(false);
 const problemsets = ref<AdminProblemset[]>([]);
 const selected = ref<number[]>([]);
@@ -70,7 +72,7 @@ function startEdit(item: AdminProblemset) {
 
 async function submitEdit() {
   if (!editingId.value) {
-    notifyWarning("请先从试卷列表选择“编辑”。");
+    notifyWarning(t("admin.problemsets.selectEditFirst"));
     return;
   }
   try {
@@ -81,7 +83,7 @@ async function submitEdit() {
       durationMinutes: Number(editForm.durationMinutes)
     });
     editingId.value = updated.id;
-    notifySuccess(`试卷 ${updated.id} 更新成功。`);
+    notifySuccess(t("admin.problemsets.updated", { id: updated.id }));
     await loadProblemsets();
   } catch (err) {
     notifyError(String((err as Error)?.message ?? err));
@@ -90,16 +92,16 @@ async function submitEdit() {
 
 async function deleteOne(id: number) {
   const confirmed = await askConfirm({
-    title: "删除试卷",
-    message: `确认删除试卷 ${id} 及其所有试题吗？`,
-    confirmText: "删除",
-    cancelText: "取消",
+    title: t("admin.problemsets.deleteTitle"),
+    message: t("admin.problemsets.deleteMessage", { id }),
+    confirmText: t("common.delete"),
+    cancelText: t("common.cancel"),
     danger: true
   });
   if (!confirmed) return;
   try {
     await deleteAdminProblemset(id);
-    notifySuccess(`试卷 ${id} 已删除。`);
+    notifySuccess(t("admin.problemsets.deleted", { id }));
     await loadProblemsets();
   } catch (err) {
     notifyError(String((err as Error)?.message ?? err));
@@ -108,14 +110,14 @@ async function deleteOne(id: number) {
 
 async function deleteSelected() {
   if (selected.value.length === 0) {
-    notifyWarning("请先勾选试卷。");
+    notifyWarning(t("admin.problemsets.selectFirst"));
     return;
   }
   const confirmed = await askConfirm({
-    title: "批量删除试卷",
-    message: `将删除 ${selected.value.length} 个试卷及其题目，此操作不可恢复。`,
-    confirmText: "确认删除",
-    cancelText: "取消",
+    title: t("admin.problemsets.bulkDeleteTitle"),
+    message: t("admin.problemsets.bulkDeleteMessage", { count: selected.value.length }),
+    confirmText: t("admin.problemsets.bulkDeleteConfirm"),
+    cancelText: t("common.cancel"),
     danger: true
   });
   if (!confirmed) return;
@@ -126,10 +128,10 @@ async function deleteSelected() {
       await deleteAdminProblemset(id);
       success += 1;
     } catch (err) {
-      notifyError(`试卷 ${id} 删除失败：${String((err as Error)?.message ?? err)}`);
+      notifyError(t("admin.problemsets.deleteFailed", { id, reason: String((err as Error)?.message ?? err) }));
     }
   }
-  notifySuccess(`批量删除完成：${success}/${selected.value.length}`);
+  notifySuccess(t("admin.problemsets.bulkDeleted", { success, total: selected.value.length }));
   selected.value = [];
   await loadProblemsets();
 }
@@ -140,30 +142,30 @@ onMounted(loadProblemsets);
 <template>
   <div class="admin-page">
     <nav class="admin-anchor-nav">
-      <a href="#problemset-list">试卷列表</a>
-      <a href="#problemset-edit">编辑试卷</a>
-      <RouterLink to="/problemset/_new">创建试卷</RouterLink>
+      <a href="#problemset-list">{{ t("admin.problemsets.listAnchor") }}</a>
+      <a href="#problemset-edit">{{ t("admin.problemsets.editAnchor") }}</a>
+      <RouterLink to="/problemset/_new">{{ t("admin.problemsets.createAnchor") }}</RouterLink>
     </nav>
 
     <section id="problemset-list" class="admin-card">
       <div class="admin-head">
-        <h3>试卷列表</h3>
+        <h3>{{ t("admin.problemsets.listHeading") }}</h3>
         <div class="actions">
-          <button class="admin-btn" type="button" @click="loadProblemsets">刷新</button>
-          <button class="admin-btn" type="button" @click="toggleAll">{{ allSelected ? "取消全选" : "全选" }}</button>
-          <button class="admin-btn danger" type="button" @click="deleteSelected">批量删除</button>
+          <button class="admin-btn" type="button" @click="loadProblemsets">{{ t("common.refresh") }}</button>
+          <button class="admin-btn" type="button" @click="toggleAll">{{ allSelected ? t("admin.common.clearSelection") : t("admin.common.selectAll") }}</button>
+          <button class="admin-btn danger" type="button" @click="deleteSelected">{{ t("admin.common.bulkDelete") }}</button>
         </div>
       </div>
-      <p v-if="loading">加载中...</p>
+      <p v-if="loading">{{ t("common.loading") }}</p>
       <table v-else class="admin-table">
         <thead>
           <tr>
-            <th>选择</th>
+            <th>{{ t("admin.common.select") }}</th>
             <th>ID</th>
-            <th>名称</th>
-            <th>时长(小时)</th>
-            <th>题目数</th>
-            <th>操作</th>
+            <th>{{ t("problemset.common.name") }}</th>
+            <th>{{ t("admin.problemsets.durationHours") }}</th>
+            <th>{{ t("admin.problemsets.questionCount") }}</th>
+            <th>{{ t("admin.common.actions") }}</th>
           </tr>
         </thead>
         <tbody>
@@ -174,8 +176,8 @@ onMounted(loadProblemsets);
             <td>{{ item.durationHours }}</td>
             <td>{{ item.questionCount }}</td>
             <td class="actions">
-              <button class="admin-btn" type="button" @click="startEdit(item)">编辑</button>
-              <button class="admin-btn danger" type="button" @click="deleteOne(item.id)">删除</button>
+              <button class="admin-btn" type="button" @click="startEdit(item)">{{ t("common.edit") }}</button>
+              <button class="admin-btn danger" type="button" @click="deleteOne(item.id)">{{ t("common.delete") }}</button>
             </td>
           </tr>
         </tbody>
@@ -183,29 +185,29 @@ onMounted(loadProblemsets);
     </section>
 
     <section id="problemset-edit" class="admin-card">
-      <h3>编辑试卷</h3>
-      <p class="admin-hint">先在试卷列表中点击“编辑”。</p>
+      <h3>{{ t("admin.problemsets.editHeading") }}</h3>
+      <p class="admin-hint">{{ t("admin.problemsets.editHint") }}</p>
       <div class="admin-form-grid">
         <label>
           <span>ID</span>
           <input v-model="editForm.id" type="number" min="1" />
         </label>
         <label>
-          <span>名称</span>
+          <span>{{ t("problemset.common.name") }}</span>
           <input v-model.trim="editForm.title" type="text" />
         </label>
         <label>
-          <span>描述</span>
+          <span>{{ t("problemset.common.description") }}</span>
           <textarea v-model="editForm.description" rows="3"></textarea>
         </label>
         <label>
-          <span>时长（分钟）</span>
+          <span>{{ t("problemset.common.durationMinutes") }}</span>
           <input v-model.number="editForm.durationMinutes" type="number" min="1" />
         </label>
       </div>
       <div class="admin-actions">
-        <button class="admin-btn primary" type="button" @click="submitEdit">保存试卷</button>
-        <button class="admin-btn" type="button" @click="resetEditForm">重置</button>
+        <button class="admin-btn primary" type="button" @click="submitEdit">{{ t("admin.problemsets.save") }}</button>
+        <button class="admin-btn" type="button" @click="resetEditForm">{{ t("common.reset") }}</button>
       </div>
     </section>
   </div>

@@ -1,0 +1,41 @@
+.system-page {
+  width: min(100%, 960px);
+  margin: 0 auto;
+}
+
+.system-page-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  padding: 24px;
+}
+
+.system-page-head {
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--app-border-subtle);
+}
+
+.system-page-head h2 {
+  margin: 0 0 10px;
+}
+
+.system-page-meta {
+  margin: 4px 0 0;
+  color: var(--app-text-soft);
+  font-size: 14px;
+}
+
+.system-page-content {
+  font-size: 15px;
+}
+
+.system-page-empty {
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .system-page-card {
+    padding: 18px;
+  }
+}

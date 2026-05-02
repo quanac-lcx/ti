@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { closeConfirm, dismissToast, useFeedbackState } from "../composables/feedback";
+import { useI18n } from "vue-i18n";
 
 const state = useFeedbackState();
+const { t } = useI18n();
 
 const toasts = computed(() => state.toasts);
 const confirm = computed(() => state.confirm);
@@ -22,7 +24,7 @@ function onMaskClick() {
         :class="`is-${item.type}`"
       >
         <div class="feedback-toast-head">
-          <strong>{{ item.title || "提示" }}</strong>
+          <strong>{{ item.title || t("feedback.defaultToastTitle") }}</strong>
           <button type="button" class="feedback-close" @click="dismissToast(item.id)">×</button>
         </div>
         <p>{{ item.message }}</p>

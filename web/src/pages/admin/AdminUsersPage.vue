@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   banUser,
   deleteUser,
@@ -11,6 +12,7 @@ import type { AuthUser } from "../../api/auth";
 import { askConfirm, notifyError, notifySuccess, notifyWarning } from "../../composables/feedback";
 import { useAdminAccess } from "./useAdminAccess";
 
+const { t } = useI18n();
 const { user: currentUser } = useAdminAccess();
 const users = ref<AuthUser[]>([]);
 const loading = ref(false);
@@ -70,7 +72,7 @@ function startEdit(target: AuthUser) {
 
 async function submitEdit() {
   if (!editingUid.value) {
-    notifyWarning("请先从用户列表选择一个用户进行编辑。");
+    notifyWarning(t("admin.users.selectEditFirst"));
     return;
   }
   try {
@@ -82,7 +84,7 @@ async function submitEdit() {
     });
     editingUid.value = updated.uid;
     editForm.password = "";
-    notifySuccess(`用户 ${updated.uid} 更新成功。`);
+    notifySuccess(t("admin.users.updated", { uid: updated.uid }));
     await loadUsers();
   } catch (err) {
     notifyError(String((err as Error)?.message ?? err));
@@ -91,14 +93,14 @@ async function submitEdit() {
 
 async function runBatch(title: string, message: string, task: (uid: string) => Promise<void>) {
   if (selected.value.length === 0) {
-    notifyWarning("请先勾选要操作的用户。");
+    notifyWarning(t("admin.users.selectFirst"));
     return;
   }
   const confirmed = await askConfirm({
     title,
-    message: `${message}\n当前选中：${selected.value.length} 人`,
-    confirmText: "继续执行",
-    cancelText: "取消",
+    message: `${message}\n${t("admin.users.selectedCount", { count: selected.value.length })}`,
+    confirmText: t("admin.users.continue"),
+    cancelText: t("common.cancel"),
     danger: true
   });
   if (!confirmed) return;
@@ -109,35 +111,38 @@ async function runBatch(title: string, message: string, task: (uid: string) => P
       await task(uid);
       success += 1;
     } catch (err) {
-      notifyError(`用户 ${uid} 处理失败：${String((err as Error)?.message ?? err)}`);
+      notifyError(t("admin.users.operationFailed", { uid, reason: String((err as Error)?.message ?? err) }));
     }
   }
-  notifySuccess(`批量操作完成：成功 ${success}/${selected.value.length}。`);
+  notifySuccess(t("admin.users.batchCompleted", { success, total: selected.value.length }));
   await loadUsers();
 }
 
 async function batchPromote() {
-  await runBatch("批量提权", "将选中用户提升为管理员。", async (uid) => {
+  await runBatch(t("admin.users.batchPromoteTitle"), t("admin.users.batchPromoteMessage"), async (uid) => {
     await updateUser(uid, { isAdmin: true });
   });
 }
 
 async function batchDemote() {
-  await runBatch("批量解除管理员", "将移除选中用户的管理员权限。", async (uid) => {
+  await runBatch(t("admin.users.batchDemoteTitle"), t("admin.users.batchDemoteMessage"), async (uid) => {
     if (isSelf(uid)) return;
     await updateUser(uid, { isAdmin: false });
   });
 }
 
 async function batchBan(nextBanned: boolean) {
-  await runBatch(nextBanned ? "批量封禁" : "批量解封", nextBanned ? "将封禁选中用户。" : "将解封选中用户。", async (uid) => {
+  await runBatch(
+    nextBanned ? t("admin.users.batchBanTitle") : t("admin.users.batchUnbanTitle"),
+    nextBanned ? t("admin.users.batchBanMessage") : t("admin.users.batchUnbanMessage"),
+    async (uid) => {
     if (nextBanned && isSelf(uid)) return;
     await banUser(uid, nextBanned);
   });
 }
 
 async function batchDelete() {
-  await runBatch("批量删除用户", "删除后不可恢复。", async (uid) => {
+  await runBatch(t("admin.users.batchDeleteTitle"), t("admin.users.batchDeleteMessage"), async (uid) => {
     if (isSelf(uid)) return;
     await deleteUser(uid);
   });
@@ -148,7 +153,7 @@ async function singlePromote(uid: string) {
     const target = users.value.find((item) => item.uid === uid);
     const nextAdmin = !Boolean(target?.isAdmin);
     if (!nextAdmin && isSelf(uid)) {
-      notifyWarning("不能解除当前登录管理员自己的权限。");
+      notifyWarning(t("admin.users.cannotDemoteSelf"));
       return;
     }
     if (nextAdmin) {
@@ -156,7 +161,7 @@ async function singlePromote(uid: string) {
     } else {
       await updateUser(uid, { isAdmin: false });
     }
-    notifySuccess(`${uid} 已${nextAdmin ? "提升为" : "解除"}管理员。`);
+    notifySuccess(nextAdmin ? t("admin.users.promoted", { uid }) : t("admin.users.demoted", { uid }));
     await loadUsers();
   } catch (err) {
     notifyError(String((err as Error)?.message ?? err));
@@ -166,11 +171,11 @@ async function singlePromote(uid: string) {
 async function singleToggleBan(uid: string, banned: boolean) {
   try {
     if (banned && isSelf(uid)) {
-      notifyWarning("不能封禁当前登录管理员。");
+      notifyWarning(t("admin.users.cannotBanSelf"));
       return;
     }
     await banUser(uid, banned);
-    notifySuccess(`${uid} 已${banned ? "封禁" : "解封"}。`);
+    notifySuccess(banned ? t("admin.users.banned", { uid }) : t("admin.users.unbanned", { uid }));
     await loadUsers();
   } catch (err) {
     notifyError(String((err as Error)?.message ?? err));
@@ -183,36 +188,36 @@ onMounted(loadUsers);
 <template>
   <div class="admin-page">
     <nav class="admin-anchor-nav">
-      <a href="#users-table">用户列表</a>
-      <a href="#user-edit">编辑用户</a>
+      <a href="#users-table">{{ t("admin.users.listAnchor") }}</a>
+      <a href="#user-edit">{{ t("admin.users.editAnchor") }}</a>
     </nav>
 
     <section id="users-table" class="admin-card">
       <div class="admin-head">
-        <h3>用户列表</h3>
-        <button class="admin-btn" type="button" @click="loadUsers">刷新</button>
+        <h3>{{ t("admin.users.listHeading") }}</h3>
+        <button class="admin-btn" type="button" @click="loadUsers">{{ t("common.refresh") }}</button>
       </div>
       <div class="admin-toolbar">
-        <button class="admin-btn" type="button" @click="toggleAll">{{ allSelected ? "取消全选" : "全选" }}</button>
-        <button class="admin-btn" type="button" @click="batchPromote">批量提权</button>
-        <button class="admin-btn" type="button" @click="batchDemote">批量解除提权</button>
-        <button class="admin-btn" type="button" @click="batchBan(true)">批量封禁</button>
-        <button class="admin-btn" type="button" @click="batchBan(false)">批量解封</button>
-        <button class="admin-btn danger" type="button" @click="batchDelete">批量删除</button>
+        <button class="admin-btn" type="button" @click="toggleAll">{{ allSelected ? t("admin.common.clearSelection") : t("admin.common.selectAll") }}</button>
+        <button class="admin-btn" type="button" @click="batchPromote">{{ t("admin.users.batchPromoteTitle") }}</button>
+        <button class="admin-btn" type="button" @click="batchDemote">{{ t("admin.users.batchDemoteTitle") }}</button>
+        <button class="admin-btn" type="button" @click="batchBan(true)">{{ t("admin.users.batchBanTitle") }}</button>
+        <button class="admin-btn" type="button" @click="batchBan(false)">{{ t("admin.users.batchUnbanTitle") }}</button>
+        <button class="admin-btn danger" type="button" @click="batchDelete">{{ t("admin.common.bulkDelete") }}</button>
       </div>
-      <p class="admin-hint">提示：管理员不会封禁/删除/降权自己。</p>
+      <p class="admin-hint">{{ t("admin.users.selfHint") }}</p>
 
-      <p v-if="loading">加载中...</p>
+      <p v-if="loading">{{ t("common.loading") }}</p>
       <table v-else class="admin-table">
         <thead>
           <tr>
-            <th>选择</th>
+            <th>{{ t("admin.common.select") }}</th>
             <th>UID</th>
-            <th>显示名称</th>
-            <th>邮箱</th>
-            <th>管理员</th>
-            <th>封禁</th>
-            <th>操作</th>
+            <th>{{ t("admin.users.username") }}</th>
+            <th>{{ t("admin.users.email") }}</th>
+            <th>{{ t("admin.users.admin") }}</th>
+            <th>{{ t("admin.users.bannedLabel") }}</th>
+            <th>{{ t("admin.common.actions") }}</th>
           </tr>
         </thead>
         <tbody>
@@ -221,13 +226,13 @@ onMounted(loadUsers);
             <td>{{ item.uid }}</td>
             <td>{{ item.username }}</td>
             <td>{{ item.email }}</td>
-            <td>{{ item.isAdmin ? "是" : "否" }}</td>
-            <td>{{ item.isBanned ? "是" : "否" }}</td>
+            <td>{{ item.isAdmin ? t("common.yes") : t("common.no") }}</td>
+            <td>{{ item.isBanned ? t("common.yes") : t("common.no") }}</td>
             <td class="actions">
-              <button class="admin-btn" type="button" @click="startEdit(item)">编辑</button>
-              <button class="admin-btn" type="button" @click="singlePromote(item.uid)">{{ item.isAdmin ? "解除提权" : "提权" }}</button>
+              <button class="admin-btn" type="button" @click="startEdit(item)">{{ t("common.edit") }}</button>
+              <button class="admin-btn" type="button" @click="singlePromote(item.uid)">{{ item.isAdmin ? t("admin.users.demote") : t("admin.users.promote") }}</button>
               <button class="admin-btn" type="button" @click="singleToggleBan(item.uid, !item.isBanned)">
-                {{ item.isBanned ? "解封" : "封禁" }}
+                {{ item.isBanned ? t("admin.users.unban") : t("admin.users.ban") }}
               </button>
             </td>
           </tr>
@@ -236,28 +241,28 @@ onMounted(loadUsers);
     </section>
 
     <section id="user-edit" class="admin-card">
-      <h3>编辑用户</h3>
-      <p class="admin-hint">先在上面列表点击“编辑”自动带入。</p>
+      <h3>{{ t("admin.users.editHeading") }}</h3>
+      <p class="admin-hint">{{ t("admin.users.editHint") }}</p>
       <div class="admin-form-grid">
         <label>
           <span>UID</span>
-          <input v-model.trim="editForm.uid" type="text" placeholder="可修改" />
+          <input v-model.trim="editForm.uid" type="text" :placeholder="t('admin.users.editable')" />
         </label>
         <label>
-          <span>显示名称</span>
-          <input v-model.trim="editForm.username" type="text" placeholder="可修改" />
+          <span>{{ t("admin.users.username") }}</span>
+          <input v-model.trim="editForm.username" type="text" :placeholder="t('admin.users.editable')" />
         </label>
         <label>
-          <span>邮箱</span>
-          <input v-model.trim="editForm.email" type="email" placeholder="可修改" />
+          <span>{{ t("admin.users.email") }}</span>
+          <input v-model.trim="editForm.email" type="email" :placeholder="t('admin.users.editable')" />
         </label>
         <label>
-          <span>新密码</span>
-          <input v-model="editForm.password" type="password" placeholder="留空不改" />
+          <span>{{ t("admin.users.newPassword") }}</span>
+          <input v-model="editForm.password" type="password" :placeholder="t('admin.users.passwordPlaceholder')" />
         </label>
       </div>
       <div class="admin-actions">
-        <button class="admin-btn primary" type="button" @click="submitEdit">保存修改</button>
+        <button class="admin-btn primary" type="button" @click="submitEdit">{{ t("admin.users.save") }}</button>
       </div>
     </section>
   </div>

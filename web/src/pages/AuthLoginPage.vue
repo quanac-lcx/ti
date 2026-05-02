@@ -1,22 +1,41 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { computed, onMounted, ref } from "vue";
+import { RouterLink, useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
 import { buildCpoauthAuthorizeUrl, loginWithAdminToken, saveLocalUser } from "../api/auth";
+import { loadPublicSiteContentCached, type PublicSiteContent } from "../api/siteContent";
+import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
 import { BANNED_ROUTE_PATH } from "../utils/authRedirect";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const cpoauthEntryUrl = buildCpoauthAuthorizeUrl(String(route.query.redirect ?? "/problemset"));
 const adminToken = ref("");
 const adminPending = ref(false);
 const adminError = ref("");
+const publicSiteContent = ref<PublicSiteContent | null>(null);
+
+const agreementLink = computed(() => {
+  const slug = publicSiteContent.value?.userAgreementPage?.slug;
+  return slug ? `/system/${slug}` : "";
+});
+
+const privacyLink = computed(() => {
+  const slug = publicSiteContent.value?.privacyPolicyPage?.slug;
+  return slug ? `/system/${slug}` : "";
+});
+
+const loginNoticeHtml = computed(() =>
+  renderLuoguMarkdown(publicSiteContent.value?.loginNoticeMarkdown ?? "")
+);
 
 async function submitAdminToken() {
   adminError.value = "";
   const token = adminToken.value.trim();
   if (!/^[A-Za-z0-9]{32}$/.test(token)) {
-    adminError.value = "格式有误";
+    adminError.value = t("auth.adminTokenInvalid");
     return;
   }
   adminPending.value = true;
@@ -30,13 +49,21 @@ async function submitAdminToken() {
     adminPending.value = false;
   }
 }
+
+onMounted(async () => {
+  try {
+    publicSiteContent.value = await loadPublicSiteContentCached();
+  } catch {
+    publicSiteContent.value = null;
+  }
+});
 </script>
 
 <template>
-  <TiLayout subtitle="登录 / 注册" :show-top-bar="false" :show-title="false" :use-panel="false">
+  <TiLayout :subtitle="t('auth.loginSubtitle')" :show-top-bar="false" :show-title="false" :use-panel="false">
     <section class="auth-wrap auth-login-page">
       <div class="auth-card">
-        <span class="brand-logo-icon" role="img" aria-label="洛谷保存站有题">
+        <span class="brand-logo-icon" role="img" :aria-label="t('common.appName')">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path
               fill-rule="evenodd"
@@ -46,26 +73,40 @@ async function submitAdminToken() {
             ></path>
           </svg>
         </span>
-        <h2 class="auth-title">登录/注册</h2>
-        <p class="auth-tip">请使用 <a href="//www.cpoauth.com" target="_blank" rel="noopener noreferrer">CP OAuth</a> 登录/注册。未注册的用户将自动注册。</p>
-        <p class="auth-tip">点击下方按钮，即代表您同意洛谷保存站有题<span style="font-weight: bolder">和</span>CP OAuth的任何协议、条款和政策（如有）。若您不同意，请取消登录。</p>
+        <h2 class="auth-title">{{ t("auth.loginTitle") }}</h2>
+        <p class="auth-tip">
+          {{ t("auth.loginTipPrefix") }}
+          <a href="//www.cpoauth.com" target="_blank" rel="noopener noreferrer">CP OAuth</a>
+          {{ t("auth.loginTipSuffix") }}<br>{{ t("auth.loginPolicyTip") }}
+        </p>
+
+        <div v-if="agreementLink || privacyLink" class="auth-policy-links">
+          <RouterLink v-if="agreementLink" :to="agreementLink" class="auth-policy-link">
+            {{ t("auth.userAgreement") }}
+          </RouterLink>
+          <RouterLink v-if="privacyLink" :to="privacyLink" class="auth-policy-link">
+            {{ t("auth.privacyPolicy") }}
+          </RouterLink>
+        </div>
+
+        <div v-if="loginNoticeHtml" class="auth-login-notice luogu-markdown" v-html="loginNoticeHtml"></div>
+
         <a :href="cpoauthEntryUrl" class="btn btn-cpoauth">
           <i class="fa-solid fa-right-to-bracket"></i>
-          使用 CP OAuth 继续
+          {{ t("auth.continueWithCpoauth") }}
         </a>
 
         <div class="admin-token-box">
-          <p class="admin-token-title">Admin Token</p>
+          <p class="admin-token-title">{{ t("auth.adminToken") }}</p>
           <input
             v-model="adminToken"
             class="admin-token-input"
             type="text"
             maxlength="32"
-            placeholder="32位"
           />
           <button class="btn btn-admin-token" type="button" :disabled="adminPending" @click="submitAdminToken">
             <i class="fa-solid fa-shield-halved"></i>
-            {{ adminPending ? "登录中..." : "使用 Admin Token 登录" }}
+            {{ adminPending ? t("auth.loggingIn") : t("auth.loginWithAdminToken") }}
           </button>
           <p v-if="adminError" class="admin-token-error">{{ adminError }}</p>
         </div>

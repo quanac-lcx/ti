@@ -114,6 +114,38 @@ export async function ensureUserSchema() {
     `);
 
     await connection.query(`
+      CREATE TABLE IF NOT EXISTS system_pages (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        system_key VARCHAR(32) NULL,
+        slug VARCHAR(64) NOT NULL,
+        title VARCHAR(191) NOT NULL,
+        content LONGTEXT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        UNIQUE KEY uq_system_pages_slug (slug),
+        UNIQUE KEY uq_system_pages_system_key (system_key)
+      )
+    `);
+    await ensureColumn(connection, "system_pages", "system_key", "VARCHAR(32) NULL");
+    await ensureColumn(connection, "system_pages", "slug", "VARCHAR(64) NOT NULL");
+    await ensureColumn(connection, "system_pages", "title", "VARCHAR(191) NOT NULL");
+    await ensureColumn(connection, "system_pages", "content", "LONGTEXT NULL");
+    await ensureColumn(connection, "system_pages", "created_at", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+    await ensureColumn(
+      connection,
+      "system_pages",
+      "updated_at",
+      "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+    );
+    await connection.query(
+      "UPDATE system_pages SET slug = 'user-agreement' WHERE system_key = 'user_agreement' AND slug <> 'user-agreement'"
+    );
+    await connection.query(
+      "UPDATE system_pages SET slug = 'privacy-policy' WHERE system_key = 'privacy_policy' AND slug <> 'privacy-policy'"
+    );
+
+    await connection.query(`
       CREATE TABLE IF NOT EXISTS admin_tokens (
         id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
         token CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,

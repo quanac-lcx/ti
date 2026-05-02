@@ -51,6 +51,33 @@
   line-height: 1.6;
 }
 
+.auth-login-page .auth-policy-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.auth-login-page .auth-policy-link {
+  color: var(--app-primary);
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.auth-login-page .auth-policy-link:hover {
+  text-decoration: underline;
+}
+
+.auth-login-page .auth-login-notice {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: var(--panel-radius);
+  border: 1px solid var(--app-border-subtle);
+  background: var(--app-bg-elevated);
+  font-size: 14px;
+}
+
 .auth-login-page .btn {
   width: 100%;
   min-height: 40px;

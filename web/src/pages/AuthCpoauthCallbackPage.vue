@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
 import { clearAdminTokenSession, redeemCpoauthTicket, saveLocalUser } from "../api/auth";
 import { BANNED_ROUTE_PATH, isBannedMessage } from "../utils/authRedirect";
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const pending = ref(true);
-const message = ref("正在处理 CP OAuth 登录...");
+const message = ref(t("auth.callbackProcessing"));
 const error = ref("");
 
 onMounted(async () => {
@@ -23,14 +25,14 @@ onMounted(async () => {
     }
     pending.value = false;
     error.value = decodeURIComponent(directError);
-    message.value = "CP OAuth 登录失败";
+    message.value = t("auth.callbackFailed");
     return;
   }
 
   if (!ticket) {
     pending.value = false;
-    error.value = "缺少 ticket，无法完成登录。";
-    message.value = "CP OAuth 登录失败";
+    error.value = t("auth.callbackMissingTicket");
+    message.value = t("auth.callbackFailed");
     return;
   }
 
@@ -42,20 +44,20 @@ onMounted(async () => {
   } catch (err) {
     pending.value = false;
     error.value = String((err as Error)?.message ?? err);
-    message.value = "CP OAuth 登录失败";
+    message.value = t("auth.callbackFailed");
   }
 });
 </script>
 
 <template>
-  <TiLayout subtitle="CP OAuth 登录" :show-top-bar="false" :show-title="false" :use-panel="false">
+  <TiLayout :subtitle="t('auth.callbackTitle')" :show-top-bar="false" :show-title="false" :use-panel="false">
     <section class="callback-wrap auth-callback-page">
       <div class="callback-card">
         <h2>{{ message }}</h2>
-        <p v-if="pending">请稍候，正在跳转...</p>
+        <p v-if="pending">{{ t("auth.callbackPending") }}</p>
         <template v-else>
           <p class="error" v-if="error">{{ error }}</p>
-          <router-link class="back" to="/auth/login">返回登录页</router-link>
+          <router-link class="back" to="/auth/login">{{ t("auth.callbackBack") }}</router-link>
         </template>
       </div>
     </section>

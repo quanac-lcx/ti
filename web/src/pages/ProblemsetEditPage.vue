@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
 import UiCard from "../components/UiCard.vue";
 import TiLayout from "../layouts/TiLayout.vue";
 import { loadLocalUser } from "../api/auth";
@@ -18,6 +19,7 @@ type ProblemsetType =
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const currentUser = loadLocalUser();
 const pending = ref(false);
 const deleting = ref(false);
@@ -43,7 +45,7 @@ const previewGroups = computed(() => {
   let globalIndex = 0;
   return previewParsed.value.groups.map((group, groupIndex) => ({
     materialGroupIndex: group.materialGroupIndex,
-    title: group.title || (group.material ? `材料题 ${groupIndex + 1}` : ""),
+    title: group.title || (group.material ? t("problemset.common.materialGroupWithIndex", { index: groupIndex + 1 }) : ""),
     material: group.material,
     materialHtml: group.material ? renderLuoguMarkdown(group.material) : "",
     questions: group.questions.map((question) => {
@@ -71,17 +73,21 @@ const materialGroupCount = computed(() =>
 const typeOptions = computed(() => {
   if (isAdmin.value) {
     return [
-      { value: "official_public", label: "官方公开" },
-      { value: "personal_featured", label: "个人精选" },
-      { value: "personal_public", label: "个人公开" },
-      { value: "personal_private", label: "个人私有" }
+      { value: "official_public", label: t("problemset.types.officialPublic") },
+      { value: "personal_featured", label: t("problemset.types.personalFeatured") },
+      { value: "personal_public", label: t("problemset.types.personalPublic") },
+      { value: "personal_private", label: t("problemset.types.personalPrivate") }
     ];
   }
   return [
-    { value: "personal_public", label: "个人公开" },
-    { value: "personal_private", label: "个人私有" }
+    { value: "personal_public", label: t("problemset.types.personalPublic") },
+    { value: "personal_private", label: t("problemset.types.personalPrivate") }
   ];
 });
+
+function questionTypeLabel(type: "option" | "input") {
+  return type === "input" ? t("problemset.common.input") : t("problemset.common.option");
+}
 
 function buildFormSnapshot() {
   return JSON.stringify({
@@ -123,19 +129,19 @@ async function saveEdit() {
   success.value = "";
 
   if (!form.title.trim()) {
-    error.value = "请填写名称。";
+    error.value = t("problemset.create.errors.titleRequired");
     return;
   }
   if (!form.description.trim()) {
-    error.value = "请填写测验描述。";
+    error.value = t("problemset.create.errors.descriptionRequired");
     return;
   }
   if (!Number.isFinite(form.durationMinutes) || form.durationMinutes <= 0) {
-    error.value = "测试时间长度必须为正数。";
+    error.value = t("problemset.create.errors.durationInvalid");
     return;
   }
   if (!form.questionConfig.trim()) {
-    error.value = "请填写题目配置文件。";
+    error.value = t("problemset.create.errors.configRequired");
     return;
   }
   if (previewErrors.value.length > 0) {
@@ -154,7 +160,7 @@ async function saveEdit() {
       problemsetType: form.problemsetType
     } as const;
     const updated = await problemsetApi.update(sourceId.value, payload);
-    success.value = "修改成功。";
+    success.value = t("problemset.edit.updated");
     markCurrentSnapshotSaved();
     allowNextLeaveWithoutConfirm();
     await router.push(`/problemset/${updated.id}`);
@@ -170,10 +176,10 @@ async function removeProblemset() {
   success.value = "";
 
   const confirmed = await askConfirm({
-    title: "删除试卷",
-    message: "确认删除当前试卷吗？删除后不可恢复。",
-    confirmText: "确认删除",
-    cancelText: "取消",
+    title: t("problemset.edit.deleteTitle"),
+    message: t("problemset.edit.deleteMessage"),
+    confirmText: t("problemset.edit.deleteConfirm"),
+    cancelText: t("common.cancel"),
     danger: true
   });
   if (!confirmed) return;
@@ -199,22 +205,22 @@ watch(sourceId, loadEditable);
 
 <template>
   <TiLayout
-    title="修改题目"
-    subtitle="保存站有题 / 题库 / 修改题目"
+    :title="t('problemset.edit.title')"
+    :subtitle="t('problemset.edit.subtitle')"
     :use-panel="false"
     :loading="loading"
-    loading-label="题目加载中"
+    :loading-label="t('problemset.edit.loading')"
   >
     <section class="problemset-edit-page create-wrap page-shell">
       <UiCard as="div" class="create-card create-main">
         <div class="title-actions">
-          <h2>修改试卷</h2>
+          <h2>{{ t("problemset.edit.heading") }}</h2>
           <div class="actions actions-top">
             <button class="btn btn-primary" :disabled="pending || deleting" @click="saveEdit">
-              {{ pending ? "保存中..." : "保存修改" }}
+              {{ pending ? t("common.saving") : t("problemset.edit.save") }}
             </button>
             <button class="btn btn-danger" :disabled="pending || deleting" @click="removeProblemset">
-              {{ deleting ? "删除中..." : "删除试卷" }}
+              {{ deleting ? t("common.deleting") : t("problemset.edit.deleteButton") }}
             </button>
           </div>
         </div>
@@ -222,27 +228,27 @@ watch(sourceId, loadEditable);
         <template v-if="!loading">
           <div class="form-grid">
             <label>
-              <span>唯一标识符（ID）</span>
+              <span>{{ t("problemset.edit.idLabel") }}</span>
               <input v-model="form.id" type="number" min="1" :disabled="!isAdmin" />
             </label>
 
             <label>
-              <span>名称</span>
+              <span>{{ t("problemset.common.name") }}</span>
               <input v-model.trim="form.title" type="text" />
             </label>
 
             <label>
-              <span>测验描述</span>
+              <span>{{ t("problemset.common.description") }}</span>
               <textarea v-model="form.description" rows="3"></textarea>
             </label>
 
             <label>
-              <span>测试时间长度（分钟）</span>
+              <span>{{ t("problemset.common.durationMinutes") }}</span>
               <input v-model.number="form.durationMinutes" type="number" min="1" step="1" />
             </label>
 
             <label>
-              <span>题目类型</span>
+              <span>{{ t("problemset.common.type") }}</span>
               <select v-model="form.problemsetType">
                 <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
@@ -250,35 +256,32 @@ watch(sourceId, loadEditable);
 
             <div class="collapse-tip">
               <details open>
-                <summary>材料题语法说明</summary>
+                <summary>{{ t("problemset.edit.materialSummary") }}</summary>
                 <div class="tip-body">
-                  <p>现在支持两种写法：</p>
+                  <p>{{ t("problemset.edit.materialIntro") }}</p>
                   <ol>
-                    <li>普通题：<code>:::question ... :::</code></li>
-                    <li>
-                      材料题：<code>:::group title="阅读程序"</code> +
-                      <code>[material]...[/material]</code> + 多个 <code>:::question</code>
-                    </li>
+                    <li>{{ t("problemset.edit.materialItem1") }}</li>
+                    <li>{{ t("problemset.edit.materialItem2") }}</li>
                   </ol>
-                  <p>适合一段长代码下面挂很多小题的场景，例如 CSP 阅读程序、补全代码、程序理解题。</p>
-                  <p>旧的单题写法也会继续兼容，可以和材料题混写。</p>
+                  <p>{{ t("problemset.edit.materialNote1") }}</p>
+                  <p>{{ t("problemset.edit.materialNote2") }}</p>
                 </div>
               </details>
             </div>
 
             <label>
-              <span>题目配置文件</span>
+              <span>{{ t("problemset.common.config") }}</span>
               <textarea v-model="form.questionConfig" rows="20"></textarea>
             </label>
 
             <div class="preview-card">
-              <div class="preview-title">实时预览</div>
+              <div class="preview-title">{{ t("problemset.common.livePreview") }}</div>
               <ul v-if="previewErrors.length" class="preview-errors">
                 <li v-for="(msg, index) in previewErrors" :key="index">{{ msg }}</li>
               </ul>
 
               <div v-if="previewGroups.length === 0" class="preview-empty">
-                这里会实时渲染你输入的题目配置。
+                {{ t("problemset.edit.previewEmpty") }}
               </div>
 
               <div v-else class="preview-list">
@@ -289,7 +292,7 @@ watch(sourceId, loadEditable);
                 >
                   <div v-if="group.materialHtml" class="preview-material">
                     <div class="preview-material-title">
-                      {{ group.title || `材料题 ${groupIndex + 1}` }}
+                      {{ group.title || t("problemset.common.materialGroupWithIndex", { index: groupIndex + 1 }) }}
                     </div>
                     <div class="preview-material-content luogu-markdown" v-html="group.materialHtml"></div>
                   </div>
@@ -300,16 +303,16 @@ watch(sourceId, loadEditable);
                     class="preview-item"
                   >
                     <header class="preview-head">
-                      <span class="preview-tag">第 {{ question.index }} 题</span>
+                      <span class="preview-tag">{{ t("problemset.common.questionNumber", { index: question.index }) }}</span>
                       <span v-if="question.groupQuestionIndex" class="preview-meta">
-                        材料题第 {{ question.groupQuestionIndex }}
+                        {{ t("problemset.common.materialQuestionIndex", { index: question.groupQuestionIndex }) }}
                         <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
-                        小题
+                        {{ t("problemset.common.subQuestion") }}
                       </span>
                       <span class="preview-meta">
-                        类型：{{ question.type === "input" ? "填空" : "选择" }}｜分值：{{ question.score }}
+                        {{ t("problemset.common.typeLabel", { type: questionTypeLabel(question.type), score: question.score }) }}
                       </span>
-                      <span class="preview-answer">答案：{{ question.answer }}</span>
+                      <span class="preview-answer">{{ t("problemset.common.answerLabel", { answer: question.answer }) }}</span>
                     </header>
 
                     <div class="preview-stem luogu-markdown" v-html="question.stemHtml"></div>
@@ -322,12 +325,12 @@ watch(sourceId, loadEditable);
                     </ul>
 
                     <div v-else class="preview-input">
-                      <label>填空</label>
-                      <input type="text" :placeholder="question.inputPlaceholder || '请输入答案'" disabled />
+                      <label>{{ t("problemset.common.input") }}</label>
+                      <input type="text" :placeholder="question.inputPlaceholder || t('problemset.common.answerPlaceholder')" disabled />
                     </div>
 
                     <div v-if="question.analysis" class="preview-analysis">
-                      <strong>解析：</strong>
+                      <strong>{{ t("problemset.common.analysis") }}</strong>
                       <div class="luogu-markdown" v-html="question.analysisHtml"></div>
                     </div>
                   </article>
@@ -337,16 +340,16 @@ watch(sourceId, loadEditable);
           </div>
 
           <div class="meta">
-            <span>当前共解析到 {{ questionCount }} 题</span>
-            <span v-if="materialGroupCount > 0">，其中材料题分组 {{ materialGroupCount }} 组</span>
+            <span>{{ t("problemset.create.parsedCount", { count: questionCount }) }}</span>
+            <span v-if="materialGroupCount > 0">{{ t("problemset.create.materialGroupCount", { count: materialGroupCount }) }}</span>
           </div>
 
           <div class="actions">
             <button class="btn btn-primary" :disabled="pending || deleting" @click="saveEdit">
-              {{ pending ? "保存中..." : "保存修改" }}
+              {{ pending ? t("common.saving") : t("problemset.edit.save") }}
             </button>
             <button class="btn btn-danger" :disabled="pending || deleting" @click="removeProblemset">
-              {{ deleting ? "删除中..." : "删除试卷" }}
+              {{ deleting ? t("common.deleting") : t("problemset.edit.deleteButton") }}
             </button>
           </div>
 

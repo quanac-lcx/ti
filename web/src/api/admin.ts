@@ -1,6 +1,7 @@
 import { apiGet, apiPost, apiBaseUrl } from "../api";
 import { loadAdminTokenSession, loadLocalUser, type AuthUser } from "./auth";
 import type { ChoiceOption, ProblemQuestion, ProblemsetSummary } from "./problemset";
+import { invalidatePublicSiteContentCache, type SystemPage } from "./siteContent";
 
 interface UsersResponse {
   users: AuthUser[];
@@ -34,6 +35,17 @@ interface QuestionResponse {
   question: ProblemQuestion;
 }
 
+interface SystemPageResponse {
+  page: SystemPage;
+}
+
+interface AdminSystemPagesResponse {
+  loginNoticeMarkdown: string;
+  userAgreementPage: SystemPage | null;
+  privacyPolicyPage: SystemPage | null;
+  pages: SystemPage[];
+}
+
 export interface CpoauthConfig {
   clientId: string;
   clientSecret: string;
@@ -51,6 +63,20 @@ export interface AdminToken {
   token: string;
   createdByUid: string;
   createdAt: string;
+}
+
+export interface AdminSystemPagesPayload {
+  loginNoticeMarkdown: string;
+  userAgreementPage: {
+    slug: string;
+    title: string;
+    content: string;
+  };
+  privacyPolicyPage: {
+    slug: string;
+    title: string;
+    content: string;
+  };
 }
 
 function adminHeaders() {
@@ -289,4 +315,84 @@ export async function deleteAdminToken(id: number): Promise<void> {
     const payload = await response.json().catch(() => ({}));
     throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
   }
+}
+
+export async function fetchAdminSystemPages(): Promise<AdminSystemPagesResponse> {
+  return apiGet<AdminSystemPagesResponse>("/api/admin/system-pages", {
+    headers: adminHeaders()
+  });
+}
+
+export async function updateAdminSystemPageSettings(payload: AdminSystemPagesPayload): Promise<AdminSystemPagesResponse> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/system-pages/settings`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...adminHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(data?.error ?? `HTTP ${response.status}`));
+  }
+  invalidatePublicSiteContentCache();
+  return data as AdminSystemPagesResponse;
+}
+
+export async function createAdminSystemPage(payload: {
+  slug: string;
+  title: string;
+  content: string;
+}): Promise<SystemPage> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/system-pages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...adminHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(data?.error ?? `HTTP ${response.status}`));
+  }
+  invalidatePublicSiteContentCache();
+  return (data as SystemPageResponse).page;
+}
+
+export async function updateAdminSystemPage(
+  id: number,
+  payload: {
+    slug: string;
+    title: string;
+    content: string;
+  }
+): Promise<SystemPage> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/system-pages/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...adminHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(data?.error ?? `HTTP ${response.status}`));
+  }
+  invalidatePublicSiteContentCache();
+  return (data as SystemPageResponse).page;
+}
+
+export async function deleteAdminSystemPage(id: number): Promise<void> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/system-pages/${id}`, {
+    method: "DELETE",
+    headers: adminHeaders()
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
+  invalidatePublicSiteContentCache();
 }
