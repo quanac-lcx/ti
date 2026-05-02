@@ -5,6 +5,7 @@ import UiCard from "../components/UiCard.vue";
 import TiLayout from "../layouts/TiLayout.vue";
 import { loadLocalUser } from "../api/auth";
 import { problemsetApi } from "../api/problemset";
+import { useUnsavedChangesGuard } from "../composables/useUnsavedChangesGuard";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
 import { parseQuestionConfig } from "../utils/questionConfigParser";
 
@@ -45,6 +46,23 @@ const typeOptions = computed(() => {
     { value: "personal_private", label: "个人私有" }
   ];
 });
+
+function buildFormSnapshot() {
+  return JSON.stringify({
+    id: String(form.id ?? ""),
+    title: String(form.title ?? ""),
+    description: String(form.description ?? ""),
+    durationMinutes: Number(form.durationMinutes ?? 0),
+    questionConfig: String(form.questionConfig ?? ""),
+    problemsetType: form.problemsetType
+  });
+}
+
+const { markCurrentSnapshotSaved, allowNextLeaveWithoutConfirm } = useUnsavedChangesGuard({
+  getSnapshot: buildFormSnapshot
+});
+
+markCurrentSnapshotSaved();
 
 const ruleTemplate = `:::group title="阅读程序"
 [material]
@@ -187,6 +205,7 @@ const createProblemset = async () => {
       problemsetType: form.problemsetType
     });
     success.value = `创建成功，试卷 ID 为 ${created.id}`;
+    allowNextLeaveWithoutConfirm();
     await router.push(`/problemset/${created.id}`);
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
