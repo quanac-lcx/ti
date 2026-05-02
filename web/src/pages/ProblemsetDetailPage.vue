@@ -13,6 +13,7 @@ import {
   type SubmissionRecord
 } from "../api/submission";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
+import AiAssistPanel from "../components/AiAssistPanel.vue";
 
 type DetailTab = "description" | "question" | "history";
 
@@ -376,7 +377,14 @@ watch(
           </div>
 
           <div v-else-if="activeTab === 'question' && currentQuestion" class="panel-card body-card">
-            <h3 class="question-title">{{ t("problemset.common.questionNumber", { index: currentQuestion.index }) }}</h3>
+            <div class="question-head">
+              <h3 class="question-title">{{ t("problemset.common.questionNumber", { index: currentQuestion.index }) }}</h3>
+              <AiAssistPanel
+                :question="currentQuestion"
+                :question-label="t('problemset.common.questionNumber', { index: currentQuestion.index })"
+                mode="hint-and-solution"
+              />
+            </div>
             <div v-if="currentQuestion.sharedMaterial" class="shared-material-block">
               <div class="shared-material-title">
                 {{ questionMaterialTitle(currentQuestion) }}
@@ -429,14 +437,28 @@ watch(
                 <div class="shared-material-title">{{ questionMaterialTitle(question) }}</div>
                 <div class="shared-material-content luogu-markdown" v-html="renderMd(question.sharedMaterial)"></div>
               </div>
-              <h3 class="history-question-title" :class="historyQuestionTitleClass(question)">
-                {{ t("problemset.common.questionNumber", { index: question.index }) }}
-                <span v-if="question.groupQuestionIndex">
-                  · {{ question.groupQuestionIndex }}
-                  <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
-                  {{ t("problemset.common.subQuestion") }}
-                </span>
-              </h3>
+              <div class="question-head">
+                <h3 class="history-question-title" :class="historyQuestionTitleClass(question)">
+                  {{ t("problemset.common.questionNumber", { index: question.index }) }}
+                  <span v-if="question.groupQuestionIndex">
+                    · {{ question.groupQuestionIndex }}
+                    <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
+                    {{ t("problemset.common.subQuestion") }}
+                  </span>
+                </h3>
+                <AiAssistPanel
+                  :question="question"
+                  :question-label="t('problemset.common.questionNumber', { index: question.index })"
+                  mode="hint-and-solution"
+                  :history-context="{
+                    userAnswer: submissionResultMap[question.id]?.userAnswer,
+                    standardAnswer: submissionResultMap[question.id]?.standardAnswer || question.answer,
+                    earned: submissionResultMap[question.id]?.earned ?? 0,
+                    score: question.score,
+                    correct: submissionResultMap[question.id]?.correct ?? false
+                  }"
+                />
+              </div>
               <div class="question-stem luogu-markdown" v-html="renderMd(question.stem)"></div>
 
               <div v-if="question.type === 'option'" class="detail-option-list">

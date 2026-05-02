@@ -1,4 +1,4 @@
-const baseMessages = {
+﻿const baseMessages = {
   "zh-CN": {
     common: {
       appName: "保存站有题",
@@ -349,6 +349,36 @@ C. 选项C
         submitNow: "交卷",
         submitAndView: "提交并查看结果",
         saveTraining: "保存练习记录"
+      },
+      ai: {
+        panelTitle: "{question}",
+        hintOption: "查看 AI 提示",
+        solutionOption: "查看 AI 解答",
+        hintTitle: "AI 提示",
+        solutionTitle: "AI 解答",
+        pendingTitle: "警告",
+        pendingContent: "确认要查看吗？建议先多思考一会儿哦。所有内容均为人工智能生成，不作任何保证。",
+        confirmHintTitle: "确认查看提示吗",
+        confirmSolutionTitle: "确认查看解答吗",
+        confirmMessage: "确认要查看吗？建议先多思考一会儿哦。所有内容均为人工智能生成，不作任何保证。",
+        confirmWait: "等待 {seconds} 秒",
+        confirmNow: "继续",
+        hintIntro: "以下是 {question} 的思路提示：",
+        hintOptionStep1: "先提炼题目条件，再判断每个选项是否满足。",
+        hintOptionStep2: "遇到多个看起来正确的选项时，优先排除与题干矛盾的项。",
+        hintOptionStep3: "最终答案前，再用题干条件回代验证一遍。",
+        hintInputStep1: "先写出你要计算或推导的中间量。",
+        hintInputStep2: "按题目给定格式组织答案，留意大小写和空格。",
+        hintInputStep3: "代入边界情况，确认答案没有遗漏。",
+        hintStemFocus: "可优先关注题干中的这部分信息：{stem}",
+        hintNoStem: "题干内容",
+        solutionIntro: "以下是 {question} 的解答参考：",
+        solutionAnswerLine: "标准答案：{answer}",
+        solutionYourAnswerLine: "你的作答：{answer}",
+        solutionCorrectnessLine: "判定结果：{value}",
+        solutionScoreLine: "本题得分：{earned} / {score}",
+        solutionAnalysisTitle: "题目解析：",
+        solutionAnalysisFallback: "暂无解析，建议结合题干和标准答案复盘。"
       }
     },
     profile: {
@@ -936,6 +966,36 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
         submitNow: "Submit",
         submitAndView: "Submit and view result",
         saveTraining: "Save practice record"
+      },
+      ai: {
+        panelTitle: "{question}",
+        hintOption: "View AI hint",
+        solutionOption: "View AI solution",
+        hintTitle: "AI Hint",
+        solutionTitle: "AI Solution",
+        pendingTitle: "Warning",
+        pendingContent: "Are you sure you want to view this? It is recommended to think a bit longer first. All content is AI-generated and provided without any guarantee.",
+        confirmHintTitle: "View hint?",
+        confirmSolutionTitle: "View solution?",
+        confirmMessage: "Are you sure you want to view this? It is recommended to think a bit longer first. All content is AI-generated and provided without any guarantee.",
+        confirmWait: "Wait {seconds} seconds",
+        confirmNow: "Continue",
+        hintIntro: "Here is a hint for {question}:",
+        hintOptionStep1: "Extract the question conditions first, then check whether each option satisfies them.",
+        hintOptionStep2: "If multiple options seem correct, eliminate the ones that conflict with the prompt first.",
+        hintOptionStep3: "Before finalizing, substitute your conclusion back into the conditions once more.",
+        hintInputStep1: "Write down the intermediate value or relation you need to compute first.",
+        hintInputStep2: "Format your answer exactly as required, including letter case and spaces.",
+        hintInputStep3: "Test boundary cases to ensure nothing is missing.",
+        hintStemFocus: "You can start from this key part of the prompt: {stem}",
+        hintNoStem: "question content",
+        solutionIntro: "Here is a reference solution for {question}:",
+        solutionAnswerLine: "Standard answer: {answer}",
+        solutionYourAnswerLine: "Your answer: {answer}",
+        solutionCorrectnessLine: "Result: {value}",
+        solutionScoreLine: "Score: {earned} / {score}",
+        solutionAnalysisTitle: "Analysis:",
+        solutionAnalysisFallback: "No analysis is available. It is recommended to review the prompt together with the standard answer."
       }
     },
     profile: {

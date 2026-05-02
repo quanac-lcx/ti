@@ -1,0 +1,164 @@
+.ai-assist {
+  display: inline-flex;
+}
+
+.ai-trigger-btn {
+  height: 30px;
+  border: 1px solid var(--app-primary);
+  border-radius: 6px;
+  background: var(--app-primary-soft);
+  color: var(--app-primary);
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+
+.ai-trigger-btn:hover {
+  background: var(--app-primary);
+  color: #fff;
+}
+
+.ai-panel-mask,
+.ai-confirm-mask {
+  position: fixed;
+  inset: 0;
+  background: var(--app-mask);
+  display: grid;
+  place-items: center;
+  z-index: 220;
+}
+
+.ai-confirm-mask {
+  z-index: 230;
+}
+
+.ai-panel-card {
+  width: min(700px, calc(100vw - 24px));
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  background: var(--app-modal-surface);
+  box-shadow: var(--surface-shadow-sm);
+  padding: 16px;
+  position: relative;
+  display: grid;
+  gap: 12px;
+}
+
+.ai-panel-card h3 {
+  margin: 0;
+  font-size: 20px;
+  color: var(--app-text);
+}
+
+.ai-panel-close {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--app-text-soft);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ai-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ai-option-btn {
+  height: 34px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 6px;
+  background: var(--app-bg-elevated);
+  color: var(--app-text);
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ai-option-btn:hover {
+  border-color: var(--app-primary);
+  color: var(--app-primary);
+}
+
+.ai-panel-content {
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-bg-muted);
+  padding: 12px;
+}
+
+.ai-panel-content h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+}
+
+.ai-panel-markdown {
+  font-size: 14px;
+}
+
+.ai-confirm-card {
+  width: min(520px, calc(100vw - 24px));
+  border: 1px solid var(--panel-border);
+  border-radius: var(--panel-radius);
+  background: var(--app-modal-surface);
+  box-shadow: var(--surface-shadow-sm);
+  padding: 16px;
+}
+
+.ai-confirm-card h4 {
+  margin: 0 0 6px;
+  font-size: 18px;
+}
+
+.ai-confirm-card p {
+  margin: 0;
+  color: var(--app-text-muted);
+  line-height: 1.7;
+}
+
+.ai-confirm-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.ai-confirm-btn {
+  min-width: 120px;
+  height: 36px;
+  border: 1px solid var(--app-primary);
+  border-radius: 6px;
+  background: var(--app-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ai-confirm-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.ai-confirm-btn.ghost {
+  border-color: var(--app-border-strong);
+  background: var(--app-bg-elevated);
+  color: var(--app-text);
+}
+
+@media (max-width: 640px) {
+  .ai-trigger-btn {
+    height: 28px;
+    padding: 0 8px;
+  }
+}

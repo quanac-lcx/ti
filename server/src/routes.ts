@@ -197,6 +197,12 @@ const CPOAUTH_SETTING_KEYS = {
   scope: "cpoauth.scope"
 };
 
+const AI_SETTING_KEYS = {
+  baseUrl: "ai.base_url",
+  apiKey: "ai.api_key",
+  model: "ai.model"
+};
+
 const SITE_SETTING_KEYS = {
   loginNoticeMarkdown: "site.login_notice_markdown"
 };
@@ -478,6 +484,80 @@ async function getCpoauthConfig(req) {
     callbackUrl: String(settings[CPOAUTH_SETTING_KEYS.callbackUrl] ?? "").trim() || buildDefaultCallbackUrl(req),
     scope: normalizeOauthScope(String(settings[CPOAUTH_SETTING_KEYS.scope] ?? "").trim() || "openid profile email")
   };
+}
+
+function normalizeAiBaseUrl(raw) {
+  const value = String(raw ?? "").trim();
+  if (!value) return "";
+  if (!isHttpUrl(value)) return "";
+  return value.replace(/\/$/, "");
+}
+
+function normalizeAiModel(raw) {
+  return String(raw ?? "").trim().slice(0, 120);
+}
+
+async function getAiConfig() {
+  const settings = await getAppSettings(Object.values(AI_SETTING_KEYS));
+  return {
+    baseUrl: normalizeAiBaseUrl(settings[AI_SETTING_KEYS.baseUrl]) || "https://api.deepseek.com/v1",
+    apiKey: String(settings[AI_SETTING_KEYS.apiKey] ?? "").trim(),
+    model: normalizeAiModel(settings[AI_SETTING_KEYS.model]) || "deepseek-v4-flash"
+  };
+}
+
+async function requestAiAssist({ mode, question }) {
+  const config = await getAiConfig();
+  if (!config.apiKey) {
+    throw new Error("AI config missing apiKey");
+  }
+
+  const modeLabel = mode === "solution" ? "解析" : "提示";
+  const systemPrompt = [
+    "你是一个竞赛题辅导助手。",
+    "你必须严格只依据用户提供的题目内容回答，不允许补充、猜测或改写成其他题目。",
+    "如果题目信息不足以作答，直接回复：题目信息不足，无法生成准确" + modeLabel + "。",
+    "输出使用简体中文，不要输出与题目无关的内容。"
+  ].join("");
+  const userPrompt = [
+    `请为下面这道题生成${modeLabel}。`,
+    "",
+    "【题目开始】",
+    question,
+    "【题目结束】",
+    "",
+    `只输出该题目的${modeLabel}正文，不要输出“题目复述”“选项抄写”“免责声明”“额外建议”。`
+  ].join("\n");
+  const endpoint = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${config.apiKey}`
+    },
+    body: JSON.stringify({
+      model: config.model,
+      temperature: 0,
+      top_p: 0.1,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ]
+    })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = String(payload?.error?.message ?? payload?.message ?? `ai request failed (HTTP ${response.status})`).trim();
+    throw new Error(message || `ai request failed (HTTP ${response.status})`);
+  }
+
+  const content = String(payload?.choices?.[0]?.message?.content ?? "").trim();
+  if (!content) {
+    throw new Error("AI returned empty content");
+  }
+  return content;
 }
 
 function buildCpoauthAuthorizeUrl(config, state) {
@@ -2047,6 +2127,27 @@ export function buildRouter() {
     return res.json({ submissions: rows.map(toSubmissionSummary) });
   });
 
+  router.post("/ai/generate", async (req, res) => {
+    const mode = String(req.body?.mode ?? "").trim().toLowerCase();
+    if (mode !== "hint" && mode !== "solution") {
+      return res.status(400).json({ error: "mode must be hint or solution" });
+    }
+    const question = String(req.body?.question ?? "").trim();
+    if (!question) {
+      return res.status(400).json({ error: "question is required" });
+    }
+    if (question.length > 20000) {
+      return res.status(400).json({ error: "question is too long" });
+    }
+
+    try {
+      const content = await requestAiAssist({ mode, question });
+      return res.json({ content });
+    } catch (err) {
+      return res.status(500).json({ error: String(err?.message ?? "ai generation failed") });
+    }
+  });
+
   router.get("/admin/problemsets", async (req, res) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
@@ -2632,6 +2733,40 @@ export function buildRouter() {
         clientSecret,
         callbackUrl,
         scope
+      }
+    });
+  });
+
+  router.get("/admin/ai/config", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+    const config = await getAiConfig();
+    return res.json({ config });
+  });
+
+  router.put("/admin/ai/config", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const baseUrl = normalizeAiBaseUrl(req.body?.baseUrl);
+    const apiKey = String(req.body?.apiKey ?? "").trim();
+    const model = normalizeAiModel(req.body?.model);
+
+    if (!baseUrl) return res.status(400).json({ error: "baseUrl must be a valid http/https url" });
+    if (!apiKey) return res.status(400).json({ error: "apiKey is required" });
+    if (!model) return res.status(400).json({ error: "model is required" });
+
+    await Promise.all([
+      setAppSetting(AI_SETTING_KEYS.baseUrl, baseUrl),
+      setAppSetting(AI_SETTING_KEYS.apiKey, apiKey),
+      setAppSetting(AI_SETTING_KEYS.model, model)
+    ]);
+
+    return res.json({
+      config: {
+        baseUrl,
+        apiKey,
+        model
       }
     });
   });

@@ -123,6 +123,19 @@
   font-size: 20px;
 }
 
+.problemset-detail-page .question-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.problemset-detail-page .question-head .question-title,
+.problemset-detail-page .question-head .history-question-title {
+  margin: 0;
+}
+
 .problemset-detail-page .question-stem {
   margin-bottom: 12px;
 }
@@ -309,6 +322,24 @@
 .problemset-detail-page .history-item.active {
   color: var(--app-text);
   font-weight: 700;
+}
+
+@media (hover: hover) {
+  .problemset-detail-page .body-card .ai-trigger-btn,
+  .problemset-detail-page .history-question .ai-trigger-btn {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-2px);
+  }
+
+  .problemset-detail-page .body-card:hover .ai-trigger-btn,
+  .problemset-detail-page .body-card:focus-within .ai-trigger-btn,
+  .problemset-detail-page .history-question:hover .ai-trigger-btn,
+  .problemset-detail-page .history-question:focus-within .ai-trigger-btn {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
 }
 
 .problemset-detail-page .list-card {

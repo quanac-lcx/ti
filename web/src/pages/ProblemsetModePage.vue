@@ -17,6 +17,7 @@ import {
 } from "../api/submission";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
 import { askConfirm, notifyError, notifySuccess } from "../composables/feedback";
+import AiAssistPanel from "../components/AiAssistPanel.vue";
 
 interface QuestionResult {
   correct: boolean;
@@ -695,14 +696,19 @@ function closeGuestLoginModal() {
               :key="question.id"
               class="panel-card question-card"
             >
-              <h3>
-                {{ t("problemset.common.questionNumber", { index: question.index }) }}
-                <span v-if="question.groupQuestionIndex">
-                  · {{ question.groupQuestionIndex }}
-                  <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
-                  {{ t("problemset.common.subQuestion") }}
-                </span>
-              </h3>
+              <div class="question-head">
+                <h3>{{ t("problemset.common.questionNumber", { index: question.index }) }}</h3>
+                <AiAssistPanel
+                  :question="question"
+                  :question-label="t('problemset.common.questionNumber', { index: question.index })"
+                  mode="hint-only"
+                />
+              </div>
+              <p v-if="question.groupQuestionIndex" class="sub-question-label">
+                {{ t("problemset.common.materialQuestionIndex", { index: question.groupQuestionIndex }) }}
+                <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
+                {{ t("problemset.common.subQuestion") }}
+              </p>
               <details v-if="question.sharedMaterial?.trim()" class="shared-material-panel" open>
                 <summary class="shared-material-summary">
                   <span class="shared-material-arrow" aria-hidden="true"></span>

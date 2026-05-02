@@ -15,6 +15,10 @@ interface CpoauthConfigResponse {
   config: CpoauthConfig;
 }
 
+interface AiConfigResponse {
+  config: AiConfig;
+}
+
 interface AdminTokensResponse {
   tokens: AdminToken[];
 }
@@ -51,6 +55,12 @@ export interface CpoauthConfig {
   clientSecret: string;
   callbackUrl: string;
   scope: string;
+}
+
+export interface AiConfig {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
 }
 
 export interface AdminProblemset extends ProblemsetSummary {
@@ -290,6 +300,29 @@ export async function updateCpoauthConfig(payload: CpoauthConfig): Promise<Cpoau
     throw new Error(String(data?.error ?? `HTTP ${response.status}`));
   }
   return (data as CpoauthConfigResponse).config;
+}
+
+export async function fetchAiConfig(): Promise<AiConfig> {
+  const result = await apiGet<AiConfigResponse>("/api/admin/ai/config", {
+    headers: adminHeaders()
+  });
+  return result.config;
+}
+
+export async function updateAiConfig(payload: AiConfig): Promise<AiConfig> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/ai/config`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...adminHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(data?.error ?? `HTTP ${response.status}`));
+  }
+  return (data as AiConfigResponse).config;
 }
 
 export async function fetchAdminTokens(): Promise<AdminToken[]> {
