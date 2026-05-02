@@ -1,3 +1,5 @@
+import { handleForbiddenNavigation } from "./utils/authRedirect";
+
 function normalizeBaseUrl(value: string) {
   return value.replace(/\/$/, "");
 }
@@ -64,12 +66,8 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (response.status === 403) {
-    try {
-      localStorage.removeItem("ti.user");
-    } catch { }
     const payload = await response.json().catch(() => ({}));
-    window.location.href = "/auth/login";
-    throw new Error(String(payload?.error ?? "forbidden"));
+    throw new Error(handleForbiddenNavigation(payload?.error));
   }
 
   if (!response.ok) {
@@ -99,11 +97,7 @@ export async function apiPost<T>(path: string, body: unknown, init?: RequestInit
   const payload = await response.json().catch(() => ({}));
 
   if (response.status === 403) {
-    try {
-      localStorage.removeItem("ti.user");
-    } catch { }
-    window.location.href = "/auth/login";
-    throw new Error(String(payload?.error ?? "forbidden"));
+    throw new Error(handleForbiddenNavigation(payload?.error));
   }
 
   if (!response.ok) {

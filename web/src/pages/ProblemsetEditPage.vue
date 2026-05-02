@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue";
+import { computed, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import UiCard from "../components/UiCard.vue";
 import TiLayout from "../layouts/TiLayout.vue";
 import { loadLocalUser } from "../api/auth";
 import { problemsetApi } from "../api/problemset";
+import { useUnsavedChangesGuard } from "../composables/useUnsavedChangesGuard";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
 import { parseQuestionConfig } from "../utils/questionConfigParser";
 import { askConfirm } from "../composables/feedback";
@@ -82,6 +83,22 @@ const typeOptions = computed(() => {
   ];
 });
 
+function buildFormSnapshot() {
+  return JSON.stringify({
+    id: String(form.id ?? ""),
+    title: String(form.title ?? ""),
+    description: String(form.description ?? ""),
+    durationMinutes: Number(form.durationMinutes ?? 0),
+    questionConfig: String(form.questionConfig ?? ""),
+    problemsetType: form.problemsetType
+  });
+}
+
+const { markCurrentSnapshotSaved, allowNextLeaveWithoutConfirm } = useUnsavedChangesGuard({
+  getSnapshot: buildFormSnapshot,
+  isEnabled: () => !loading.value
+});
+
 async function loadEditable() {
   loading.value = true;
   error.value = "";
@@ -93,6 +110,7 @@ async function loadEditable() {
     form.durationMinutes = detail.durationMinutes;
     form.questionConfig = detail.questionConfig;
     form.problemsetType = detail.problemsetType;
+    markCurrentSnapshotSaved();
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
   } finally {
@@ -137,6 +155,8 @@ async function saveEdit() {
     } as const;
     const updated = await problemsetApi.update(sourceId.value, payload);
     success.value = "修改成功。";
+    markCurrentSnapshotSaved();
+    allowNextLeaveWithoutConfirm();
     await router.push(`/problemset/${updated.id}`);
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
@@ -161,6 +181,7 @@ async function removeProblemset() {
   deleting.value = true;
   try {
     await problemsetApi.delete(sourceId.value);
+    allowNextLeaveWithoutConfirm();
     await router.push("/problemset");
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
@@ -169,7 +190,11 @@ async function removeProblemset() {
   }
 }
 
-onMounted(loadEditable);
+onMounted(() => {
+  loadEditable();
+});
+
+watch(sourceId, loadEditable);
 </script>
 
 <template>

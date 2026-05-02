@@ -58,6 +58,17 @@ function normalizeAutosaveIntervalSeconds(raw, fallback = 30) {
   return fallback;
 }
 
+const DEFAULT_PROFILE_COVERS = [
+  "https://resources.cn-sy1.rains3.com/ti/banner_1.webp",
+  "https://resources.cn-sy1.rains3.com/ti/banner_2.webp",
+  "https://resources.cn-sy1.rains3.com/ti/banner_3.webp"
+];
+
+function pickDefaultProfileCover() {
+  const index = randomBytes(1)[0] % DEFAULT_PROFILE_COVERS.length;
+  return DEFAULT_PROFILE_COVERS[index];
+}
+
 function toQuestion(row) {
   return {
     id: String(row.id),
@@ -471,11 +482,12 @@ async function findOrCreateCpoauthUser(profile) {
   const username = await buildUniqueDisplayName(displayName);
   const avatarUrl = avatarFromOauth
     || (emailFromOauth ? buildGravatarUrl(emailFromOauth) : fallbackAvatarBySubject);
+  const profileCoverUrl = pickDefaultProfileCover();
 
   try {
     const [result] = await dbPool.query(
-      "INSERT INTO users (uid, name, email, password_hash, avatar_url, bio, oauth_provider, oauth_subject) VALUES (?, ?, ?, NULL, ?, ?, ?, ?)",
-      [cpoUsername, username, emailFromOauth, avatarUrl, bioFromOauth || null, "cpoauth", subject]
+      "INSERT INTO users (uid, name, email, password_hash, avatar_url, profile_cover_url, bio, oauth_provider, oauth_subject) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?)",
+      [cpoUsername, username, emailFromOauth, avatarUrl, profileCoverUrl, bioFromOauth || null, "cpoauth", subject]
     );
 
     const userId = Number(result.insertId);
@@ -1185,19 +1197,20 @@ export function buildRouter() {
     if (!user) return;
 
     const recordsPublic = parseBooleanInput(req.body?.recordsPublic, Boolean(user.records_public));
-    const profileCoverUrl = String(req.body?.profileCoverUrl ?? "").trim();
+    const profileCoverUrlInput = String(req.body?.profileCoverUrl ?? "").trim();
+    const profileCoverUrl = profileCoverUrlInput || pickDefaultProfileCover();
     const submissionAnalysisMode = normalizeSubmissionAnalysisMode(req.body?.submissionAnalysisMode, normalizeSubmissionAnalysisMode(user.submission_analysis_mode, "wrong_only"));
     const autosaveIntervalSeconds = normalizeAutosaveIntervalSeconds(
       req.body?.autosaveIntervalSeconds,
       normalizeAutosaveIntervalSeconds(user.autosave_interval_seconds, 30)
     );
-    if (profileCoverUrl && !isHttpUrl(profileCoverUrl)) {
+    if (profileCoverUrlInput && !isHttpUrl(profileCoverUrlInput)) {
       return res.status(400).json({ error: "profileCoverUrl 必须是 http(s) 地址，或留空。" });
     }
 
     await dbPool.query(
       "UPDATE users SET records_public = ?, profile_cover_url = ?, submission_analysis_mode = ?, autosave_interval_seconds = ? WHERE id = ?",
-      [recordsPublic ? 1 : 0, profileCoverUrl || null, submissionAnalysisMode, autosaveIntervalSeconds, Number(user.id)]
+      [recordsPublic ? 1 : 0, profileCoverUrl, submissionAnalysisMode, autosaveIntervalSeconds, Number(user.id)]
     );
 
     const [rows] = await dbPool.query(
@@ -1288,10 +1301,11 @@ export function buildRouter() {
       "SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1 AND password_hash IS NOT NULL"
     );
     const shouldBeAdmin = Number(adminCountRows[0]?.cnt ?? 0) === 0;
+    const profileCoverUrl = pickDefaultProfileCover();
 
     const [result] = await dbPool.query(
-      "INSERT INTO users (name, email, password_hash, avatar_url, is_admin) VALUES (?, ?, ?, ?, ?)",
-      [username, email, hashPassword(password), buildGravatarUrl(email), shouldBeAdmin ? 1 : 0]
+      "INSERT INTO users (name, email, password_hash, avatar_url, profile_cover_url, is_admin) VALUES (?, ?, ?, ?, ?, ?)",
+      [username, email, hashPassword(password), buildGravatarUrl(email), profileCoverUrl, shouldBeAdmin ? 1 : 0]
     );
     const userId = Number(result.insertId);
     await dbPool.query("UPDATE users SET uid = ? WHERE id = ?", [`pre${userId}`, userId]);

@@ -1,5 +1,6 @@
 import { apiPost } from "../api";
 import { apiGet, apiBaseUrl } from "../api";
+import { handleForbiddenNavigation } from "../utils/authRedirect";
 
 export type AutosaveIntervalSeconds = 0 | 30 | 60 | 120 | 300 | 600;
 
@@ -133,11 +134,7 @@ export async function updateMySettings(payload: {
   });
   const data = await result.json().catch(() => ({}));
   if (result.status === 403) {
-    try {
-      localStorage.removeItem(LOCAL_USER_KEY);
-    } catch { }
-    window.location.href = "/auth/login";
-    throw new Error(String((data as { error?: string })?.error ?? "forbidden"));
+    throw new Error(handleForbiddenNavigation((data as { error?: string })?.error));
   }
   if (!result.ok) {
     throw new Error(String((data as { error?: string })?.error ?? `HTTP ${result.status}`));
