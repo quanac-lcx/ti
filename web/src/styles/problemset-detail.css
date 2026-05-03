@@ -329,7 +329,6 @@
   .problemset-detail-page .history-question .ai-trigger-btn {
     opacity: 0;
     pointer-events: none;
-    transform: translateY(-2px);
   }
 
   .problemset-detail-page .body-card:hover .ai-trigger-btn,
@@ -338,7 +337,6 @@
   .problemset-detail-page .history-question:focus-within .ai-trigger-btn {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0);
   }
 }
 

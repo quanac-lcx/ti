@@ -63,6 +63,7 @@ export async function ensureUserSchema() {
         avatar_url VARCHAR(255) NULL,
         profile_cover_url VARCHAR(512) NULL,
         bio TEXT NULL,
+        ai_model_id VARCHAR(64) NULL,
         submission_analysis_mode VARCHAR(16) NOT NULL DEFAULT 'wrong_only',
         autosave_interval_seconds INT NOT NULL DEFAULT 30,
         oauth_provider VARCHAR(32) NULL,
@@ -81,6 +82,7 @@ export async function ensureUserSchema() {
     await ensureColumn(connection, "users", "avatar_url", "VARCHAR(255) NULL");
     await ensureColumn(connection, "users", "profile_cover_url", "VARCHAR(512) NULL");
     await ensureColumn(connection, "users", "bio", "TEXT NULL");
+    await ensureColumn(connection, "users", "ai_model_id", "VARCHAR(64) NULL");
     await ensureColumn(connection, "users", "submission_analysis_mode", "VARCHAR(16) NOT NULL DEFAULT 'wrong_only'");
     await ensureColumn(connection, "users", "autosave_interval_seconds", "INT NOT NULL DEFAULT 30");
     await ensureColumn(connection, "users", "oauth_provider", "VARCHAR(32) NULL");
@@ -159,6 +161,27 @@ export async function ensureUserSchema() {
     await connection.query("ALTER TABLE admin_tokens MODIFY COLUMN token CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL");
     await ensureColumn(connection, "admin_tokens", "created_by_uid", "VARCHAR(32) NULL");
     await ensureColumn(connection, "admin_tokens", "created_at", "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP");
+
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS ai_usage_daily (
+        user_uid VARCHAR(32) NOT NULL,
+        model_id VARCHAR(64) NOT NULL,
+        usage_date DATE NOT NULL,
+        used_count INT NOT NULL DEFAULT 0,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (user_uid, model_id, usage_date)
+      )
+    `);
+    await ensureColumn(connection, "ai_usage_daily", "user_uid", "VARCHAR(32) NOT NULL");
+    await ensureColumn(connection, "ai_usage_daily", "model_id", "VARCHAR(64) NOT NULL");
+    await ensureColumn(connection, "ai_usage_daily", "usage_date", "DATE NOT NULL");
+    await ensureColumn(connection, "ai_usage_daily", "used_count", "INT NOT NULL DEFAULT 0");
+    await ensureColumn(
+      connection,
+      "ai_usage_daily",
+      "updated_at",
+      "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"
+    );
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS problemsets (

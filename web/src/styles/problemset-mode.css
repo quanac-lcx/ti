@@ -475,14 +475,12 @@
   .problemset-mode-page .question-card .ai-trigger-btn {
     opacity: 0;
     pointer-events: none;
-    transform: translateY(-2px);
   }
 
   .problemset-mode-page .question-card:hover .ai-trigger-btn,
   .problemset-mode-page .question-card:focus-within .ai-trigger-btn {
     opacity: 1;
     pointer-events: auto;
-    transform: translateY(0);
   }
 }
 

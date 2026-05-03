@@ -8,6 +8,7 @@ import {
   fetchAdminTokens,
   fetchCpoauthConfig,
   type AiConfig,
+  type AiModelConfig,
   type AdminToken,
   updateAiConfig,
   updateCpoauthConfig
@@ -30,10 +31,37 @@ const form = reactive({
 });
 
 const aiForm = reactive<AiConfig>({
-  baseUrl: "https://api.deepseek.com/v1",
-  apiKey: "",
-  model: "deepseek-v4-flash"
+  defaultModelId: "default",
+  prompts: {
+    hintSystemPrompt: "",
+    solutionSystemPrompt: "",
+    hintUserPrompt: "",
+    solutionUserPrompt: ""
+  },
+  models: []
 });
+
+function createEmptyAiModel(index = aiForm.models.length): AiModelConfig {
+  return {
+    id: index === 0 ? "default" : `model-${index + 1}`,
+    name: index === 0 ? t("admin.ai.defaultModelName") : t("admin.ai.modelNameFallback", { index: index + 1 }),
+    baseUrl: "https://api.deepseek.com/v1",
+    apiKey: "",
+    model: "deepseek-v4-flash",
+    dailyLimit: 0,
+    enabled: true
+  };
+}
+
+function ensureAiModelSelection() {
+  if (aiForm.models.length === 0) {
+    aiForm.models.push(createEmptyAiModel(0));
+  }
+  const selected = aiForm.models.find((item) => item.id === aiForm.defaultModelId && item.enabled);
+  if (!selected) {
+    aiForm.defaultModelId = aiForm.models.find((item) => item.enabled)?.id || aiForm.models[0]?.id || "";
+  }
+}
 
 async function loadConfig() {
   loading.value = true;
@@ -54,9 +82,13 @@ async function loadAiConfig() {
   loading.value = true;
   try {
     const config = await fetchAiConfig();
-    aiForm.baseUrl = config.baseUrl;
-    aiForm.apiKey = config.apiKey;
-    aiForm.model = config.model;
+    aiForm.defaultModelId = config.defaultModelId;
+    aiForm.prompts.hintSystemPrompt = config.prompts.hintSystemPrompt;
+    aiForm.prompts.solutionSystemPrompt = config.prompts.solutionSystemPrompt;
+    aiForm.prompts.hintUserPrompt = config.prompts.hintUserPrompt;
+    aiForm.prompts.solutionUserPrompt = config.prompts.solutionUserPrompt;
+    aiForm.models.splice(0, aiForm.models.length, ...config.models);
+    ensureAiModelSelection();
   } catch (err) {
     notifyError(String((err as Error)?.message ?? err));
   } finally {
@@ -89,19 +121,46 @@ async function saveAiConfig() {
   aiSaving.value = true;
   try {
     const config = await updateAiConfig({
-      baseUrl: aiForm.baseUrl.trim(),
-      apiKey: aiForm.apiKey.trim(),
-      model: aiForm.model.trim()
+      defaultModelId: aiForm.defaultModelId,
+      prompts: {
+        hintSystemPrompt: aiForm.prompts.hintSystemPrompt,
+        solutionSystemPrompt: aiForm.prompts.solutionSystemPrompt,
+        hintUserPrompt: aiForm.prompts.hintUserPrompt,
+        solutionUserPrompt: aiForm.prompts.solutionUserPrompt
+      },
+      models: aiForm.models.map((item) => ({
+        ...item,
+        id: item.id.trim(),
+        name: item.name.trim(),
+        baseUrl: item.baseUrl.trim(),
+        apiKey: item.apiKey.trim(),
+        model: item.model.trim(),
+        dailyLimit: Number(item.dailyLimit ?? 0)
+      }))
     });
-    aiForm.baseUrl = config.baseUrl;
-    aiForm.apiKey = config.apiKey;
-    aiForm.model = config.model;
-    notifySuccess("AI 配置已保存。");
+    aiForm.defaultModelId = config.defaultModelId;
+    aiForm.prompts.hintSystemPrompt = config.prompts.hintSystemPrompt;
+    aiForm.prompts.solutionSystemPrompt = config.prompts.solutionSystemPrompt;
+    aiForm.prompts.hintUserPrompt = config.prompts.hintUserPrompt;
+    aiForm.prompts.solutionUserPrompt = config.prompts.solutionUserPrompt;
+    aiForm.models.splice(0, aiForm.models.length, ...config.models);
+    ensureAiModelSelection();
+    notifySuccess(t("admin.ai.saved"));
   } catch (err) {
     notifyError(String((err as Error)?.message ?? err));
   } finally {
     aiSaving.value = false;
   }
+}
+
+function addAiModel() {
+  aiForm.models.push(createEmptyAiModel(aiForm.models.length));
+  ensureAiModelSelection();
+}
+
+function removeAiModel(index: number) {
+  aiForm.models.splice(index, 1);
+  ensureAiModelSelection();
 }
 
 async function loadTokens() {
@@ -147,7 +206,7 @@ onMounted(async () => {
   <div class="admin-page">
     <nav class="admin-anchor-nav">
       <a href="#oauth-form">{{ t("admin.oauth.configAnchor") }}</a>
-      <a href="#ai-form">AI 配置</a>
+      <a href="#ai-form">{{ t("admin.ai.configAnchor") }}</a>
       <a href="#admin-tokens">{{ t("admin.oauth.tokenAnchor") }}</a>
     </nav>
 
@@ -185,24 +244,93 @@ onMounted(async () => {
 
     <section id="ai-form" class="admin-card">
       <div class="admin-head">
-        <h3>AI 配置</h3>
-        <button class="admin-btn" type="button" @click="loadAiConfig">{{ t("common.refresh") }}</button>
+        <h3>{{ t("admin.ai.configHeading") }}</h3>
+        <div class="admin-actions">
+          <button class="admin-btn" type="button" @click="loadAiConfig">{{ t("common.refresh") }}</button>
+          <button class="admin-btn" type="button" @click="addAiModel">{{ t("admin.ai.addModel") }}</button>
+        </div>
       </div>
-      <p class="admin-hint">填写兼容 OpenAI Chat Completions 的服务信息（例如 DeepSeek）。</p>
+      <p class="admin-hint">{{ t("admin.ai.configHint") }}</p>
+
       <div class="admin-form-grid">
         <label>
-          <span>Base URL</span>
-          <input v-model.trim="aiForm.baseUrl" type="text" placeholder="https://api.deepseek.com/v1" />
-        </label>
-        <label>
-          <span>Model</span>
-          <input v-model.trim="aiForm.model" type="text" placeholder="deepseek-v4-flash" />
-        </label>
-        <label>
-          <span>API Secret / Key</span>
-          <input v-model.trim="aiForm.apiKey" type="password" placeholder="sk-..." />
+          <span>{{ t("admin.ai.systemDefaultModel") }}</span>
+          <select v-model="aiForm.defaultModelId">
+            <option
+              v-for="model in aiForm.models.filter((item) => item.enabled)"
+              :key="model.id"
+              :value="model.id"
+            >
+              {{ model.name || model.id }}
+            </option>
+          </select>
         </label>
       </div>
+
+      <details class="admin-collapse">
+        <summary>{{ t("admin.ai.promptsTitle") }}</summary>
+        <div class="admin-form-grid">
+          <label>
+            <span>{{ t("admin.ai.hintSystemPrompt") }}</span>
+            <textarea v-model="aiForm.prompts.hintSystemPrompt" rows="5" />
+          </label>
+          <label>
+            <span>{{ t("admin.ai.solutionSystemPrompt") }}</span>
+            <textarea v-model="aiForm.prompts.solutionSystemPrompt" rows="5" />
+          </label>
+          <label>
+            <span>{{ t("admin.ai.hintUserPrompt") }}</span>
+            <textarea v-model="aiForm.prompts.hintUserPrompt" rows="7" />
+          </label>
+          <label>
+            <span>{{ t("admin.ai.solutionUserPrompt") }}</span>
+            <textarea v-model="aiForm.prompts.solutionUserPrompt" rows="7" />
+          </label>
+        </div>
+      </details>
+
+      <div class="ai-model-list">
+        <section v-for="(model, index) in aiForm.models" :key="index" class="ai-model-card">
+          <div class="ai-model-card-head">
+            <label class="ai-model-enabled">
+              <input v-model="model.enabled" type="checkbox" @change="ensureAiModelSelection" />
+              <span>{{ t("admin.ai.enabled") }}</span>
+            </label>
+            <strong class="ai-model-card-title">{{ model.name || model.model || model.id || t("admin.ai.modelNameFallback", { index: index + 1 }) }}</strong>
+            <button class="admin-btn danger" type="button" :disabled="aiForm.models.length <= 1" @click="removeAiModel(index)">
+              {{ t("common.delete") }}
+            </button>
+          </div>
+
+          <div class="ai-model-grid">
+            <label>
+              <span>ID</span>
+              <input v-model.trim="model.id" type="text" placeholder="deepseek" />
+            </label>
+            <label>
+              <span>{{ t("admin.ai.name") }}</span>
+              <input v-model.trim="model.name" type="text" placeholder="DeepSeek" />
+            </label>
+            <label>
+              <span>{{ t("admin.ai.baseUrl") }}</span>
+              <input v-model.trim="model.baseUrl" type="text" placeholder="https://api.deepseek.com/v1" />
+            </label>
+            <label>
+              <span>{{ t("admin.ai.model") }}</span>
+              <input v-model.trim="model.model" type="text" placeholder="deepseek-v4-flash" />
+            </label>
+            <label>
+              <span>{{ t("admin.ai.dailyLimit") }}</span>
+              <input v-model.number="model.dailyLimit" type="number" min="0" step="1" placeholder="0" />
+            </label>
+            <label>
+              <span>{{ t("admin.ai.secret") }}</span>
+              <input v-model.trim="model.apiKey" type="password" placeholder="sk-..." />
+            </label>
+          </div>
+        </section>
+      </div>
+
       <div class="admin-actions">
         <button class="admin-btn primary" type="button" :disabled="aiSaving" @click="saveAiConfig">
           {{ aiSaving ? t("common.saving") : t("common.save") }}

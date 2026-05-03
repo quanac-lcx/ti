@@ -38,6 +38,7 @@ function toPublicUser(row) {
     isAdmin: Boolean(row.is_admin),
     isBanned: Boolean(row.is_banned),
     recordsPublic: Boolean(row.records_public),
+    aiModelId: normalizeAiModelId(row.ai_model_id),
     submissionAnalysisMode: normalizeSubmissionAnalysisMode(row.submission_analysis_mode, "wrong_only"),
     autosaveIntervalSeconds: normalizeAutosaveIntervalSeconds(row.autosave_interval_seconds, 30),
     createdAt: row.created_at
@@ -200,7 +201,8 @@ const CPOAUTH_SETTING_KEYS = {
 const AI_SETTING_KEYS = {
   baseUrl: "ai.base_url",
   apiKey: "ai.api_key",
-  model: "ai.model"
+  model: "ai.model",
+  config: "ai.config"
 };
 
 const SITE_SETTING_KEYS = {
@@ -327,6 +329,7 @@ function toRootUser() {
     isAdmin: true,
     isBanned: false,
     recordsPublic: false,
+    aiModelId: "",
     autosaveIntervalSeconds: 30,
     createdAt: new Date().toISOString()
   };
@@ -497,67 +500,295 @@ function normalizeAiModel(raw) {
   return String(raw ?? "").trim().slice(0, 120);
 }
 
-async function getAiConfig() {
-  const settings = await getAppSettings(Object.values(AI_SETTING_KEYS));
+function normalizeAiModelId(raw) {
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 64);
+}
+
+function normalizeAiPrompt(raw, fallback) {
+  const value = String(raw ?? "").replace(/\r\n/g, "\n").trim();
+  return (value || fallback).slice(0, 12000);
+}
+
+const DEFAULT_AI_PROMPTS = {
+  hintSystemPrompt: [
+    "你是一个竞赛题辅导助手。",
+    "你必须严格只依据用户提供的题目内容回答，不允许补充、猜测或改写成其他题目。",
+    "如果题目信息不足以作答，直接回复：题目信息不足，无法生成准确提示。",
+    "输出使用简体中文，不要输出与题目无关的内容。"
+  ].join(""),
+  solutionSystemPrompt: [
+    "你是一个竞赛题辅导助手。",
+    "你必须严格只依据用户提供的题目内容回答，不允许补充、猜测或改写成其他题目。",
+    "如果题目信息不足以作答，直接回复：题目信息不足，无法生成准确解析。",
+    "输出使用简体中文，不要输出与题目无关的内容。"
+  ].join(""),
+  hintUserPrompt: [
+    "请为下面这道题生成提示。",
+    "",
+    "【题目开始】",
+    "{{question}}",
+    "【题目结束】",
+    "",
+    "只输出该题目的提示正文，不要输出“题目复述”“选项抄写”“免责声明”“额外建议”。"
+  ].join("\n"),
+  solutionUserPrompt: [
+    "请为下面这道题生成解析。",
+    "",
+    "【题目开始】",
+    "{{question}}",
+    "【题目结束】",
+    "",
+    "只输出该题目的解析正文，不要输出“题目复述”“选项抄写”“免责声明”“额外建议”。"
+  ].join("\n")
+};
+
+function readAiModelConfig(raw, index) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const baseUrl = normalizeAiBaseUrl(source.baseUrl);
+  const model = normalizeAiModel(source.model);
+  const apiKey = String(source.apiKey ?? "").trim();
+  const id = normalizeAiModelId(source.id) || normalizeAiModelId(source.model) || `model-${index + 1}`;
+  const name = String(source.name ?? "").trim().slice(0, 80) || model || id;
+  const dailyLimit = Math.max(0, Math.min(100000, Math.floor(Number(source.dailyLimit ?? 0) || 0)));
+  return { id, name, baseUrl, model, apiKey, dailyLimit, enabled: source.enabled !== false };
+}
+
+function normalizeAiConfigPayload(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const sourceModels = Array.isArray(source.models) ? source.models : [];
+  const models = [];
+  const usedIds = new Set();
+  for (let index = 0; index < sourceModels.length && models.length < 20; index += 1) {
+    const model = readAiModelConfig(sourceModels[index], index);
+    if (!model.id || !model.baseUrl || !model.model || !model.apiKey) continue;
+    let id = model.id;
+    let suffix = 2;
+    while (usedIds.has(id)) {
+      id = `${model.id}-${suffix}`;
+      suffix += 1;
+    }
+    usedIds.add(id);
+    models.push({ ...model, id });
+  }
+  const enabledModels = models.filter((item) => item.enabled);
+  let defaultModelId = normalizeAiModelId(source.defaultModelId);
+  if (!models.some((item) => item.id === defaultModelId && item.enabled)) {
+    defaultModelId = enabledModels[0]?.id || models[0]?.id || "";
+  }
   return {
-    baseUrl: normalizeAiBaseUrl(settings[AI_SETTING_KEYS.baseUrl]) || "https://api.deepseek.com/v1",
-    apiKey: String(settings[AI_SETTING_KEYS.apiKey] ?? "").trim(),
-    model: normalizeAiModel(settings[AI_SETTING_KEYS.model]) || "deepseek-v4-flash"
+    models,
+    defaultModelId,
+    prompts: {
+      hintSystemPrompt: normalizeAiPrompt(source.prompts?.hintSystemPrompt, DEFAULT_AI_PROMPTS.hintSystemPrompt),
+      solutionSystemPrompt: normalizeAiPrompt(source.prompts?.solutionSystemPrompt, DEFAULT_AI_PROMPTS.solutionSystemPrompt),
+      hintUserPrompt: normalizeAiPrompt(source.prompts?.hintUserPrompt, DEFAULT_AI_PROMPTS.hintUserPrompt),
+      solutionUserPrompt: normalizeAiPrompt(source.prompts?.solutionUserPrompt, DEFAULT_AI_PROMPTS.solutionUserPrompt)
+    }
   };
 }
 
-async function requestAiAssist({ mode, question }) {
-  const config = await getAiConfig();
-  if (!config.apiKey) {
-    throw new Error("AI config missing apiKey");
+async function getAiConfig() {
+  const settings = await getAppSettings(Object.values(AI_SETTING_KEYS));
+  const rawConfig = settings[AI_SETTING_KEYS.config];
+  if (rawConfig) {
+    return normalizeAiConfigPayload(safeJsonParse(rawConfig, {}));
   }
 
-  const modeLabel = mode === "solution" ? "解析" : "提示";
-  const systemPrompt = [
-    "你是一个竞赛题辅导助手。",
-    "你必须严格只依据用户提供的题目内容回答，不允许补充、猜测或改写成其他题目。",
-    "如果题目信息不足以作答，直接回复：题目信息不足，无法生成准确" + modeLabel + "。",
-    "输出使用简体中文，不要输出与题目无关的内容。"
-  ].join("");
-  const userPrompt = [
-    `请为下面这道题生成${modeLabel}。`,
-    "",
-    "【题目开始】",
-    question,
-    "【题目结束】",
-    "",
-    `只输出该题目的${modeLabel}正文，不要输出“题目复述”“选项抄写”“免责声明”“额外建议”。`
-  ].join("\n");
-  const endpoint = `${config.baseUrl.replace(/\/$/, "")}/chat/completions`;
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`
-    },
-    body: JSON.stringify({
-      model: config.model,
-      temperature: 0,
-      top_p: 0.1,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ]
-    })
+  const legacyModel = {
+    id: "default",
+    name: normalizeAiModel(settings[AI_SETTING_KEYS.model]) || "DeepSeek",
+    baseUrl: normalizeAiBaseUrl(settings[AI_SETTING_KEYS.baseUrl]) || "https://api.deepseek.com/v1",
+    apiKey: String(settings[AI_SETTING_KEYS.apiKey] ?? "").trim(),
+    model: normalizeAiModel(settings[AI_SETTING_KEYS.model]) || "deepseek-v4-flash",
+    dailyLimit: 0,
+    enabled: true
+  };
+  return normalizeAiConfigPayload({
+    models: legacyModel.apiKey ? [legacyModel] : [],
+    defaultModelId: legacyModel.id,
+    prompts: DEFAULT_AI_PROMPTS
   });
+}
 
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = String(payload?.error?.message ?? payload?.message ?? `ai request failed (HTTP ${response.status})`).trim();
-    throw new Error(message || `ai request failed (HTTP ${response.status})`);
+async function saveAiConfig(config) {
+  await setAppSetting(AI_SETTING_KEYS.config, JSON.stringify(normalizeAiConfigPayload(config)));
+}
+
+async function getDefaultAiModelId() {
+  const config = await getAiConfig();
+  return normalizeAiModelId(config.defaultModelId);
+}
+
+function toPublicAiModel(model) {
+  return {
+    id: String(model.id ?? ""),
+    name: String(model.name ?? ""),
+    model: String(model.model ?? ""),
+    dailyLimit: Number(model.dailyLimit ?? 0),
+    enabled: Boolean(model.enabled)
+  };
+}
+
+async function getAiUsageMap(userUid, models) {
+  const uid = normalizeUid(userUid);
+  if (!uid || !Array.isArray(models) || models.length === 0) return new Map();
+  const ids = models.map((item) => String(item.id ?? "")).filter(Boolean);
+  if (ids.length === 0) return new Map();
+  const placeholders = ids.map(() => "?").join(", ");
+  const [rows] = await dbPool.query(
+    `SELECT model_id, used_count FROM ai_usage_daily WHERE user_uid = ? AND usage_date = CURRENT_DATE AND model_id IN (${placeholders})`,
+    [uid, ...ids]
+  );
+  const map = new Map();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    map.set(String(row.model_id ?? ""), Number(row.used_count ?? 0));
+  }
+  return map;
+}
+
+function toPublicAiModelWithUsage(model, usedCount) {
+  const dailyLimit = Number(model.dailyLimit ?? 0);
+  const used = Math.max(0, Number(usedCount ?? 0));
+  return {
+    ...toPublicAiModel(model),
+    usedCount: used,
+    remainingCount: dailyLimit > 0 ? Math.max(0, dailyLimit - used) : null
+  };
+}
+
+function toAdminAiConfig(config) {
+  return {
+    defaultModelId: config.defaultModelId,
+    prompts: config.prompts,
+    models: config.models.map((model) => ({ ...model }))
+  };
+}
+
+function pickAiModel(config, requestedModelId) {
+  const enabled = config.models.filter((item) => item.enabled);
+  const requested = normalizeAiModelId(requestedModelId);
+  return enabled.find((item) => item.id === requested)
+    || enabled.find((item) => item.id === config.defaultModelId)
+    || enabled[0]
+    || null;
+}
+
+function renderAiPrompt(template, question) {
+  const value = String(template ?? "");
+  return value.includes("{{question}}") ? value.replace(/\{\{question\}\}/g, question) : `${value}\n\n${question}`;
+}
+
+async function reserveAiUsage(userUid, modelConfig) {
+  const uid = normalizeUid(userUid);
+  const modelId = normalizeAiModelId(modelConfig?.id);
+  const dailyLimit = Number(modelConfig?.dailyLimit ?? 0);
+  if (!uid || !modelId || dailyLimit <= 0) return;
+
+  const connection = await dbPool.getConnection();
+  try {
+    await connection.beginTransaction();
+    await connection.query(
+      `
+        INSERT INTO ai_usage_daily (user_uid, model_id, usage_date, used_count)
+        VALUES (?, ?, CURRENT_DATE, 0)
+        ON DUPLICATE KEY UPDATE used_count = used_count
+      `,
+      [uid, modelId]
+    );
+    const [rows] = await connection.query(
+      "SELECT used_count FROM ai_usage_daily WHERE user_uid = ? AND model_id = ? AND usage_date = CURRENT_DATE FOR UPDATE",
+      [uid, modelId]
+    );
+    const usedCount = Number(rows?.[0]?.used_count ?? 0);
+    if (usedCount >= dailyLimit) {
+      await connection.rollback();
+      const err = new Error("AI_DAILY_LIMIT_EXCEEDED");
+      err.statusCode = 429;
+      err.dailyLimit = dailyLimit;
+      err.usedCount = usedCount;
+      err.remainingCount = 0;
+      throw err;
+    }
+    await connection.query(
+      "UPDATE ai_usage_daily SET used_count = used_count + 1 WHERE user_uid = ? AND model_id = ? AND usage_date = CURRENT_DATE",
+      [uid, modelId]
+    );
+    await connection.commit();
+  } catch (err) {
+    try {
+      await connection.rollback();
+    } catch {
+      // ignore rollback errors
+    }
+    throw err;
+  } finally {
+    connection.release();
+  }
+}
+
+async function refundAiUsage(userUid, modelConfig) {
+  const uid = normalizeUid(userUid);
+  const modelId = normalizeAiModelId(modelConfig?.id);
+  const dailyLimit = Number(modelConfig?.dailyLimit ?? 0);
+  if (!uid || !modelId || dailyLimit <= 0) return;
+  await dbPool.query(
+    "UPDATE ai_usage_daily SET used_count = GREATEST(used_count - 1, 0) WHERE user_uid = ? AND model_id = ? AND usage_date = CURRENT_DATE",
+    [uid, modelId]
+  );
+}
+
+async function requestAiAssist({ mode, question, user }) {
+  const config = await getAiConfig();
+  const modelConfig = pickAiModel(config, user?.ai_model_id);
+  if (!modelConfig?.apiKey) {
+    throw new Error("AI config missing enabled model/apiKey");
   }
 
-  const content = String(payload?.choices?.[0]?.message?.content ?? "").trim();
-  if (!content) {
-    throw new Error("AI returned empty content");
+  await reserveAiUsage(user?.uid, modelConfig);
+  const systemPrompt = mode === "solution" ? config.prompts.solutionSystemPrompt : config.prompts.hintSystemPrompt;
+  const userPromptTemplate = mode === "solution" ? config.prompts.solutionUserPrompt : config.prompts.hintUserPrompt;
+  const userPrompt = renderAiPrompt(userPromptTemplate, question);
+  const endpoint = `${modelConfig.baseUrl.replace(/\/$/, "")}/chat/completions`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${modelConfig.apiKey}`
+      },
+      body: JSON.stringify({
+        model: modelConfig.model,
+        temperature: 0,
+        top_p: 0.1,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt }
+        ]
+      })
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = String(payload?.error?.message ?? payload?.message ?? `ai request failed (HTTP ${response.status})`).trim();
+      throw new Error(message || `ai request failed (HTTP ${response.status})`);
+    }
+
+    const content = String(payload?.choices?.[0]?.message?.content ?? "").trim();
+    if (!content) {
+      throw new Error("AI returned empty content");
+    }
+    return content;
+  } catch (err) {
+    await refundAiUsage(user?.uid, modelConfig);
+    throw err;
   }
-  return content;
 }
 
 function buildCpoauthAuthorizeUrl(config, state) {
@@ -662,7 +893,7 @@ async function findOrCreateCpoauthUser(profile) {
   const fallbackAvatarBySubject = buildGravatarUrl(`cpo-${subject}@auth.luogu.me`);
 
   const [boundRows] = await dbPool.query(
-    "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE oauth_provider = ? AND oauth_subject = ? LIMIT 1",
+    "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE oauth_provider = ? AND oauth_subject = ? LIMIT 1",
     ["cpoauth", subject]
   );
   if (Array.isArray(boundRows) && boundRows.length > 0) {
@@ -692,7 +923,7 @@ async function findOrCreateCpoauthUser(profile) {
     );
 
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
       [Number(boundUser.id)]
     );
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -718,13 +949,13 @@ async function findOrCreateCpoauthUser(profile) {
 
   try {
     const [result] = await dbPool.query(
-      "INSERT INTO users (uid, name, email, password_hash, avatar_url, profile_cover_url, bio, oauth_provider, oauth_subject) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?)",
-      [cpoUsername, username, emailFromOauth, avatarUrl, profileCoverUrl, bioFromOauth || null, "cpoauth", subject]
+      "INSERT INTO users (uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, oauth_provider, oauth_subject) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)",
+      [cpoUsername, username, emailFromOauth, avatarUrl, profileCoverUrl, bioFromOauth || null, await getDefaultAiModelId(), "cpoauth", subject]
     );
 
     const userId = Number(result.insertId);
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
       [userId]
     );
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -735,7 +966,7 @@ async function findOrCreateCpoauthUser(profile) {
     const message = String(err?.message ?? "");
     if (!message.includes("Duplicate entry")) throw err;
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE oauth_provider = ? AND oauth_subject = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE oauth_provider = ? AND oauth_subject = ? LIMIT 1",
       ["cpoauth", subject]
     );
     if (!Array.isArray(rows) || rows.length === 0) throw err;
@@ -786,7 +1017,7 @@ async function getUserByHeader(req) {
   const uid = normalizeUid(req.header("x-user-uid"));
   if (!uid) return null;
   const [rows] = await dbPool.query(
-    "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE uid = ? LIMIT 1",
+    "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE uid = ? LIMIT 1",
     [uid]
   );
   if (!Array.isArray(rows) || rows.length === 0) return null;
@@ -1422,7 +1653,7 @@ export function buildRouter() {
 
   router.get("/users", async (_req, res) => {
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC LIMIT 100"
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC LIMIT 100"
     );
     res.json({ users: rows.map(toPublicUser) });
   });
@@ -1430,12 +1661,15 @@ export function buildRouter() {
   router.get("/users/_me/settings", async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
+    const aiConfig = await getAiConfig();
+    const aiModel = pickAiModel(aiConfig, user.ai_model_id);
     return res.json({
       settings: {
         recordsPublic: Boolean(user.records_public),
         profileCoverUrl: String(user.profile_cover_url ?? ""),
         submissionAnalysisMode: normalizeSubmissionAnalysisMode(user.submission_analysis_mode, "wrong_only"),
-        autosaveIntervalSeconds: normalizeAutosaveIntervalSeconds(user.autosave_interval_seconds, 30)
+        autosaveIntervalSeconds: normalizeAutosaveIntervalSeconds(user.autosave_interval_seconds, 30),
+        aiModelId: aiModel?.id || aiConfig.defaultModelId
       },
       user: toPublicUser(user)
     });
@@ -1453,29 +1687,37 @@ export function buildRouter() {
       req.body?.autosaveIntervalSeconds,
       normalizeAutosaveIntervalSeconds(user.autosave_interval_seconds, 30)
     );
+    const aiConfig = await getAiConfig();
+    const requestedAiModelId = normalizeAiModelId(req.body?.aiModelId);
+    const availableModel = requestedAiModelId ? pickAiModel(aiConfig, requestedAiModelId) : null;
+    if (aiConfig.models.length > 0 && (!requestedAiModelId || !availableModel || availableModel.id !== requestedAiModelId)) {
+      return res.status(400).json({ error: "请选择一个可用的默认 AI 模型。" });
+    }
     if (profileCoverUrlInput && !isHttpUrl(profileCoverUrlInput)) {
       return res.status(400).json({ error: "profileCoverUrl 必须是 http(s) 地址，或留空。" });
     }
 
     await dbPool.query(
-      "UPDATE users SET records_public = ?, profile_cover_url = ?, submission_analysis_mode = ?, autosave_interval_seconds = ? WHERE id = ?",
-      [recordsPublic ? 1 : 0, profileCoverUrl, submissionAnalysisMode, autosaveIntervalSeconds, Number(user.id)]
+      "UPDATE users SET records_public = ?, profile_cover_url = ?, submission_analysis_mode = ?, autosave_interval_seconds = ?, ai_model_id = ? WHERE id = ?",
+      [recordsPublic ? 1 : 0, profileCoverUrl, submissionAnalysisMode, autosaveIntervalSeconds, aiConfig.models.length > 0 ? requestedAiModelId : "", Number(user.id)]
     );
 
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
       [Number(user.id)]
     );
     if (!Array.isArray(rows) || rows.length === 0) {
       return res.status(404).json({ error: "user not found" });
     }
 
+    const resolvedAiModel = pickAiModel(aiConfig, rows[0].ai_model_id);
     return res.json({
       settings: {
         recordsPublic: Boolean(rows[0].records_public),
         profileCoverUrl: String(rows[0].profile_cover_url ?? ""),
         submissionAnalysisMode: normalizeSubmissionAnalysisMode(rows[0].submission_analysis_mode, "wrong_only"),
-        autosaveIntervalSeconds: normalizeAutosaveIntervalSeconds(rows[0].autosave_interval_seconds, 30)
+        autosaveIntervalSeconds: normalizeAutosaveIntervalSeconds(rows[0].autosave_interval_seconds, 30),
+        aiModelId: resolvedAiModel?.id || aiConfig.defaultModelId
       },
       user: toPublicUser(rows[0])
     });
@@ -1487,7 +1729,7 @@ export function buildRouter() {
       return res.status(400).json({ error: "uid is required" });
     }
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, is_admin, is_banned, records_public, created_at FROM users WHERE uid = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, is_admin, is_banned, records_public, created_at FROM users WHERE uid = ? LIMIT 1",
       [uid]
     );
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -1553,14 +1795,14 @@ export function buildRouter() {
     const profileCoverUrl = pickDefaultProfileCover();
 
     const [result] = await dbPool.query(
-      "INSERT INTO users (name, email, password_hash, avatar_url, profile_cover_url, is_admin) VALUES (?, ?, ?, ?, ?, ?)",
-      [username, email, hashPassword(password), buildGravatarUrl(email), profileCoverUrl, shouldBeAdmin ? 1 : 0]
+      "INSERT INTO users (name, email, password_hash, avatar_url, profile_cover_url, ai_model_id, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [username, email, hashPassword(password), buildGravatarUrl(email), profileCoverUrl, await getDefaultAiModelId(), shouldBeAdmin ? 1 : 0]
     );
     const userId = Number(result.insertId);
     await dbPool.query("UPDATE users SET uid = ? WHERE id = ?", [`pre${userId}`, userId]);
 
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
       [userId]
     );
     return res.status(201).json({ user: toPublicUser(rows[0]) });
@@ -1576,7 +1818,7 @@ export function buildRouter() {
     }
 
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, is_admin, is_banned, records_public, password_hash, created_at FROM users WHERE email = ? OR name = ? OR uid = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, is_admin, is_banned, records_public, password_hash, created_at FROM users WHERE email = ? OR name = ? OR uid = ? LIMIT 1",
       [email, identifier, identifier]
     );
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -1729,7 +1971,7 @@ export function buildRouter() {
     const returnTo = normalizeReturnTo(payload?.returnTo);
 
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE uid = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE uid = ? LIMIT 1",
       [uid]
     );
     if (!Array.isArray(rows) || rows.length === 0) {
@@ -2127,7 +2369,23 @@ export function buildRouter() {
     return res.json({ submissions: rows.map(toSubmissionSummary) });
   });
 
+  router.get("/ai/models", async (req, res) => {
+    const config = await getAiConfig();
+    const actor = await getUserByHeader(req);
+    const enabledModels = config.models.filter((item) => item.enabled);
+    const usageMap = actor?.uid ? await getAiUsageMap(actor.uid, enabledModels) : new Map();
+    const models = enabledModels.map((item) => (
+      actor?.uid ? toPublicAiModelWithUsage(item, usageMap.get(item.id)) : toPublicAiModel(item)
+    ));
+    return res.json({
+      models,
+      defaultModelId: config.defaultModelId
+    });
+  });
+
   router.post("/ai/generate", async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
     const mode = String(req.body?.mode ?? "").trim().toLowerCase();
     if (mode !== "hint" && mode !== "solution") {
       return res.status(400).json({ error: "mode must be hint or solution" });
@@ -2141,9 +2399,18 @@ export function buildRouter() {
     }
 
     try {
-      const content = await requestAiAssist({ mode, question });
+      const content = await requestAiAssist({ mode, question, user });
       return res.json({ content });
     } catch (err) {
+      const statusCode = Number(err?.statusCode ?? 500);
+      if (statusCode === 429) {
+        return res.status(429).json({
+          error: "今日该 AI 模型可用次数已用完。",
+          dailyLimit: Number(err?.dailyLimit ?? 0),
+          usedCount: Number(err?.usedCount ?? 0),
+          remainingCount: Number(err?.remainingCount ?? 0)
+        });
+      }
       return res.status(500).json({ error: String(err?.message ?? "ai generation failed") });
     }
   });
@@ -2501,7 +2768,7 @@ export function buildRouter() {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC"
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC"
     );
     return res.json({ users: rows.map(toPublicUser) });
   });
@@ -2741,33 +3008,26 @@ export function buildRouter() {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
     const config = await getAiConfig();
-    return res.json({ config });
+    return res.json({ config: toAdminAiConfig(config) });
   });
 
   router.put("/admin/ai/config", async (req, res) => {
     const admin = await requireAdmin(req, res);
     if (!admin) return;
 
-    const baseUrl = normalizeAiBaseUrl(req.body?.baseUrl);
-    const apiKey = String(req.body?.apiKey ?? "").trim();
-    const model = normalizeAiModel(req.body?.model);
+    const config = normalizeAiConfigPayload(req.body);
 
-    if (!baseUrl) return res.status(400).json({ error: "baseUrl must be a valid http/https url" });
-    if (!apiKey) return res.status(400).json({ error: "apiKey is required" });
-    if (!model) return res.status(400).json({ error: "model is required" });
+    if (config.models.length === 0) {
+      return res.status(400).json({ error: "at least one AI model is required" });
+    }
+    if (!config.defaultModelId || !config.models.some((item) => item.id === config.defaultModelId && item.enabled)) {
+      return res.status(400).json({ error: "defaultModelId must point to an enabled model" });
+    }
 
-    await Promise.all([
-      setAppSetting(AI_SETTING_KEYS.baseUrl, baseUrl),
-      setAppSetting(AI_SETTING_KEYS.apiKey, apiKey),
-      setAppSetting(AI_SETTING_KEYS.model, model)
-    ]);
+    await saveAiConfig(config);
 
     return res.json({
-      config: {
-        baseUrl,
-        apiKey,
-        model
-      }
+      config: toAdminAiConfig(config)
     });
   });
 
@@ -2921,7 +3181,7 @@ export function buildRouter() {
     }
 
     const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE uid = ? LIMIT 1",
+      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, is_admin, is_banned, records_public, created_at FROM users WHERE uid = ? LIMIT 1",
       [nextUid]
     );
     if (!Array.isArray(rows) || rows.length === 0) {

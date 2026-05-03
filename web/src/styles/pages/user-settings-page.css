@@ -103,6 +103,31 @@
   outline-offset: 0;
 }
 
+.ai-usage-list {
+  width: min(100%, 720px);
+  display: grid;
+  gap: 6px;
+}
+
+.ai-usage-row {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 6px;
+  background: var(--app-bg-muted);
+  padding: 6px 10px;
+  color: var(--app-text-muted);
+  font-size: 13px;
+}
+
+.ai-usage-row strong {
+  color: var(--app-text);
+  white-space: nowrap;
+}
+
 .actions {
   display: flex;
   justify-content: flex-end;

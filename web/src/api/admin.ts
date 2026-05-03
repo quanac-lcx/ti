@@ -58,9 +58,24 @@ export interface CpoauthConfig {
 }
 
 export interface AiConfig {
+  defaultModelId: string;
+  prompts: {
+    hintSystemPrompt: string;
+    solutionSystemPrompt: string;
+    hintUserPrompt: string;
+    solutionUserPrompt: string;
+  };
+  models: AiModelConfig[];
+}
+
+export interface AiModelConfig {
+  id: string;
+  name: string;
   baseUrl: string;
   apiKey: string;
   model: string;
+  dailyLimit: number;
+  enabled: boolean;
 }
 
 export interface AdminProblemset extends ProblemsetSummary {

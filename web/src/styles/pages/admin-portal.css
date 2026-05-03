@@ -93,10 +93,34 @@
   background: var(--panel-bg);
 }
 
+.admin-collapse {
+  margin-top: 10px;
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-bg-muted);
+}
+
+.admin-collapse summary {
+  cursor: pointer;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--app-text);
+}
+
+.admin-collapse .admin-form-grid {
+  margin-top: 0;
+  padding: 0 12px 12px;
+}
+
 .admin-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
+}
+
+.admin-table-wrap {
+  overflow-x: auto;
 }
 
 .admin-table th,
@@ -126,6 +150,89 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.admin-table input[type="text"],
+.admin-table input[type="password"] {
+  min-width: 120px;
+  width: 100%;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 4px;
+  padding: 7px 8px;
+  box-sizing: border-box;
+  background: var(--panel-bg);
+}
+
+.ai-model-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ai-model-card {
+  border: 1px solid var(--app-border);
+  border-radius: 8px;
+  background: var(--app-bg-muted);
+  padding: 10px;
+}
+
+.ai-model-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.ai-model-enabled {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--app-text);
+  flex: 0 0 auto;
+}
+
+.ai-model-enabled input {
+  accent-color: var(--app-primary);
+}
+
+.ai-model-card-title {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--app-text);
+  font-size: 15px;
+}
+
+.ai-model-grid {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.7fr) minmax(180px, 1.1fr) minmax(220px, 1.4fr);
+  gap: 8px;
+}
+
+.ai-model-grid label {
+  display: grid;
+  gap: 4px;
+}
+
+.ai-model-grid label > span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--app-text);
+}
+
+.ai-model-grid input {
+  width: 100%;
+  min-height: 34px;
+  border: 1px solid var(--app-border-strong);
+  border-radius: 4px;
+  padding: 6px 9px;
+  box-sizing: border-box;
+  font-size: 14px;
+  background: var(--panel-bg);
 }
 
 .admin-nav-link {
@@ -234,7 +341,8 @@
   }
 
   .admin-system-page-grid,
-  .admin-form-grid.two-col {
+  .admin-form-grid.two-col,
+  .ai-model-grid {
     grid-template-columns: 1fr;
   }
 }

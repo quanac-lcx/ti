@@ -3,6 +3,8 @@ import { computed, onBeforeUnmount, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import type { ProblemQuestion } from "../api/problemset";
 import { generateAiContent } from "../api/ai";
+import { loadLocalUser } from "../api/auth";
+import { notifyWarning } from "../composables/feedback";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
 
 type AiAssistAction = "hint" | "solution";
@@ -46,6 +48,10 @@ function clearCountdown() {
 }
 
 function openPanel() {
+  if (!loadLocalUser()?.uid) {
+    notifyWarning(t("common.loginFirst"));
+    return;
+  }
   panelVisible.value = true;
   selectedAction.value = null;
   errorMessage.value = "";

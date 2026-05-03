@@ -1,4 +1,4 @@
-import { apiBaseUrl } from "../api";
+import { apiGet, apiPost } from "../api";
 
 export interface AiGeneratePayload {
   mode: "hint" | "solution";
@@ -9,17 +9,26 @@ interface AiGenerateResponse {
   content: string;
 }
 
+export interface AiPublicModel {
+  id: string;
+  name: string;
+  model: string;
+  dailyLimit: number;
+  usedCount?: number;
+  remainingCount?: number | null;
+  enabled: boolean;
+}
+
+interface AiModelsResponse {
+  models: AiPublicModel[];
+  defaultModelId: string;
+}
+
 export async function generateAiContent(payload: AiGeneratePayload): Promise<string> {
-  const response = await fetch(`${apiBaseUrl}/api/ai/generate`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-  const data = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(String((data as { error?: string })?.error ?? `HTTP ${response.status}`));
-  }
-  return String((data as AiGenerateResponse).content ?? "");
+  const data = await apiPost<AiGenerateResponse>("/api/ai/generate", payload);
+  return String(data.content ?? "");
+}
+
+export async function fetchAiModels(): Promise<AiModelsResponse> {
+  return apiGet<AiModelsResponse>("/api/ai/models");
 }
