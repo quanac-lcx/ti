@@ -590,7 +590,7 @@ C. 选项C
     common: {
       appName: "Luogu Saver Quiz",
       loading: "Loading...",
-      loadingPage: "Page loading",
+      loadingPage: "Page loading..."",
       save: "Save",
       saving: "Saving...",
       create: "Create",
