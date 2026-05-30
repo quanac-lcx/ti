@@ -6,12 +6,28 @@
 }
 
 .auth-login-page .auth-card {
+  position: relative;
   width: min(100%, 440px);
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius);
   box-shadow: none;
   padding: 28px 30px 22px;
+}
+
+.auth-login-page .auth-card-controls {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.auth-login-page .auth-card-controls .top-control {
+  width: 34px;
+  height: 34px;
 }
 
 .auth-login-page .brand-logo {

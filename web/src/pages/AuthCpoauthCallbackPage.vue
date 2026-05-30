@@ -1,17 +1,38 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
 import { clearAdminTokenSession, redeemCpoauthTicket, saveLocalUser } from "../api/auth";
 import { BANNED_ROUTE_PATH, isBannedMessage } from "../utils/authRedirect";
+import { useAppLocale } from "../i18n";
+import type { AppLocale } from "../i18n/messages";
+import { toggleThemeMode, useThemeMode } from "../theme/useTheme";
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+const { currentLocale, localeOptions, setLocale } = useAppLocale();
+const { themeMode, isDarkTheme } = useThemeMode();
 const pending = ref(true);
 const message = ref(t("auth.callbackProcessing"));
 const error = ref("");
+
+const currentThemeIconClass = computed(() => {
+  return themeMode.value === "dark" ? "fa-regular fa-moon" : "fa-regular fa-sun";
+});
+
+const currentThemeLabel = computed(() => {
+  return themeMode.value === "dark" ? t("layout.themeDark") : t("layout.themeLight");
+});
+
+function handleThemeToggle() {
+  toggleThemeMode();
+}
+
+function handleLocaleChange(event: Event) {
+  setLocale((event.target as HTMLSelectElement).value as AppLocale);
+}
 
 onMounted(async () => {
   const ticket = String(route.query.ticket ?? "").trim();
@@ -53,6 +74,30 @@ onMounted(async () => {
   <TiLayout :subtitle="t('auth.callbackTitle')" :show-top-bar="false" :show-title="false" :use-panel="false">
     <section class="callback-wrap auth-callback-page">
       <div class="callback-card">
+        <div class="auth-card-controls">
+          <label class="locale-control top-control">
+            <span class="locale-control__icon" aria-hidden="true">
+              <i class="fa-solid fa-language"></i>
+            </span>
+            <select class="locale-control__select" :aria-label="t('locale.label')" :value="currentLocale" @change="handleLocaleChange">
+              <option v-for="option in localeOptions" :key="option.value" :value="option.value">
+                {{ t(option.labelKey) }}
+              </option>
+            </select>
+          </label>
+
+          <button
+            type="button"
+            class="theme-toggle top-control"
+            :title="`${t('layout.themeLabel')}: ${currentThemeLabel}`"
+            :aria-label="`${t('layout.themeLabel')}: ${currentThemeLabel}`"
+            :aria-pressed="isDarkTheme"
+            @click="handleThemeToggle"
+          >
+            <i :class="currentThemeIconClass"></i>
+          </button>
+        </div>
+
         <h2>{{ message }}</h2>
         <p v-if="pending">{{ t("auth.callbackPending") }}</p>
         <template v-else>

@@ -1,6 +1,6 @@
 ﻿// @ts-nocheck
 import express from "express";
-import { randomBytes } from "node:crypto";
+import { randomBytes, createCipheriv, createDecipheriv, pbkdf2Sync } from "node:crypto";
 import { dbPool, pingDb } from "./db.js";
 import { pingRedis, redis } from "./redis.js";
 import { buildGravatarUrl, hashPassword, normalizeEmail, verifyPassword } from "./auth.js";
@@ -743,9 +743,10 @@ async function refundAiUsage(userUid, modelConfig) {
   );
 }
 
-async function requestAiAssist({ mode, question, user }) {
+async function requestAiAssist({ mode, question, user, modelId }) {
   const config = await getAiConfig();
-  const modelConfig = pickAiModel(config, user?.ai_model_id);
+  const effectiveModelId = modelId || user?.ai_model_id;
+  const modelConfig = pickAiModel(config, effectiveModelId);
   if (!modelConfig?.apiKey) {
     throw new Error("AI config missing enabled model/apiKey");
   }
@@ -2397,9 +2398,10 @@ export function buildRouter() {
     if (question.length > 20000) {
       return res.status(400).json({ error: "question is too long" });
     }
+    const modelId = String(req.body?.modelId ?? "").trim() || null;
 
     try {
-      const content = await requestAiAssist({ mode, question, user });
+      const content = await requestAiAssist({ mode, question, user, modelId });
       return res.json({ content });
     } catch (err) {
       const statusCode = Number(err?.statusCode ?? 500);
@@ -3301,6 +3303,408 @@ export function buildRouter() {
       [result.insertId]
     );
     return res.status(201).json({ question: toQuestion(rows[0]) });
+  });
+
+  // ── Backup helpers ──
+
+  const BACKUP_ENCRYPTION_ALGORITHM = "aes-256-gcm";
+  const BACKUP_PBKDF2_ITERATIONS = 210000;
+  const BACKUP_KEY_LENGTH = 32;
+
+  function encryptBackupPayload(plaintext, password) {
+    const salt = randomBytes(16);
+    const key = pbkdf2Sync(password, salt, BACKUP_PBKDF2_ITERATIONS, BACKUP_KEY_LENGTH, "sha256");
+    const iv = randomBytes(12);
+    const cipher = createCipheriv(BACKUP_ENCRYPTION_ALGORITHM, key, iv);
+    const encrypted = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return JSON.stringify({
+      v: 1,
+      salt: salt.toString("hex"),
+      iv: iv.toString("hex"),
+      tag: tag.toString("hex"),
+      data: encrypted.toString("hex")
+    });
+  }
+
+  function decryptBackupPayload(envelope, password) {
+    let parsed;
+    try {
+      parsed = typeof envelope === "string" ? JSON.parse(envelope) : envelope;
+    } catch {
+      return null;
+    }
+    if (!parsed || typeof parsed !== "object") return null;
+    if (parsed.v !== 1 || !parsed.salt || !parsed.iv || !parsed.tag || !parsed.data) return null;
+    const salt = Buffer.from(parsed.salt, "hex");
+    const iv = Buffer.from(parsed.iv, "hex");
+    const tag = Buffer.from(parsed.tag, "hex");
+    const encrypted = Buffer.from(parsed.data, "hex");
+    const key = pbkdf2Sync(password, salt, BACKUP_PBKDF2_ITERATIONS, BACKUP_KEY_LENGTH, "sha256");
+    try {
+      const decipher = createDecipheriv(BACKUP_ENCRYPTION_ALGORITHM, key, iv);
+      decipher.setAuthTag(tag);
+      const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+      return JSON.parse(decrypted.toString("utf8"));
+    } catch {
+      return null;
+    }
+  }
+
+  // ── POST /api/admin/backup/export ──
+
+  router.post("/admin/backup/export", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const selections = req.body?.selections;
+    const includeProblemsets = selections?.problemsets !== false;
+    const includeOauth = selections?.oauth !== false;
+    const includeSystemPages = selections?.systemPages !== false;
+    const includeUsers = selections?.users !== false;
+    const password = typeof req.body?.password === "string" && req.body.password.trim()
+      ? req.body.password.trim()
+      : "";
+
+    const backup = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      encrypted: false,
+      data: {}
+    };
+
+    try {
+      if (includeProblemsets) {
+        const [psRows] = await dbPool.query(
+          "SELECT id, title, description, duration_minutes, problemset_type, created_by_uid, question_config FROM problemsets ORDER BY id ASC"
+        );
+        const problemsets = [];
+        for (const ps of psRows) {
+          const [qRows] = await dbPool.query(
+            "SELECT question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis FROM questions WHERE problemset_id = ? ORDER BY question_index ASC",
+            [ps.id]
+          );
+          problemsets.push({
+            id: Number(ps.id),
+            title: String(ps.title ?? ""),
+            description: String(ps.description ?? ""),
+            durationMinutes: Number(ps.duration_minutes ?? 120),
+            problemsetType: String(ps.problemset_type ?? "official_public"),
+            createdByUid: String(ps.created_by_uid ?? ""),
+            questionConfig: ps.question_config ? String(ps.question_config) : null,
+            questions: qRows.map((q) => ({
+              index: Number(q.question_index),
+              type: String(q.question_type ?? "option"),
+              materialGroupIndex: q.material_group_index === null || q.material_group_index === undefined ? null : Number(q.material_group_index),
+              groupQuestionIndex: q.group_question_index === null || q.group_question_index === undefined ? null : Number(q.group_question_index),
+              groupQuestionCount: q.group_question_count === null || q.group_question_count === undefined ? null : Number(q.group_question_count),
+              groupTitle: String(q.group_title ?? ""),
+              sharedMaterial: String(q.shared_material ?? ""),
+              stem: String(q.stem ?? ""),
+              inputPlaceholder: String(q.input_placeholder ?? ""),
+              options: typeof q.options_json === "object" ? q.options_json : safeJsonParse(q.options_json, []),
+              score: Number(q.score),
+              answer: String(q.answer ?? ""),
+              analysis: String(q.analysis ?? "")
+            }))
+          });
+        }
+        backup.data.problemsets = problemsets;
+      }
+
+      if (includeOauth) {
+        const cpoauthSettings = await getAppSettings(Object.values(CPOAUTH_SETTING_KEYS));
+        backup.data.cpoauth = {
+          clientId: String(cpoauthSettings[CPOAUTH_SETTING_KEYS.clientId] ?? ""),
+          clientSecret: String(cpoauthSettings[CPOAUTH_SETTING_KEYS.clientSecret] ?? ""),
+          callbackUrl: String(cpoauthSettings[CPOAUTH_SETTING_KEYS.callbackUrl] ?? ""),
+          scope: String(cpoauthSettings[CPOAUTH_SETTING_KEYS.scope] ?? "openid profile email")
+        };
+      }
+
+      if (includeSystemPages) {
+        const [settings, userAgreementPage, privacyPolicyPage, customPages] = await Promise.all([
+          getAppSettings([SITE_SETTING_KEYS.loginNoticeMarkdown]),
+          getSystemPageBySystemKey(SYSTEM_PAGE_KEYS.userAgreement),
+          getSystemPageBySystemKey(SYSTEM_PAGE_KEYS.privacyPolicy),
+          listCustomSystemPages()
+        ]);
+        backup.data.systemPages = {
+          loginNoticeMarkdown: String(settings[SITE_SETTING_KEYS.loginNoticeMarkdown] ?? ""),
+          userAgreement: userAgreementPage ? {
+            systemKey: SYSTEM_PAGE_KEYS.userAgreement,
+            slug: String(userAgreementPage.slug ?? "user-agreement"),
+            title: String(userAgreementPage.title ?? "User Agreement"),
+            content: String(userAgreementPage.content ?? "")
+          } : null,
+          privacyPolicy: privacyPolicyPage ? {
+            systemKey: SYSTEM_PAGE_KEYS.privacyPolicy,
+            slug: String(privacyPolicyPage.slug ?? "privacy-policy"),
+            title: String(privacyPolicyPage.title ?? "Privacy Policy"),
+            content: String(privacyPolicyPage.content ?? "")
+          } : null,
+          customPages: customPages.map((row) => ({
+            systemKey: row.system_key ? String(row.system_key) : null,
+            slug: String(row.slug ?? ""),
+            title: String(row.title ?? ""),
+            content: String(row.content ?? "")
+          }))
+        };
+      }
+
+      if (includeUsers) {
+        const [userRows] = await dbPool.query(
+          "SELECT id, uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC"
+        );
+        backup.data.users = userRows.map((row) => ({
+          uid: String(row.uid ?? ""),
+          name: String(row.name ?? ""),
+          email: String(row.email ?? ""),
+          passwordHash: row.password_hash ? String(row.password_hash) : null,
+          avatarUrl: String(row.avatar_url ?? ""),
+          profileCoverUrl: String(row.profile_cover_url ?? ""),
+          bio: row.bio ? String(row.bio) : "",
+          aiModelId: row.ai_model_id ? String(row.ai_model_id) : "",
+          submissionAnalysisMode: normalizeSubmissionAnalysisMode(row.submission_analysis_mode, "wrong_only"),
+          autosaveIntervalSeconds: normalizeAutosaveIntervalSeconds(row.autosave_interval_seconds, 30),
+          oauthProvider: row.oauth_provider ? String(row.oauth_provider) : null,
+          oauthSubject: row.oauth_subject ? String(row.oauth_subject) : null,
+          isAdmin: Boolean(row.is_admin),
+          isBanned: Boolean(row.is_banned),
+          recordsPublic: Boolean(row.records_public),
+          createdAt: row.created_at
+        }));
+      }
+
+      let responseBody = JSON.stringify(backup);
+      if (password) {
+        responseBody = encryptBackupPayload(responseBody, password);
+        const envelope = JSON.parse(responseBody);
+        return res.json({
+          encrypted: true,
+          ...envelope
+        });
+      }
+
+      return res.json(backup);
+    } catch (err) {
+      return res.status(500).json({ error: "Failed to export backup: " + String(err?.message ?? err) });
+    }
+  });
+
+  // ── POST /api/admin/backup/restore ──
+
+  router.post("/admin/backup/restore", async (req, res) => {
+    const admin = await requireAdmin(req, res);
+    if (!admin) return;
+
+    const password = typeof req.body?.password === "string" && req.body.password.trim()
+      ? req.body.password.trim()
+      : "";
+    const selections = req.body?.selections;
+    const restoreProblemsets = selections?.problemsets !== false;
+    const restoreOauth = selections?.oauth !== false;
+    const restoreSystemPages = selections?.systemPages !== false;
+    const restoreUsers = selections?.users !== false;
+
+    let backup;
+    if (req.body?.encrypted) {
+      if (!password) {
+        return res.status(400).json({ error: "Password is required to decrypt this backup." });
+      }
+      const envelope = {
+        v: req.body?.v,
+        salt: req.body?.salt,
+        iv: req.body?.iv,
+        tag: req.body?.tag,
+        data: req.body?.data
+      };
+      backup = decryptBackupPayload(envelope, password);
+      if (!backup) {
+        return res.status(400).json({ error: "Failed to decrypt backup. Wrong password or corrupted data." });
+      }
+    } else {
+      backup = req.body;
+    }
+
+    if (!backup || typeof backup !== "object" || !backup.data) {
+      return res.status(400).json({ error: "Invalid backup data." });
+    }
+
+    const connection = await dbPool.getConnection();
+    try {
+      await connection.beginTransaction();
+
+      if (restoreProblemsets && Array.isArray(backup.data.problemsets)) {
+        for (const ps of backup.data.problemsets) {
+          await connection.query(
+            `INSERT INTO problemsets (id, title, description, duration_minutes, problemset_type, created_by_uid, question_config)
+             VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               title = VALUES(title),
+               description = VALUES(description),
+               duration_minutes = VALUES(duration_minutes),
+               problemset_type = VALUES(problemset_type),
+               created_by_uid = VALUES(created_by_uid),
+               question_config = VALUES(question_config)`,
+            [
+              Number(ps.id),
+              String(ps.title ?? ""),
+              String(ps.description ?? ""),
+              Number(ps.durationMinutes ?? 120),
+              String(ps.problemsetType ?? "official_public"),
+              String(ps.createdByUid ?? ""),
+              ps.questionConfig || null
+            ]
+          );
+          if (Array.isArray(ps.questions) && ps.questions.length > 0) {
+            await connection.query("DELETE FROM questions WHERE problemset_id = ?", [Number(ps.id)]);
+            for (const q of ps.questions) {
+              await connection.query(
+                `INSERT INTO questions (problemset_id, question_index, question_type, material_group_index, group_question_index, group_question_count, group_title, shared_material, stem, input_placeholder, options_json, score, answer, analysis)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                  Number(ps.id),
+                  Number(q.index),
+                  String(q.type ?? "option"),
+                  q.materialGroupIndex ?? null,
+                  q.groupQuestionIndex ?? null,
+                  q.groupQuestionCount ?? null,
+                  String(q.groupTitle ?? ""),
+                  String(q.sharedMaterial ?? ""),
+                  String(q.stem ?? ""),
+                  String(q.inputPlaceholder ?? ""),
+                  JSON.stringify(Array.isArray(q.options) ? q.options : []),
+                  Number(q.score ?? 1.5),
+                  String(q.answer ?? ""),
+                  String(q.analysis ?? "")
+                ]
+              );
+            }
+          }
+        }
+      }
+
+      if (restoreOauth && backup.data.cpoauth && typeof backup.data.cpoauth === "object") {
+        const oa = backup.data.cpoauth;
+        if (typeof oa.clientId === "string") {
+          await connection.query(
+            "INSERT INTO app_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+            [CPOAUTH_SETTING_KEYS.clientId, String(oa.clientId)]
+          );
+        }
+        if (typeof oa.clientSecret === "string") {
+          await connection.query(
+            "INSERT INTO app_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+            [CPOAUTH_SETTING_KEYS.clientSecret, String(oa.clientSecret)]
+          );
+        }
+        if (typeof oa.callbackUrl === "string") {
+          await connection.query(
+            "INSERT INTO app_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+            [CPOAUTH_SETTING_KEYS.callbackUrl, String(oa.callbackUrl)]
+          );
+        }
+        if (typeof oa.scope === "string") {
+          await connection.query(
+            "INSERT INTO app_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+            [CPOAUTH_SETTING_KEYS.scope, String(oa.scope)]
+          );
+        }
+      }
+
+      if (restoreSystemPages && backup.data.systemPages && typeof backup.data.systemPages === "object") {
+        const sp = backup.data.systemPages;
+        if (typeof sp.loginNoticeMarkdown === "string") {
+          await connection.query(
+            "INSERT INTO app_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+            [SITE_SETTING_KEYS.loginNoticeMarkdown, normalizeSystemPageContent(sp.loginNoticeMarkdown)]
+          );
+        }
+        for (const key of ["userAgreement", "privacyPolicy"]) {
+          const page = sp[key];
+          if (page && typeof page === "object" && page.slug && page.title) {
+            await connection.query(
+              `INSERT INTO system_pages (system_key, slug, title, content)
+               VALUES (?, ?, ?, ?)
+               ON DUPLICATE KEY UPDATE
+                 slug = VALUES(slug),
+                 title = VALUES(title),
+                 content = VALUES(content)`,
+              [
+                page.systemKey || null,
+                normalizeSystemPageSlug(page.slug),
+                normalizeSystemPageTitle(page.title),
+                normalizeSystemPageContent(page.content ?? "")
+              ]
+            );
+          }
+        }
+        if (Array.isArray(sp.customPages)) {
+          for (const page of sp.customPages) {
+            if (page && typeof page === "object" && page.slug && page.title) {
+              await connection.query(
+                "INSERT INTO system_pages (system_key, slug, title, content) VALUES (NULL, ?, ?, ?) ON DUPLICATE KEY UPDATE title = VALUES(title), content = VALUES(content)",
+                [
+                  normalizeSystemPageSlug(page.slug),
+                  normalizeSystemPageTitle(page.title),
+                  normalizeSystemPageContent(page.content ?? "")
+                ]
+              );
+            }
+          }
+        }
+      }
+
+      if (restoreUsers && Array.isArray(backup.data.users)) {
+        for (const u of backup.data.users) {
+          await connection.query(
+            `INSERT INTO users (uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               name = VALUES(name),
+               email = VALUES(email),
+               password_hash = COALESCE(VALUES(password_hash), password_hash),
+               avatar_url = VALUES(avatar_url),
+               profile_cover_url = VALUES(profile_cover_url),
+               bio = VALUES(bio),
+               ai_model_id = VALUES(ai_model_id),
+               submission_analysis_mode = VALUES(submission_analysis_mode),
+               autosave_interval_seconds = VALUES(autosave_interval_seconds),
+               oauth_provider = VALUES(oauth_provider),
+               oauth_subject = VALUES(oauth_subject),
+               is_admin = VALUES(is_admin),
+               is_banned = VALUES(is_banned),
+               records_public = VALUES(records_public)`,
+            [
+              String(u.uid ?? ""),
+              String(u.name ?? ""),
+              String(u.email ?? ""),
+              u.passwordHash || null,
+              String(u.avatarUrl ?? ""),
+              String(u.profileCoverUrl ?? ""),
+              String(u.bio ?? ""),
+              String(u.aiModelId ?? ""),
+              normalizeSubmissionAnalysisMode(u.submissionAnalysisMode, "wrong_only"),
+              normalizeAutosaveIntervalSeconds(u.autosaveIntervalSeconds, 30),
+              u.oauthProvider || null,
+              u.oauthSubject || null,
+              u.isAdmin ? 1 : 0,
+              u.isBanned ? 1 : 0,
+              u.recordsPublic ? 1 : 0
+            ]
+          );
+        }
+      }
+
+      await connection.commit();
+      return res.json({ ok: true });
+    } catch (err) {
+      await connection.rollback();
+      return res.status(500).json({ error: "Failed to restore backup: " + String(err?.message ?? err) });
+    } finally {
+      connection.release();
+    }
   });
 
   return router;

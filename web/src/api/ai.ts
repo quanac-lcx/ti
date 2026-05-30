@@ -3,6 +3,7 @@ import { apiGet, apiPost } from "../api";
 export interface AiGeneratePayload {
   mode: "hint" | "solution";
   question: string;
+  modelId?: string;
 }
 
 interface AiGenerateResponse {

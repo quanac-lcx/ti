@@ -7,10 +7,15 @@ import { buildCpoauthAuthorizeUrl, loginWithAdminToken, saveLocalUser } from "..
 import { loadPublicSiteContentCached, type PublicSiteContent } from "../api/siteContent";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
 import { BANNED_ROUTE_PATH } from "../utils/authRedirect";
+import { useAppLocale } from "../i18n";
+import type { AppLocale } from "../i18n/messages";
+import { toggleThemeMode, useThemeMode } from "../theme/useTheme";
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+const { currentLocale, localeOptions, setLocale } = useAppLocale();
+const { themeMode, isDarkTheme } = useThemeMode();
 const cpoauthEntryUrl = buildCpoauthAuthorizeUrl(String(route.query.redirect ?? "/problemset"));
 const adminToken = ref("");
 const adminPending = ref(false);
@@ -26,6 +31,22 @@ const privacyLink = computed(() => {
   const slug = publicSiteContent.value?.privacyPolicyPage?.slug;
   return slug ? `/system/${slug}` : "";
 });
+
+const currentThemeIconClass = computed(() => {
+  return themeMode.value === "dark" ? "fa-regular fa-moon" : "fa-regular fa-sun";
+});
+
+const currentThemeLabel = computed(() => {
+  return themeMode.value === "dark" ? t("layout.themeDark") : t("layout.themeLight");
+});
+
+function handleThemeToggle() {
+  toggleThemeMode();
+}
+
+function handleLocaleChange(event: Event) {
+  setLocale((event.target as HTMLSelectElement).value as AppLocale);
+}
 
 const loginNoticeHtml = computed(() =>
   renderLuoguMarkdown(publicSiteContent.value?.loginNoticeMarkdown ?? "")
@@ -63,6 +84,30 @@ onMounted(async () => {
   <TiLayout :subtitle="t('auth.loginSubtitle')" :show-top-bar="false" :show-title="false" :use-panel="false">
     <section class="auth-wrap auth-login-page">
       <div class="auth-card">
+        <div class="auth-card-controls">
+          <label class="locale-control top-control">
+            <span class="locale-control__icon" aria-hidden="true">
+              <i class="fa-solid fa-language"></i>
+            </span>
+            <select class="locale-control__select" :aria-label="t('locale.label')" :value="currentLocale" @change="handleLocaleChange">
+              <option v-for="option in localeOptions" :key="option.value" :value="option.value">
+                {{ t(option.labelKey) }}
+              </option>
+            </select>
+          </label>
+
+          <button
+            type="button"
+            class="theme-toggle top-control"
+            :title="`${t('layout.themeLabel')}: ${currentThemeLabel}`"
+            :aria-label="`${t('layout.themeLabel')}: ${currentThemeLabel}`"
+            :aria-pressed="isDarkTheme"
+            @click="handleThemeToggle"
+          >
+            <i :class="currentThemeIconClass"></i>
+          </button>
+        </div>
+
         <span class="brand-logo-icon" role="img" :aria-label="t('common.appName')">
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path

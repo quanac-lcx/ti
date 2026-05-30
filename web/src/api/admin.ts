@@ -444,3 +444,38 @@ export async function deleteAdminSystemPage(id: number): Promise<void> {
   }
   invalidatePublicSiteContentCache();
 }
+
+
+export interface BackupSelections {
+  problemsets: boolean;
+  oauth: boolean;
+  systemPages: boolean;
+  users: boolean;
+}
+
+export async function exportBackup(selections: BackupSelections, password: string): Promise<unknown> {
+  const url = `${apiBaseUrl}/api/admin/backup/export`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ selections, password: password || "" })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
+  return payload;
+}
+
+export async function restoreBackup(backupData: unknown, selections: BackupSelections, password: string): Promise<void> {
+  const url = `${apiBaseUrl}/api/admin/backup/restore`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ ...(backupData as Record<string, unknown>), selections, password: password || "" })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
+}

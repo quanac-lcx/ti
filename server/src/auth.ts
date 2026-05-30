@@ -8,7 +8,7 @@ export function normalizeEmail(email) {
 export function buildGravatarUrl(email) {
   const normalized = normalizeEmail(email);
   const digest = createHash("md5").update(normalized).digest("hex");
-  return `https://www.gravatar.com/avatar/${digest}?d=identicon&s=128`;
+  return `https://dn-qiniu-avatar.qbox.me/avatar/${digest}?d=identicon&s=128`;
 }
 
 export function hashPassword(password) {

@@ -17,6 +17,7 @@ import AdminProblemsetsPage from "./pages/admin/AdminProblemsetsPage.vue";
 import AdminQuestionsPage from "./pages/admin/AdminQuestionsPage.vue";
 import AdminOauthPage from "./pages/admin/AdminOauthPage.vue";
 import AdminSystemPagesPage from "./pages/admin/AdminSystemPagesPage.vue";
+import AdminBackupPage from "./pages/admin/AdminBackupPage.vue";
 import { loadLocalUser } from "./api/auth";
 import { BANNED_ROUTE_PATH } from "./utils/authRedirect";
 
@@ -62,7 +63,8 @@ const routes: RouteRecordRaw[] = [
       { path: "problemsets", component: AdminProblemsetsPage },
       { path: "questions", component: AdminQuestionsPage },
       { path: "oauth", component: AdminOauthPage },
-      { path: "system-pages", component: AdminSystemPagesPage }
+      { path: "system-pages", component: AdminSystemPagesPage },
+      { path: "backup", component: AdminBackupPage }
     ]
   },
   { path: "/web/admin", redirect: "/admin" }

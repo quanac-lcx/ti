@@ -490,6 +490,7 @@ watch(
         </div>
 
         <aside class="right-column">
+          <div id="ai-sidebar-panel" class="ai-sidebar-target"></div>
           <div v-if="hasHistory" class="panel-card history-card">
             <div class="history-main-score">{{ selectedSubmission?.score ?? submissions[0]?.score ?? 0 }} {{ t("common.points") }}</div>
             <p class="history-date">{{ t("problemset.detail.submittedAt", { time: formatDate(selectedSubmission?.submittedAt ?? submissions[0]?.submittedAt) }) }}</p>

@@ -757,6 +757,7 @@ function closeGuestLoginModal() {
           </div>
 
           <aside class="panel-card mode-right">
+            <div id="ai-sidebar-panel" class="ai-sidebar-target"></div>
             <div v-if="isExam" class="mode-timer-card" :class="{ danger: remainingSeconds <= 300 }">
               <span class="mode-timer-label">{{ t("problemset.mode.remainingTime") }}</span>
               <strong class="mode-timer-value">{{ formatDuration(remainingSeconds) }}</strong>
