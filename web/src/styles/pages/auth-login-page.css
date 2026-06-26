@@ -159,3 +159,25 @@
   color: var(--app-danger);
   font-size: 13px;
 }
+
+@media (max-width: 640px) {
+  .auth-login-page.auth-wrap {
+    padding: 16px 8px;
+  }
+
+  .auth-login-page .auth-card {
+    padding: 22px 18px 18px;
+  }
+
+  .auth-login-page .auth-card h2 {
+    font-size: 24px;
+  }
+
+  .auth-login-page .auth-card .brand-desc {
+    font-size: 13px;
+  }
+
+  .auth-login-page .admin-token-section {
+    gap: 6px;
+  }
+}

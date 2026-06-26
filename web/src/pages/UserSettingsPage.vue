@@ -24,6 +24,7 @@ const recordsPublic = ref(true);
 const profileCoverUrl = ref("");
 const submissionAnalysisMode = ref<"none" | "wrong_only" | "all">("wrong_only");
 const autosaveIntervalSeconds = ref<AutosaveIntervalSeconds>(30);
+const highlighterEnabled = ref(true);
 const aiModels = ref<AiPublicModel[]>([]);
 const aiModelId = ref("");
 const aiModelUsageRows = computed(() => aiModels.value.map((model) => ({
@@ -82,6 +83,7 @@ async function loadSettings() {
     profileCoverUrl.value = String(settings.profileCoverUrl ?? "");
     submissionAnalysisMode.value = settings.submissionAnalysisMode ?? "wrong_only";
     autosaveIntervalSeconds.value = normalizeAutosaveInterval(settings.autosaveIntervalSeconds);
+    highlighterEnabled.value = Boolean(settings.highlighterEnabled ?? true);
     aiModelId.value = String(settings.aiModelId || modelPayload.defaultModelId || modelPayload.models[0]?.id || "");
   } catch (err) {
     error.value = String((err as Error)?.message ?? err);
@@ -101,7 +103,8 @@ async function submitSettings() {
       profileCoverUrl: profileCoverUrl.value.trim(),
       submissionAnalysisMode: submissionAnalysisMode.value,
       autosaveIntervalSeconds: autosaveIntervalSeconds.value,
-      aiModelId: aiModelId.value
+      aiModelId: aiModelId.value,
+      highlighterEnabled: highlighterEnabled.value
     });
     saveLocalUser(result.user);
     profileCoverUrl.value = String(result.settings.profileCoverUrl ?? result.user.profileCoverUrl ?? "");
@@ -182,6 +185,23 @@ onMounted(loadSettings);
             </label>
           </div>
           <p class="item-desc">{{ t("settings.autosaveDesc") }}</p>
+        </UiCard>
+
+        <UiCard as="div" class="settings-item" compact>
+          <label class="item-title"><i class="fa-solid fa-highlighter"></i>{{ t("settings.highlighterTitle") }}</label>
+          <div class="switch">
+            <label>
+              <input v-model="highlighterEnabled" type="radio" :value="true" />
+              <i class="fa-regular fa-eye"></i>
+              <span>{{ t("settings.highlighterShow") }}</span>
+            </label>
+            <label>
+              <input v-model="highlighterEnabled" type="radio" :value="false" />
+              <i class="fa-regular fa-eye-slash"></i>
+              <span>{{ t("settings.highlighterHide") }}</span>
+            </label>
+          </div>
+          <p class="item-desc">{{ t("settings.highlighterDesc") }}</p>
         </UiCard>
 
         <UiCard as="div" class="settings-item" compact>

@@ -1,4 +1,5 @@
 import { apiBaseUrl, apiGet, apiPost } from "../api";
+import { readLocalUid, userAuthHeaders } from "../utils/shared";
 
 export interface ProblemsetSummary {
   id: number;
@@ -109,13 +110,11 @@ class HttpProblemsetApi implements ProblemsetApi {
   }
 
   async update(problemsetId: number, payload: CreateProblemsetPayload): Promise<ProblemsetSummary> {
-    const local = localStorage.getItem("ti.user");
-    const uid = local ? String((JSON.parse(local) as { uid?: string }).uid ?? "") : "";
     const response = await fetch(`${apiBaseUrl}/api/problemsets/${problemsetId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        ...(uid ? { "x-user-uid": uid } : {})
+        ...userAuthHeaders()
       },
       body: JSON.stringify(payload)
     });
@@ -127,13 +126,9 @@ class HttpProblemsetApi implements ProblemsetApi {
   }
 
   async delete(problemsetId: number): Promise<void> {
-    const local = localStorage.getItem("ti.user");
-    const uid = local ? String((JSON.parse(local) as { uid?: string }).uid ?? "") : "";
     const response = await fetch(`${apiBaseUrl}/api/problemsets/${problemsetId}`, {
       method: "DELETE",
-      headers: {
-        ...(uid ? { "x-user-uid": uid } : {})
-      }
+      headers: userAuthHeaders()
     });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));

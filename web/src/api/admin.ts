@@ -153,7 +153,6 @@ export async function updateUser(
     uid: string;
     username: string;
     email: string;
-    password: string;
     isAdmin: boolean;
     isBanned: boolean;
   }>
@@ -451,6 +450,7 @@ export interface BackupSelections {
   oauth: boolean;
   systemPages: boolean;
   users: boolean;
+  aiConfig: boolean;
 }
 
 export async function exportBackup(selections: BackupSelections, password: string): Promise<unknown> {

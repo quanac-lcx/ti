@@ -503,3 +503,59 @@
     z-index: auto;
   }
 }
+
+@media (max-width: 640px) {
+  .problemset-mode-page {
+    gap: 8px;
+  }
+
+  .problemset-mode-page .mode-header {
+    padding: 10px 12px;
+  }
+
+  .problemset-mode-page .mode-header h2 {
+    font-size: 24px;
+  }
+
+  .problemset-mode-page .mode-timer {
+    font-size: 22px;
+  }
+
+  .problemset-mode-page .question-card {
+    padding: 10px;
+  }
+
+  .problemset-mode-page .question-card h3 {
+    font-size: 18px;
+  }
+
+  .problemset-mode-page .question-stem {
+    font-size: 15px;
+  }
+
+  .problemset-mode-page .mode-option-key {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .problemset-mode-page .mode-option-text {
+    font-size: 15px;
+  }
+
+  .problemset-mode-page .mode-summary-card strong {
+    font-size: 14px;
+  }
+
+  .problemset-mode-page .btn {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .problemset-mode-page .exam-notice {
+    right: 8px;
+    top: 8px;
+    width: calc(100vw - 16px);
+    max-width: 360px;
+  }
+}

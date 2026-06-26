@@ -1,4 +1,4 @@
-export const zhCN = {
+﻿export const zhCN = {
   common: {
     appName: "保存站有题",
     loading: "加载中...",
@@ -16,13 +16,7 @@ export const zhCN = {
     refresh: "刷新",
     search: "搜索",
     cancel: "取消",
-    confirm: "确定",
-    submit: "提交",
-    back: "返回",
-    open: "打开",
-    yes: "是",
-    no: "否",
-    days: "天",
+
     minutes: "分钟",
     hours: "小时",
     points: "分",
@@ -42,8 +36,7 @@ export const zhCN = {
     label: "语言",
     zhCN: "简体中文",
     enUS: "English",
-    jaJP: "日本語",
-    origin: "Origin"
+    jaJP: "日本語"
   },
   feedback: {
     defaultToastTitle: "提示"
@@ -63,6 +56,7 @@ export const zhCN = {
   },
   layout: {
     siteTitleSuffix: "保存站有题",
+    menu: "菜单",
     nav: {
       problemsets: "题库",
       createProblemset: "新建题目",
@@ -75,8 +69,10 @@ export const zhCN = {
       search: "搜索题目",
       home: "前往保存站"
     },
-    themeToLight: "切换到浅色模式",
-    themeToDark: "切换到深色模式",
+    themeLabel: "主题",
+    themeAuto: "跟随系统",
+    themeDark: "深色模式",
+    themeLight: "浅色模式",
     profile: "个人中心",
     settings: "个人设置",
     admin: "管理后台",
@@ -85,7 +81,6 @@ export const zhCN = {
   },
   footer: {
     copyright: "2025-2026 保存站有题",
-    running: "本站已运行",
     developers: "开发者：Federico2903 & Murasame & quanac-lcx",
     qqGroup: "保存站用户群：1017248143（点击加入）",
     sponsor: "由 雨云 提供支持"
@@ -126,6 +121,27 @@ export const zhCN = {
     loading: "页面加载中...",
     updatedAt: "最后更新：{time}",
     notFoundTitle: "404"
+  },
+  pageNotFound: {
+    title: "404",
+    subtitle: "404",
+    heading: "404",
+    description: "该页面未找到",
+    goHome: "返回首页"
+  },
+  userNotFound: {
+    title: "用户未找到",
+    subtitle: "用户未找到",
+    heading: "用户未找到",
+    description: "该用户不存在或已被删除。",
+    goHome: "返回首页"
+  },
+  problemSetNotFound: {
+    title: "题单未找到",
+    subtitle: "题单未找到",
+    heading: "题单未找到",
+    description: "该题单不存在或已被移除。",
+    goHome: "返回首页"
   },
   problemset: {
     types: {
@@ -203,11 +219,11 @@ int main() {
 \`\`\`
 [/material]
 
-:::question type=option score=2
+:::question type="option" score="2"
 [stem]
 如果输入 \`3 4\`，输出结果是多少？
 [/stem]
-[options answer=B]
+[options answer="B"]
 A. 5
 B. 7
 C. 9
@@ -218,20 +234,20 @@ D. 11
 [/analysis]
 :::
 
-:::question type=input score=2
+:::question type="input" score="2"
 [stem]
 如果把 \`x = a + b\` 改成 \`x = a * b\`，输入 \`3 4\` 时输出结果是多少？
 [/stem]
-[input answer=12 placeholder="请直接填写输出结果"]
+[input answer="12" placeholder="请直接填写输出结果"]
 [/input]
 :::
 :::
 
-:::question type=option score=2.5
+:::question type="option" score="2.5"
 [stem]
 题干（支持 Markdown / LaTeX）
 [/stem]
-[options answer=A,C]
+[options answer="A,C"]
 A. 选项A
 B. 选项B
 C. 选项C
@@ -241,22 +257,22 @@ C. 选项C
 [/analysis]
 :::
 
-:::question type=input score=3
+:::question type="input" score="3"
 [stem]
 填空题题干，支持 Markdown 和 LaTeX。聪明的你应该也已经看到了，本题没有解析。
 [/stem]
-[input answer=42 placeholder=这是提示语，可以告诉用户填写的格式，也可以不写]
+[input answer="42" placeholder="这是提示语，可以告诉用户填写的格式，也可以不写"]
 [/input]
 :::`,
       rules: {
-        item1: "普通题使用 :::question ... :::。",
-        item2: "题干使用 [stem]...[/stem]，支持 Markdown / LaTeX / 代码块。",
-        item3: "选择题使用 [options answer=A,C]...[/options]，最多 26 个选项。",
-        item4: "填空题使用 [input answer=答案 placeholder=\"提示语\"][/input]。",
-        item5: "解析使用 [analysis]...[/analysis]，可选。",
-        item6: "材料题用 :::group title=\"阅读程序\" 包住一组小题，并用 [material]...[/material] 放共享代码/材料。",
-        item7: "一个 :::group 内可以放很多道 :::question，适合阅读程序、补全代码等。",
-        item8: "嵌套可能会产生 bug，目前没有专门测试。"
+        item1: "每道题用 :::question 开头、::: 结尾包裹。",
+        item2: "题干写在 [stem]...[/stem] 内，支持 Markdown、LaTeX 和代码块。",
+        item3: "选择题：用 [options answer=\"A,C\"]...[/options] 包裹全部选项，每行一个（如 A. 选项文本），最多 26 个。",
+        item4: "填空题：用 [input answer=\"答案\" placeholder=\"提示语\"][/input] 定义，placeholder 可选。",
+        item5: "解析（可选）：用 [analysis]...[/analysis] 包裹，支持 Markdown 和 LaTeX。",
+        item6: "材料题：用 :::group title=\"标题\" 包裹，内部先写 [material]...[/material] 放共享材料，再放多道 :::question。",
+        item7: "一个 :::group 内可包含多道 :::question，适合阅读程序、补全代码等场景。",
+        item8: "暂不支持 :::group 嵌套 :::group。"
       },
       errors: {
         titleRequired: "请填写名称。",
@@ -278,12 +294,6 @@ C. 选项C
       deleteMessage: "确认删除当前试卷吗？删除后不可恢复。",
       deleteConfirm: "确认删除",
       idLabel: "唯一标识符（ID）",
-      materialSummary: "材料题语法说明",
-      materialIntro: "现在支持两种写法：",
-      materialItem1: "普通题：:::question ... :::",
-      materialItem2: "材料题：:::group title=\"阅读程序\" + [material]...[/material] + 多个 :::question",
-      materialNote1: "适合一段长代码下面挂很多小题的场景，例如 CSP 阅读程序、补全代码、程序理解题。",
-      materialNote2: "旧的单题写法也会继续兼容，可以和材料题混写。",
       previewEmpty: "这里会实时渲染你输入的题目配置。"
     },
     detail: {
@@ -350,6 +360,8 @@ C. 选项C
       saveTraining: "保存练习记录"
     },
     ai: {
+      modelLabel: "AI 模型",
+      longPressHint: "{seconds}秒",
       panelTitle: "{question}",
       hintOption: "查看 AI 提示",
       solutionOption: "查看 AI 解答",
@@ -425,6 +437,10 @@ C. 选项C
     coverUrl: "个人资料背景图 URL",
     coverPlaceholder: "留空则使用默认背景",
     coverDesc: "仅支持 http(s) 链接。",
+    highlighterTitle: "荧光笔工具栏",
+    highlighterDesc: "在题目内容中框选文字时是否显示荧光笔悬浮工具栏。",
+    highlighterShow: "显示",
+    highlighterHide: "不显示",
     clearCover: "清空背景图",
     save: "保存设置",
     autosave: {
@@ -588,10 +604,8 @@ C. 选项C
       unban: "解封",
       ban: "封禁",
       editHeading: "编辑用户",
-      editHint: "先在上面列表点击“编辑”自动带入。",
+      editHint: "先在上面列表点击`编辑`自动带入。",
       editable: "可修改",
-      newPassword: "新密码",
-      passwordPlaceholder: "留空不改",
       save: "保存修改"
     },
     questions: {
@@ -633,6 +647,8 @@ C. 选项C
       oauth: "OAuth 配置",
       systemPages: "系统页面",
       users: "用户",
+      aiConfig: "AI 配置",
+      adminTokens: "Admin Token",
       passwordLabel: "备份密码（可选）",
       passwordPlaceholder: "留空则不加密",
       exportBtn: "导出备份",
@@ -667,5 +683,11 @@ C. 选项C
     groupQuestionMissing: "第 {line} 行的 :::group 下面至少要包含一道 :::question",
     groupNestedUnsupported: "第 {line} 行的 :::group 内暂不支持再嵌套 :::group",
     noQuestionParsed: "没有解析到题目，请检查配置格式。"
+  },
+  highlighter: {
+    red: "红色荧光笔",
+    yellow: "黄色荧光笔",
+    green: "绿色荧光笔",
+    clear: "清除"
   }
 } as const;

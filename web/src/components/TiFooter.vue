@@ -61,12 +61,6 @@ onMounted(async () => {
             <span>{{ item.title }}</span>
           </RouterLink>
         </p>
-        <p>
-          <i class="fa fa-clock"></i>
-          <span>{{ t("footer.running") }}</span>
-          <span id="site-days">{{ siteDays }}</span>
-          <span>{{ t("common.days") }}</span>
-        </p>
       </div>
 
       <div class="column right firacode">

@@ -1,23 +1,22 @@
-// @ts-nocheck
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
-export function normalizeEmail(email) {
+export function normalizeEmail(email: string): string {
   return String(email ?? "").trim().toLowerCase();
 }
 
-export function buildGravatarUrl(email) {
+export function buildGravatarUrl(email: string): string {
   const normalized = normalizeEmail(email);
   const digest = createHash("md5").update(normalized).digest("hex");
   return `https://dn-qiniu-avatar.qbox.me/avatar/${digest}?d=identicon&s=128`;
 }
 
-export function hashPassword(password) {
+export function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
   const derived = scryptSync(String(password), salt, 64).toString("hex");
   return `${salt}:${derived}`;
 }
 
-export function verifyPassword(password, storedHash) {
+export function verifyPassword(password: string, storedHash: string): boolean {
   const [salt, hashHex] = String(storedHash ?? "").split(":");
   if (!salt || !hashHex) return false;
   const derived = scryptSync(String(password), salt, 64);

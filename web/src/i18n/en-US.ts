@@ -22,7 +22,6 @@ export const enUS = {
     open: "Open",
     yes: "Yes",
     no: "No",
-    days: "days",
     minutes: "minutes",
     hours: "hours",
     points: "pts",
@@ -42,8 +41,7 @@ export const enUS = {
     label: "Language",
     zhCN: "简体中文",
     enUS: "English",
-    jaJP: "日本語",
-    origin: "Origin"
+    jaJP: "日本語"
   },
   feedback: {
     defaultToastTitle: "Notice"
@@ -63,6 +61,7 @@ export const enUS = {
   },
   layout: {
     siteTitleSuffix: "Luogu Saver Quiz",
+    menu: "Menu",
     nav: {
       problemsets: "Problemsets",
       createProblemset: "Create",
@@ -75,8 +74,10 @@ export const enUS = {
       search: "Search problemsets",
       home: "Open luogu.me"
     },
-    themeToLight: "Switch to light mode",
-    themeToDark: "Switch to dark mode",
+    themeLabel: "Theme",
+    themeAuto: "Auto",
+    themeDark: "Dark",
+    themeLight: "Light",
     profile: "Profile",
     settings: "Settings",
     admin: "Admin",
@@ -85,7 +86,6 @@ export const enUS = {
   },
   footer: {
     copyright: "2025-2026 Luogu Saver Quiz",
-    running: "Site uptime",
     developers: "Developers: Federico2903 & Murasame & quanac-lcx",
     qqGroup: "User group: 1017248143 (click to join)",
     sponsor: "Powered by Rainyun"
@@ -126,6 +126,27 @@ export const enUS = {
     loading: "Loading page...",
     updatedAt: "Last updated: {time}",
     notFoundTitle: "404"
+  },
+  pageNotFound: {
+    title: "404 Page Not Found",
+    subtitle: "404",
+    heading: "404",
+    description: "This page was not found",
+    goHome: "Back to Home"
+  },
+  userNotFound: {
+    title: "User Not Found",
+    subtitle: "User Not Found",
+    heading: "User Not Found",
+    description: "This user does not exist or has been deleted.",
+    goHome: "Back to Home"
+  },
+  problemSetNotFound: {
+    title: "Problem Set Not Found",
+    subtitle: "Problem Set Not Found",
+    heading: "Problem Set Not Found",
+    description: "This problem set does not exist or has been removed.",
+    goHome: "Back to Home"
   },
   problemset: {
     types: {
@@ -203,11 +224,11 @@ int main() {
 \`\`\`
 [/material]
 
-:::question type=option score=2
+:::question type="option" score="2"
 [stem]
 If the input is \`3 4\`, what will be printed?
 [/stem]
-[options answer=B]
+[options answer="B"]
 A. 5
 B. 7
 C. 9
@@ -218,20 +239,20 @@ D. 11
 [/analysis]
 :::
 
-:::question type=input score=2
+:::question type="input" score="2"
 [stem]
 If \`x = a + b\` is changed to \`x = a * b\`, what will be printed for input \`3 4\`?
 [/stem]
-[input answer=12 placeholder="Write the exact output"]
+[input answer="12" placeholder="Write the exact output"]
 [/input]
 :::
 :::
 
-:::question type=option score=2.5
+:::question type="option" score="2.5"
 [stem]
 Question stem (Markdown / LaTeX supported)
 [/stem]
-[options answer=A,C]
+[options answer="A,C"]
 A. Option A
 B. Option B
 C. Option C
@@ -241,22 +262,22 @@ This is the explanation block. You can describe the solution idea or add related
 [/analysis]
 :::
 
-:::question type=input score=3
+:::question type="input" score="3"
 [stem]
 This is an input question stem with Markdown and LaTeX support. This sample intentionally has no explanation.
 [/stem]
-[input answer=42 placeholder="Optional hint for the expected format"]
+[input answer="42" placeholder="Optional hint for the expected format"]
 [/input]
 :::`,
       rules: {
-        item1: "Use :::question ... ::: for a normal question.",
-        item2: "Use [stem]...[/stem] for the stem. Markdown, LaTeX, and code blocks are supported.",
-        item3: "Use [options answer=A,C]...[/options] for multiple choice questions, with up to 26 options.",
-        item4: "Use [input answer=answer placeholder=\"hint\"][/input] for input questions.",
-        item5: "Use [analysis]...[/analysis] for optional explanations.",
-        item6: "Wrap a material group with :::group title=\"Read the program\" and place shared content inside [material]...[/material].",
-        item7: "A single :::group can contain many :::question blocks, which works well for reading-code style tasks.",
-        item8: "Nested groups may be buggy and are not officially tested yet."
+        item1: "Wrap each question with :::question at the start and ::: at the end.",
+        item2: "Place the stem inside [stem]...[/stem]. Markdown, LaTeX, and code blocks are supported.",
+        item3: "Multiple choice: wrap all options with [options answer=\"A,C\"]...[/options], one per line (e.g. A. option text), up to 26.",
+        item4: "Fill-in-the-blank: use [input answer=\"answer\" placeholder=\"hint\"][/input]. The placeholder is optional.",
+        item5: "Explanation (optional): wrap with [analysis]...[/analysis]. Markdown and LaTeX are supported.",
+        item6: "Material group: wrap with :::group title=\"Title\", place shared material inside [material]...[/material], then add :::question blocks.",
+        item7: "A single :::group can contain multiple :::question blocks, ideal for reading-code or fill-in-code tasks.",
+        item8: "Nested :::group inside :::group is not supported."
       },
       errors: {
         titleRequired: "Please enter a name.",
@@ -278,12 +299,6 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
       deleteMessage: "Delete this problemset permanently? This cannot be undone.",
       deleteConfirm: "Delete",
       idLabel: "Unique identifier (ID)",
-      materialSummary: "Material question syntax",
-      materialIntro: "Two styles are supported now:",
-      materialItem1: "Normal question: :::question ... :::",
-      materialItem2: "Material question: :::group title=\"Read the program\" + [material]...[/material] + multiple :::question blocks",
-      materialNote1: "This works well when many small questions share a long code snippet, such as CSP reading-code tasks.",
-      materialNote2: "The old single-question format is still supported and can be mixed with material groups.",
       previewEmpty: "Your config will render here in real time."
     },
     detail: {
@@ -350,6 +365,8 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
       saveTraining: "Save practice record"
     },
     ai: {
+      modelLabel: "AI Model",
+      longPressHint: "{seconds}s",
       panelTitle: "{question}",
       hintOption: "View AI hint",
       solutionOption: "View AI solution",
@@ -424,6 +441,10 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
     aiQuotaUnlimited: "{used} used today, unlimited",
     coverUrl: "Profile cover URL",
     coverPlaceholder: "Leave empty to use the default cover",
+    highlighterTitle: "Highlighter toolbar",
+    highlighterDesc: "Show the highlighter floating toolbar when selecting text in question content.",
+    highlighterShow: "Show",
+    highlighterHide: "Hide",
     coverDesc: "Only http(s) URLs are supported.",
     clearCover: "Clear cover image",
     save: "Save settings",
@@ -590,8 +611,6 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
       editHeading: "Edit user",
       editHint: "Click Edit in the list above to populate this form.",
       editable: "Editable",
-      newPassword: "New password",
-      passwordPlaceholder: "Leave empty to keep unchanged",
       save: "Save changes"
     },
     questions: {
@@ -633,6 +652,8 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
       oauth: "OAuth Config",
       systemPages: "System Pages",
       users: "Users",
+      aiConfig: "AI Config",
+      adminTokens: "Admin Tokens",
       passwordLabel: "Backup password (optional)",
       passwordPlaceholder: "Leave empty for no encryption",
       exportBtn: "Export Backup",
@@ -667,5 +688,11 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
     groupQuestionMissing: ":::group at line {line} must contain at least one :::question",
     groupNestedUnsupported: "Nested :::group blocks are not supported inside the :::group at line {line}",
     noQuestionParsed: "No questions were parsed. Please check the config format."
+  },
+  highlighter: {
+    red: "Red highlighter",
+    yellow: "Yellow highlighter",
+    green: "Green highlighter",
+    clear: "Clear"
   }
 } as const;

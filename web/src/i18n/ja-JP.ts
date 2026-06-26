@@ -25,7 +25,6 @@ export const jaJP = {
     open: "開く",
     yes: "はい",
     no: "いいえ",
-    days: "日",
     minutes: "分",
     hours: "時間",
     points: "点",
@@ -45,8 +44,7 @@ export const jaJP = {
     label: "言語",
     zhCN: "简体中文",
     enUS: "English",
-    jaJP: "日本語",
-    origin: "Origin"
+    jaJP: "日本語"
   },
   feedback: {
     defaultToastTitle: "通知"
@@ -81,8 +79,10 @@ export const jaJP = {
       search: "問題セットを検索",
       home: "luogu.me を開く"
     },
-    themeToLight: "ライトモードに切り替え",
-    themeToDark: "ダークモードに切り替え",
+    themeLabel: "テーマ",
+    themeAuto: "自動",
+    themeDark: "ダーク",
+    themeLight: "ライト",
     profile: "プロフィール",
     settings: "設定",
     admin: "管理",
@@ -91,7 +91,6 @@ export const jaJP = {
   },
   footer: {
     ...enUS.footer,
-    running: "稼働日数",
     developers: "開発者: Federico2903 & Murasame & quanac-lcx",
     qqGroup: "ユーザーグループ: 1017248143（クリックで参加）",
     sponsor: "Rainyun 提供"
@@ -128,8 +127,34 @@ export const jaJP = {
     loading: "ページを読み込み中...",
     updatedAt: "最終更新: {time}"
   },
+  pageNotFound: {
+    title: "404",
+    subtitle: "404",
+    heading: "404",
+    description: "該当ページが見つかりません",
+    goHome: "ホームに戻る"
+  },
+  userNotFound: {
+    title: "ユーザーが見つかりません",
+    subtitle: "ユーザーが見つかりません",
+    heading: "ユーザーが見つかりません",
+    description: "このユーザーは存在しないか、削除されました。",
+    goHome: "ホームに戻る"
+  },
+  problemSetNotFound: {
+    title: "問題セットが見つかりません",
+    subtitle: "問題セットが見つかりません",
+    heading: "問題セットが見つかりません",
+    description: "この問題セットは存在しないか、削除されました。",
+    goHome: "ホームに戻る"
+  },
   problemset: {
     ...enUS.problemset,
+    ai: {
+      ...enUS.problemset.ai,
+      modelLabel: "AI モデル",
+      longPressHint: "{seconds}秒",
+    },
     types: {
       ...enUS.problemset.types,
       officialPublic: "公式公開",
@@ -178,6 +203,16 @@ export const jaJP = {
       ...enUS.problemset.create,
       title: "問題セット作成",
       heading: "問題セットを作成",
+      rules: {
+        item1: "各問題は :::question で開始し、::: で終了します。",
+        item2: "問題文は [stem]...[/stem] 内に記述します。Markdown、LaTeX、コードブロックに対応しています。",
+        item3: "選択式：全選択肢を [options answer=\"A,C\"]...[/options] で囲み、1 行に 1 つ（例: A. 選択肢テキスト）、最大 26 個まで。",
+        item4: "記述式：[input answer=\"解答\" placeholder=\"ヒント\"][/input] で定義します。placeholder は省略可能です。",
+        item5: "解説（省略可）：[analysis]...[/analysis] で囲みます。Markdown と LaTeX に対応しています。",
+        item6: "資料問題：:::group title=\"タイトル\" で囲み、[material]...[/material] で共有資料を配置し、その後に :::question を並べます。",
+        item7: "1 つの :::group 内に複数の :::question を含めることができ、読解問題などに適しています。",
+        item8: ":::group のネスト（入れ子）はサポートされていません。"
+      },
       adminIdPlaceholder: "管理者はカスタム ID を指定できます。空欄なら自動採番されます。",
       namePlaceholder: "名前を入力",
       descriptionPlaceholder: "例: 読解、穴埋め、選択式を含む 25 問構成。",
@@ -295,6 +330,10 @@ export const jaJP = {
     aiModelTitle: "既定の AI モデル",
     aiModelDesc: "AI のヒントと解説に使用します。新規アカウントでは管理画面で設定されたシステム既定モデルが自動選択されます。",
     aiQuotaLimited: "本日の残り {remaining} / {limit} 回、使用済み {used} 回",
+    highlighterTitle: "蛍光ペンツールバー",
+    highlighterDesc: "問題文のテキストを選択したときに蛍光ペンツールバーを表示します。",
+    highlighterShow: "表示する",
+    highlighterHide: "非表示",
     aiQuotaUnlimited: "本日の使用 {used} 回、回数制限なし",
     clearCover: "カバー画像をクリア",
     save: "設定を保存"
@@ -453,8 +492,6 @@ export const jaJP = {
       editHeading: "ユーザーを編集",
       editHint: "上の一覧で「編集」をクリックすると自動入力されます。",
       editable: "編集可能",
-      newPassword: "新しいパスワード",
-      passwordPlaceholder: "空欄のままなら変更なし",
       save: "変更を保存"
     },
     questions: {
@@ -496,6 +533,8 @@ export const jaJP = {
       oauth: "OAuth 設定",
       systemPages: "システムページ",
       users: "ユーザー",
+      aiConfig: "AI 設定",
+      adminTokens: "管理トークン",
       passwordLabel: "バックアップパスワード（任意）",
       passwordPlaceholder: "空欄の場合は暗号化なし",
       exportBtn: "バックアップをエクスポート",
@@ -515,6 +554,12 @@ export const jaJP = {
       noFileSelected: "先にバックアップファイルを選択してください。",
       invalidJson: "バックアップファイルの形式が無効です。JSON を解析できません。"
     }
+  },
+  highlighter: {
+    red: "赤色蛍光ペン",
+    yellow: "黄色蛍光ペン",
+    green: "緑色蛍光ペン",
+    clear: "クリア"
   },
   parser: {
     ...enUS.parser

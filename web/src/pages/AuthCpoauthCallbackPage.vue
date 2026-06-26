@@ -7,7 +7,7 @@ import { clearAdminTokenSession, redeemCpoauthTicket, saveLocalUser } from "../a
 import { BANNED_ROUTE_PATH, isBannedMessage } from "../utils/authRedirect";
 import { useAppLocale } from "../i18n";
 import type { AppLocale } from "../i18n/messages";
-import { toggleThemeMode, useThemeMode } from "../theme/useTheme";
+import { setThemeMode, nextThemeMode, useThemeMode } from "../theme/useTheme";
 
 const route = useRoute();
 const router = useRouter();
@@ -19,15 +19,17 @@ const message = ref(t("auth.callbackProcessing"));
 const error = ref("");
 
 const currentThemeIconClass = computed(() => {
+  if (themeMode.value === "auto") return "fa-solid fa-desktop";
   return themeMode.value === "dark" ? "fa-regular fa-moon" : "fa-regular fa-sun";
 });
 
 const currentThemeLabel = computed(() => {
+  if (themeMode.value === "auto") return t("layout.themeAuto");
   return themeMode.value === "dark" ? t("layout.themeDark") : t("layout.themeLight");
 });
 
 function handleThemeToggle() {
-  toggleThemeMode();
+  setThemeMode(nextThemeMode(themeMode.value));
 }
 
 function handleLocaleChange(event: Event) {

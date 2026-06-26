@@ -18,6 +18,7 @@ export interface AuthUser {
   aiModelId?: string;
   submissionAnalysisMode?: "none" | "wrong_only" | "all";
   autosaveIntervalSeconds?: AutosaveIntervalSeconds;
+  highlighterEnabled?: boolean;
   createdAt: string;
 }
 
@@ -32,6 +33,7 @@ interface MySettingsResponse {
     submissionAnalysisMode: "none" | "wrong_only" | "all";
     autosaveIntervalSeconds: AutosaveIntervalSeconds;
     aiModelId: string;
+    highlighterEnabled: boolean;
   };
   user: AuthUser;
 }
@@ -125,6 +127,7 @@ export async function updateMySettings(payload: {
   submissionAnalysisMode: "none" | "wrong_only" | "all";
   autosaveIntervalSeconds: AutosaveIntervalSeconds;
   aiModelId: string;
+  highlighterEnabled: boolean;
 }): Promise<{ settings: MySettingsResponse["settings"]; user: AuthUser }> {
   const me = loadLocalUser();
   const result = await fetch(`${apiBaseUrl}/api/users/_me/settings`, {

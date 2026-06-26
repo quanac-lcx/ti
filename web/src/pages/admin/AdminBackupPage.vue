@@ -13,7 +13,8 @@ const exportSelections = reactive<BackupSelections>({
   problemsets: true,
   oauth: true,
   systemPages: true,
-  users: true
+  users: true,
+  aiConfig: true
 });
 
 const exportPassword = ref("");
@@ -22,7 +23,8 @@ const restoreSelections = reactive<BackupSelections>({
   problemsets: true,
   oauth: true,
   systemPages: true,
-  users: true
+  users: true,
+  aiConfig: true
 });
 
 const restorePassword = ref("");
@@ -132,6 +134,10 @@ async function handleRestore() {
               <input v-model="exportSelections.users" type="checkbox" />
               <span>{{ t("admin.backup.users") }}</span>
             </label>
+            <label class="backup-checkbox">
+              <input v-model="exportSelections.aiConfig" type="checkbox" />
+              <span>{{ t("admin.backup.aiConfig") }}</span>
+            </label>
           </fieldset>
 
           <label>
@@ -184,6 +190,10 @@ async function handleRestore() {
             <label class="backup-checkbox">
               <input v-model="restoreSelections.users" type="checkbox" />
               <span>{{ t("admin.backup.users") }}</span>
+            </label>
+            <label class="backup-checkbox">
+              <input v-model="restoreSelections.aiConfig" type="checkbox" />
+              <span>{{ t("admin.backup.aiConfig") }}</span>
             </label>
           </fieldset>
         </div>

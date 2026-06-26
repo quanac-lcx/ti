@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import NotFoundPage from "./pages/NotFoundPage.vue";
 import ProblemsetPage from "./pages/ProblemsetPage.vue";
 import ProblemsetSearchPage from "./pages/ProblemsetSearchPage.vue";
 import ProblemsetCreatePage from "./pages/ProblemsetCreatePage.vue";
@@ -20,17 +21,7 @@ import AdminSystemPagesPage from "./pages/admin/AdminSystemPagesPage.vue";
 import AdminBackupPage from "./pages/admin/AdminBackupPage.vue";
 import { loadLocalUser } from "./api/auth";
 import { BANNED_ROUTE_PATH } from "./utils/authRedirect";
-
-function readCurrentUid() {
-  const raw = localStorage.getItem("ti.user");
-  if (!raw) return "";
-  try {
-    const parsed = JSON.parse(raw) as { uid?: string };
-    return String(parsed.uid ?? "").trim();
-  } catch {
-    return "";
-  }
-}
+import { readLocalUid } from "./utils/shared";
 
 const routes: RouteRecordRaw[] = [
   { path: "/", redirect: "/problemset" },
@@ -48,7 +39,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: "/user/_me",
     redirect: () => {
-      const uid = readCurrentUid();
+      const uid = readLocalUid();
       return uid ? `/user/${uid}` : "/auth/login";
     }
   },
@@ -67,7 +58,8 @@ const routes: RouteRecordRaw[] = [
       { path: "backup", component: AdminBackupPage }
     ]
   },
-  { path: "/web/admin", redirect: "/admin" }
+  { path: "/web/admin", redirect: "/admin" },
+  { path: "/:pathMatch(.*)*", component: NotFoundPage }
 ];
 
 export const router = createRouter({

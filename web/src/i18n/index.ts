@@ -10,12 +10,11 @@ let initialized = false;
 export const localeOptions: Array<{ value: AppLocale; labelKey: string }> = [
   { value: "zh-CN", labelKey: "locale.zhCN" },
   { value: "en-US", labelKey: "locale.enUS" },
-  { value: "ja-JP", labelKey: "locale.jaJP" },
-  { value: "origin", labelKey: "locale.origin" }
+  { value: "ja-JP", labelKey: "locale.jaJP" }
 ];
 
 function isSupportedLocale(value: string): value is AppLocale {
-  return value === "zh-CN" || value === "en-US" || value === "ja-JP" || value === "origin";
+  return value === "zh-CN" || value === "en-US" || value === "ja-JP";
 }
 
 function readStoredLocale(): AppLocale | null {

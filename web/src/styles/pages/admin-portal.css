@@ -346,3 +346,40 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .admin-shell {
+    gap: 10px;
+  }
+
+  .admin-card {
+    padding: 12px;
+  }
+
+  .admin-head {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-head h2 {
+    font-size: 18px;
+  }
+
+  .admin-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-form-grid.two-col {
+    gap: 10px;
+  }
+
+  .admin-table {
+    font-size: 12px;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 6px 8px;
+  }
+}

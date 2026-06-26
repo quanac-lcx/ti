@@ -55,3 +55,17 @@
 .auth-callback-page .back:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 640px) {
+  .auth-callback-page.callback-wrap {
+    padding: 16px 8px;
+  }
+
+  .auth-callback-page .callback-card {
+    padding: 20px 16px;
+  }
+
+  .auth-callback-page .callback-card h2 {
+    font-size: 20px;
+  }
+}

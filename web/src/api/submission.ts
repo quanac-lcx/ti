@@ -1,4 +1,5 @@
 import { apiBaseUrl, apiGet, apiPost } from "../api";
+import { userAuthHeaders } from "../utils/shared";
 
 export interface SubmissionRecord {
   id: number;
@@ -58,23 +59,6 @@ export class ActiveExamConflictError extends Error {
   }
 }
 
-function authHeaders() {
-  const raw = localStorage.getItem("ti.user");
-  let user: { uid?: string } | null = null;
-  if (raw) {
-    try {
-      user = JSON.parse(raw) as { uid?: string };
-    } catch {
-      localStorage.removeItem("ti.user");
-      user = null;
-    }
-  }
-  return {
-    "Content-Type": "application/json",
-    ...(user?.uid ? { "x-user-uid": user.uid } : {})
-  };
-}
-
 export async function fetchProblemsetSubmissions(problemsetId: number): Promise<ProblemsetSubmissionListResponse> {
   return apiGet<ProblemsetSubmissionListResponse>(`/api/problemsets/${problemsetId}/submissions`);
 }
@@ -87,7 +71,10 @@ export async function fetchSubmissionDetail(submissionId: number): Promise<Submi
 export async function startExamSubmission(problemsetId: number, forceNew = false): Promise<SubmissionDetail> {
   const response = await fetch(`${apiBaseUrl}/api/problemsets/${problemsetId}/exam/start`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: {
+      "Content-Type": "application/json",
+      ...userAuthHeaders()
+    },
     body: JSON.stringify({ forceNew })
   });
   const payload = await response.json().catch(() => ({}));

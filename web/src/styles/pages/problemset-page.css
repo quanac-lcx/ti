@@ -8,12 +8,12 @@
   gap: 12px;
   flex-wrap: wrap;
 }
-
-.problemset-page .tabs,
-.problemset-page .toolbar-actions,
-.problemset-search-page .toolbar-actions {
+actions {
   display: flex;
   gap: 8px;
+.problemset-page .tabs,
+.problemset-page .toolbar-actions,
+.problemset-search-page .toolbar-
   flex-wrap: wrap;
   align-items: center;
 }
@@ -271,5 +271,55 @@
 
   .problemset-search-page .search-desc {
     white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .problemset-page .toolbar,
+  .problemset-search-page .toolbar {
+    padding: 8px 12px 0;
+    margin-bottom: 8px;
+  }
+
+  .problemset-page .tab,
+  .problemset-search-page .tab {
+    min-width: 90px;
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .problemset-page .create-btn,
+  .problemset-search-page .create-btn {
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .problemset-page .row,
+  .problemset-search-page .row {
+    grid-template-columns: 64px 1fr auto;
+    min-height: 42px;
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .problemset-page .id,
+  .problemset-search-page .id {
+    font-size: 15px;
+  }
+
+  .problemset-page .title,
+  .problemset-search-page .title {
+    font-size: 14px;
+  }
+
+  .problemset-search-page .search-row {
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .problemset-search-page .search-meta {
+    grid-column: 2 / 4;
   }
 }

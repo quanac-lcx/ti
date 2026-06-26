@@ -331,7 +331,7 @@ function toRootUser() {
     recordsPublic: false,
     aiModelId: "",
     autosaveIntervalSeconds: 30,
-    createdAt: new Date().toISOString()
+    createdAt: "1970-01-01T00:00:00.000Z"
   };
 }
 
@@ -1366,7 +1366,7 @@ export function buildRouter() {
       const problemsetType = normalizeProblemsetType(typeRaw) || PROBLEMSET_TYPES.official_public;
 
       if (!user.is_admin && (problemsetType === PROBLEMSET_TYPES.official_public || problemsetType === PROBLEMSET_TYPES.personal_featured)) {
-        return res.status(403).json({ error: "鏅€氱敤鎴蜂粎鍙垱寤轰釜浜哄叕寮€/涓汉绉佹湁棰樼洰" });
+        return res.status(403).json({ error: "普通用户仅可创建个人公开/个人私有题目" });
       }
 
       if (!title) {
@@ -1528,7 +1528,7 @@ export function buildRouter() {
     }
 
     if (!actor.is_admin && (nextType === PROBLEMSET_TYPES.official_public || nextType === PROBLEMSET_TYPES.personal_featured)) {
-      return res.status(403).json({ error: "鏅€氱敤鎴蜂粎鍙缃釜浜哄叕寮€/涓汉绉佹湁" });
+      return res.status(403).json({ error: "普通用户仅可设置个人公开/个人私有" });
     }
 
     const parsed = parseQuestionConfig(questionConfig);
@@ -3056,7 +3056,7 @@ export function buildRouter() {
     const [countRows] = await dbPool.query("SELECT COUNT(*) AS cnt FROM admin_tokens");
     const count = Number(countRows?.[0]?.cnt ?? 0);
     if (count >= 2) {
-      return res.status(400).json({ error: "鏈€澶氬彧鑳戒繚鐣?2 涓?admin token" });
+      return res.status(400).json({ error: "最多只能保留 2 个 admin token" });
     }
 
     let createdToken = "";
