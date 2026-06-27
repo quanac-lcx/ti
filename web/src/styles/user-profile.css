@@ -313,3 +313,56 @@
     padding: 16px;
   }
 }
+
+@media (max-width: 640px) {
+  .profile-root {
+    gap: 10px;
+  }
+
+  .profile-root .left-col,
+  .profile-root .right-col {
+    gap: 8px;
+  }
+
+  .profile-root .card:not(.ti-card) {
+    padding: 10px;
+  }
+
+  .profile-root .cover {
+    height: 80px;
+  }
+
+  .profile-root .profile-body {
+    padding: 12px;
+    gap: 10px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-root .profile-body img {
+    width: 56px;
+    height: 56px;
+    margin-top: -36px;
+  }
+
+  .profile-root .name {
+    font-size: 16px;
+  }
+
+  .profile-root .tab {
+    min-width: 80px;
+    height: 30px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .profile-root .record-head {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 6px 8px;
+  }
+
+  .profile-root .record-title {
+    font-size: 14px;
+  }
+}

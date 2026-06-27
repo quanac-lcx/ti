@@ -14,7 +14,8 @@ const navItems = computed(() => [
   { to: "/admin/problemsets", label: t("admin.nav.problemsets") },
   { to: "/admin/questions", label: t("admin.nav.questions") },
   { to: "/admin/oauth", label: t("admin.nav.oauth") },
-  { to: "/admin/system-pages", label: t("admin.nav.systemPages") }
+  { to: "/admin/system-pages", label: t("admin.nav.systemPages") },
+  { to: "/admin/backup", label: t("admin.nav.backup") }
 ]);
 
 const pageTitle = computed(() => {
@@ -22,6 +23,7 @@ const pageTitle = computed(() => {
   if (route.path.startsWith("/admin/questions")) return t("admin.titles.questions");
   if (route.path.startsWith("/admin/oauth")) return t("admin.titles.oauth");
   if (route.path.startsWith("/admin/system-pages")) return t("admin.titles.systemPages");
+  if (route.path.startsWith("/admin/backup")) return t("admin.titles.backup");
   return t("admin.titles.users");
 });
 </script>

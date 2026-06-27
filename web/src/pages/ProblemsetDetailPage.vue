@@ -1,5 +1,5 @@
 ﻿<script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
@@ -13,6 +13,11 @@ import {
   type SubmissionRecord
 } from "../api/submission";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
+import { formatDate, normalizeOptionAnswer, isMultipleQuestion as isMulti } from "../utils/shared";
+import AiAssistPanel from "../components/AiAssistPanel.vue";
+import NotFoundMessage from "../components/NotFoundMessage.vue";
+import HighlightToolbar from "../components/HighlightToolbar.vue";
+import { useTextHighlighter } from "../composables/useTextHighlighter";
 
 type DetailTab = "description" | "question" | "history";
 
@@ -22,6 +27,7 @@ const { t } = useI18n();
 const currentUser = loadLocalUser();
 
 const loading = ref(true);
+const detailError = ref("");
 const detail = ref<ProblemsetDetail | null>(null);
 const activeTab = ref<DetailTab>("description");
 const selectedQuestionIndex = ref(0);
@@ -35,6 +41,22 @@ const historyCollapsed = ref(false);
 const showExamConflictModal = ref(false);
 const submissionAnalysisMode = ref<"none" | "wrong_only" | "all">("none");
 const historyAnalysisVisible = ref<Record<string, boolean>>({});
+const highlighterEnabled = ref(true);
+
+const questionBodyCardEl = ref<HTMLElement | null>(null);
+const historyBodyCardEl = ref<HTMLElement | null>(null);
+const {
+  toolbarState,
+  bindContainer,
+  unbindContainer,
+  applyHighlight,
+  clearHighlight,
+  dismissToolbar
+} = useTextHighlighter();
+
+onUnmounted(() => {
+  unbindContainer();
+});
 
 const problemsetId = computed(() => {
   const parsed = Number(route.params.id);
@@ -100,33 +122,8 @@ function questionMaterialTitle(question: ProblemQuestion) {
   return question.groupTitle?.trim() || t("problemset.detail.sharedMaterial");
 }
 
-function normalizeOptionAnswer(raw: string) {
-  return Array.from(
-    new Set(
-      String(raw ?? "")
-        .split(",")
-        .map((item) => item.trim().toUpperCase())
-        .filter((item) => /^[A-Z]$/.test(item))
-    )
-  )
-    .sort()
-    .join(",");
-}
-
 function isMultipleQuestion(question: ProblemQuestion) {
-  return normalizeOptionAnswer(question.answer).includes(",");
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "--";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mi = String(date.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
+  return isMulti(question.answer);
 }
 
 function isHistoryOptionChecked(question: ProblemQuestion, optionKey: string) {
@@ -254,19 +251,28 @@ async function loadSubmissions() {
 
 async function loadDetail() {
   loading.value = true;
+  detailError.value = "";
   if (currentUser?.uid) {
     try {
       const settings = await getMySettings();
       const mode = String(settings.submissionAnalysisMode ?? "none");
       submissionAnalysisMode.value = mode === "wrong_only" || mode === "all" ? mode : "none";
+      highlighterEnabled.value = Boolean(settings.highlighterEnabled ?? true);
     } catch {
       submissionAnalysisMode.value = "none";
+      highlighterEnabled.value = true;
     }
   } else {
     submissionAnalysisMode.value = "none";
   }
 
-  detail.value = await problemsetApi.detail(problemsetId.value);
+  try {
+    detail.value = await problemsetApi.detail(problemsetId.value);
+  } catch (err) {
+    detailError.value = String((err as Error)?.message ?? err);
+    loading.value = false;
+    return;
+  }
   selectedQuestionIndex.value = 0;
   activeTab.value = "description";
   answerVisible.value = false;
@@ -326,6 +332,17 @@ watch(
     await openSubmission(submissionId, true, false);
   }
 );
+
+// Rebind highlighter when switching to question/history tabs
+watch([activeTab, selectedQuestionIndex, selectedSubmission], async () => {
+  unbindContainer();
+  await nextTick();
+  if (!highlighterEnabled.value) return;
+  const target = activeTab.value === "history" ? historyBodyCardEl.value : questionBodyCardEl.value;
+  if (target) {
+    bindContainer(target);
+  }
+});
 </script>
 
 <template>
@@ -336,7 +353,8 @@ watch(
     :loading="loading"
     :loading-label="t('problemset.detail.loading')"
   >
-    <div v-if="detail && !loading" class="problemset-detail-page page-shell">
+    <NotFoundMessage v-if="detailError && !loading" i18n-prefix="problemSetNotFound" />
+    <div v-else-if="detail && !loading" class="problemset-detail-page page-shell">
       <section class="problemset-detail-summary panel-card">
         <div class="problemset-detail-actions">
           <button class="action-btn action-btn-primary" type="button" @click="goExam">{{ t("problemset.detail.exam") }}</button>
@@ -375,8 +393,15 @@ watch(
             <div class="luogu-markdown" v-html="descriptionHtml"></div>
           </div>
 
-          <div v-else-if="activeTab === 'question' && currentQuestion" class="panel-card body-card">
-            <h3 class="question-title">{{ t("problemset.common.questionNumber", { index: currentQuestion.index }) }}</h3>
+          <div v-else-if="activeTab === 'question' && currentQuestion" ref="questionBodyCardEl" class="panel-card body-card">
+            <div class="question-head">
+              <h3 class="question-title">{{ t("problemset.common.questionNumber", { index: currentQuestion.index }) }}</h3>
+              <AiAssistPanel
+                :question="currentQuestion"
+                :question-label="t('problemset.common.questionNumber', { index: currentQuestion.index })"
+                mode="hint-and-solution"
+              />
+            </div>
             <div v-if="currentQuestion.sharedMaterial" class="shared-material-block">
               <div class="shared-material-title">
                 {{ questionMaterialTitle(currentQuestion) }}
@@ -418,7 +443,7 @@ watch(
             </div>
           </div>
 
-          <div v-else-if="activeTab === 'history' && selectedSubmission" class="panel-card body-card">
+          <div v-else-if="activeTab === 'history' && selectedSubmission" ref="historyBodyCardEl" class="panel-card body-card">
             <article
               v-for="(question, index) in detail.questions"
               :id="`history-question-${question.id}`"
@@ -429,14 +454,28 @@ watch(
                 <div class="shared-material-title">{{ questionMaterialTitle(question) }}</div>
                 <div class="shared-material-content luogu-markdown" v-html="renderMd(question.sharedMaterial)"></div>
               </div>
-              <h3 class="history-question-title" :class="historyQuestionTitleClass(question)">
-                {{ t("problemset.common.questionNumber", { index: question.index }) }}
-                <span v-if="question.groupQuestionIndex">
-                  · {{ question.groupQuestionIndex }}
-                  <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
-                  {{ t("problemset.common.subQuestion") }}
-                </span>
-              </h3>
+              <div class="question-head">
+                <h3 class="history-question-title" :class="historyQuestionTitleClass(question)">
+                  {{ t("problemset.common.questionNumber", { index: question.index }) }}
+                  <span v-if="question.groupQuestionIndex">
+                    · {{ question.groupQuestionIndex }}
+                    <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
+                    {{ t("problemset.common.subQuestion") }}
+                  </span>
+                </h3>
+                <AiAssistPanel
+                  :question="question"
+                  :question-label="t('problemset.common.questionNumber', { index: question.index })"
+                  mode="hint-and-solution"
+                  :history-context="{
+                    userAnswer: submissionResultMap[question.id]?.userAnswer,
+                    standardAnswer: submissionResultMap[question.id]?.standardAnswer || question.answer,
+                    earned: submissionResultMap[question.id]?.earned ?? 0,
+                    score: question.score,
+                    correct: submissionResultMap[question.id]?.correct ?? false
+                  }"
+                />
+              </div>
               <div class="question-stem luogu-markdown" v-html="renderMd(question.stem)"></div>
 
               <div v-if="question.type === 'option'" class="detail-option-list">
@@ -468,6 +507,7 @@ watch(
         </div>
 
         <aside class="right-column">
+          <div id="ai-sidebar-panel" class="ai-sidebar-target"></div>
           <div v-if="hasHistory" class="panel-card history-card">
             <div class="history-main-score">{{ selectedSubmission?.score ?? submissions[0]?.score ?? 0 }} {{ t("common.points") }}</div>
             <p class="history-date">{{ t("problemset.detail.submittedAt", { time: formatDate(selectedSubmission?.submittedAt ?? submissions[0]?.submittedAt) }) }}</p>
@@ -519,5 +559,13 @@ watch(
         </div>
       </div>
     </div>
+    <HighlightToolbar
+      :x="toolbarState.x"
+      :y="toolbarState.y"
+      :visible="toolbarState.visible"
+      @highlight="applyHighlight"
+      @clear="clearHighlight"
+      @close="dismissToolbar"
+    />
   </TiLayout>
 </template>

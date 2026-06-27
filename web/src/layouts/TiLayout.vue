@@ -7,7 +7,7 @@ import UiLoadingBar from "../components/UiLoadingBar.vue";
 import { clearLocalUser, loadLocalUser, type AuthUser } from "../api/auth";
 import { useAppLocale } from "../i18n";
 import type { AppLocale } from "../i18n/messages";
-import { toggleThemeMode, useThemeMode } from "../theme/useTheme";
+import { setThemeMode, nextThemeMode, useThemeMode } from "../theme/useTheme";
 
 interface LayoutProps {
   title?: string;
@@ -41,6 +41,7 @@ const router = useRouter();
 const { t } = useI18n();
 const sidebarCollapsed = ref(true);
 const manualToggle = ref(false);
+const mobileMenuOpen = ref(false);
 const currentUser = ref<AuthUser | null>(null);
 
 const { currentLocale, localeOptions, setLocale } = useAppLocale();
@@ -118,6 +119,14 @@ function handleManualExpand() {
   sidebarCollapsed.value = false;
 }
 
+function toggleMobileMenu() {
+  mobileMenuOpen.value = !mobileMenuOpen.value;
+}
+
+function closeMobileMenu() {
+  mobileMenuOpen.value = false;
+}
+
 function goProfile() {
   if (!currentUser.value?.uid) {
     router.push("/auth/login");
@@ -141,15 +150,17 @@ function logout() {
 }
 
 const currentThemeIconClass = computed(() => {
+  if (themeMode.value === "auto") return "fa-solid fa-desktop";
   return themeMode.value === "dark" ? "fa-regular fa-moon" : "fa-regular fa-sun";
 });
 
 const currentThemeLabel = computed(() => {
+  if (themeMode.value === "auto") return t("layout.themeAuto");
   return themeMode.value === "dark" ? t("layout.themeDark") : t("layout.themeLight");
 });
 
 function handleThemeToggle() {
-  toggleThemeMode();
+  setThemeMode(nextThemeMode(themeMode.value));
 }
 
 function handleLocaleChange(event: Event) {
@@ -175,18 +186,23 @@ watch(
 </script>
 
 <template>
-  <div class="ti">
+  <div class="ti" :class="{ 'mobile-nav-open': mobileMenuOpen }">
+    <!-- Mobile backdrop -->
+    <div v-if="mobileMenuOpen" class="mobile-backdrop" @click="closeMobileMenu"></div>
+
     <aside
       class="side"
-      :class="{ collapsed: sidebarCollapsed }"
+      :class="{ collapsed: sidebarCollapsed, 'mobile-open': mobileMenuOpen }"
       @mouseenter="handleMouseEnter"
       @mouseleave="handleMouseLeave"
     >
       <div class="brand">
         <div class="logo">
-          <img src="https://lgs-cdn.cn-nb1.rains3.com/luogu-saver/logo-icon.png" :alt="t('common.appName')" />
+          <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" :aria-label="t('common.appName')" role="img">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M16.5595 0L16.2797 1.9926L16.2788 2.00192L13.3661 21.0724L32 29.8647L31.2365 31.5774L31.0491 32H0L0.275114 30.0093L0.27696 29.999L4.8679 0H16.5595ZM12.0976 29.3917H24.9043L12.9571 23.7544L12.0976 29.3917ZM2.96071 29.3917H9.5062L10.5402 22.6135L4.43321 19.7338L2.96071 29.3917ZM4.84311 17.0527L10.9501 19.9325L13.5951 2.60828H7.04864L4.84311 17.0527Z" fill="#4f6ff2" transform="translate(4 4) scale(0.75)" />
+          </svg>
         </div>
-        <div v-show="!sidebarCollapsed" class="brand-text">{{ t("common.appName") }}</div>
+        <div v-show="!sidebarCollapsed || mobileMenuOpen" class="brand-text">{{ t("common.appName") }}</div>
       </div>
 
       <nav class="nav">
@@ -198,9 +214,10 @@ watch(
             class="nav-item"
             target="_blank"
             rel="noopener noreferrer"
+            @click="closeMobileMenu"
           >
             <div class="icon"><i :class="item.iconClass"></i></div>
-            <div v-show="!sidebarCollapsed" class="text">{{ item.label }}</div>
+            <div v-show="!sidebarCollapsed || mobileMenuOpen" class="text">{{ item.label }}</div>
           </a>
           <RouterLink
             v-else
@@ -208,9 +225,10 @@ watch(
             :title="item.title"
             class="nav-item"
             :class="{ active: route.path === item.to }"
+            @click="closeMobileMenu"
           >
             <div class="icon"><i :class="item.iconClass"></i></div>
-            <div v-show="!sidebarCollapsed" class="text">{{ item.label }}</div>
+            <div v-show="!sidebarCollapsed || mobileMenuOpen" class="text">{{ item.label }}</div>
           </RouterLink>
         </template>
       </nav>
@@ -226,7 +244,17 @@ watch(
 
     <div class="main">
       <header v-if="props.showTopBar" class="top">
-        <div class="crumb">{{ props.subtitle }}</div>
+        <div class="top-left">
+          <button
+            type="button"
+            class="hamburger-btn"
+            :aria-label="t('layout.menu')"
+            @click="toggleMobileMenu"
+          >
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="crumb">{{ props.subtitle }}</div>
+        </div>
 
         <div class="top-actions">
           <label class="locale-control top-control">

@@ -311,3 +311,17 @@
     flex-direction: column;
   }
 }
+
+@media (max-width: 640px) {
+  :is(.problemset-create-page, .problemset-edit-page) {
+    gap: 10px;
+  }
+
+  :is(.problemset-create-page, .problemset-edit-page) .create-main {
+    padding: 14px;
+  }
+
+  :is(.problemset-create-page, .problemset-edit-page) h2 {
+    font-size: 20px;
+  }
+}

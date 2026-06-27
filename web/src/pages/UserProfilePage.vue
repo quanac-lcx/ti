@@ -8,6 +8,8 @@ import { problemsetApi, type ProblemsetSummary } from "../api/problemset";
 import { fetchActiveExam, fetchUserSubmissions, type SubmissionRecord } from "../api/submission";
 import TiLayout from "../layouts/TiLayout.vue";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
+import { formatDate } from "../utils/shared";
+import NotFoundMessage from "../components/NotFoundMessage.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -73,18 +75,6 @@ function problemsetTypeLabel(type: ProblemsetSummary["problemsetType"]) {
   if (type === "personal_featured") return t("problemset.types.personalFeatured");
   if (type === "personal_public") return t("problemset.types.personalPublic");
   return t("problemset.types.personalPrivate");
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) return "--";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  const hh = String(date.getHours()).padStart(2, "0");
-  const mi = String(date.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${mi}`;
 }
 
 function openSubmission(record: SubmissionRecord) {
@@ -186,7 +176,7 @@ watch(() => route.params.uid, loadPage);
         </UiCard>
 
         <section v-if="loading" class="card">{{ t("profile.loading") }}</section>
-        <section v-else-if="error" class="card error">{{ error }}</section>
+        <NotFoundMessage v-else-if="error" i18n-prefix="userNotFound" />
 
         <UiCard v-else-if="topTab === 'records' && canViewRecords && activeExam" class="card active-exam">
           <p class="active-title">{{ t("profile.activeExam") }}</p>

@@ -15,6 +15,10 @@ interface CpoauthConfigResponse {
   config: CpoauthConfig;
 }
 
+interface AiConfigResponse {
+  config: AiConfig;
+}
+
 interface AdminTokensResponse {
   tokens: AdminToken[];
 }
@@ -51,6 +55,27 @@ export interface CpoauthConfig {
   clientSecret: string;
   callbackUrl: string;
   scope: string;
+}
+
+export interface AiConfig {
+  defaultModelId: string;
+  prompts: {
+    hintSystemPrompt: string;
+    solutionSystemPrompt: string;
+    hintUserPrompt: string;
+    solutionUserPrompt: string;
+  };
+  models: AiModelConfig[];
+}
+
+export interface AiModelConfig {
+  id: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+  dailyLimit: number;
+  enabled: boolean;
 }
 
 export interface AdminProblemset extends ProblemsetSummary {
@@ -128,7 +153,6 @@ export async function updateUser(
     uid: string;
     username: string;
     email: string;
-    password: string;
     isAdmin: boolean;
     isBanned: boolean;
   }>
@@ -292,6 +316,29 @@ export async function updateCpoauthConfig(payload: CpoauthConfig): Promise<Cpoau
   return (data as CpoauthConfigResponse).config;
 }
 
+export async function fetchAiConfig(): Promise<AiConfig> {
+  const result = await apiGet<AiConfigResponse>("/api/admin/ai/config", {
+    headers: adminHeaders()
+  });
+  return result.config;
+}
+
+export async function updateAiConfig(payload: AiConfig): Promise<AiConfig> {
+  const response = await fetch(`${apiBaseUrl}/api/admin/ai/config`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...adminHeaders()
+    },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(data?.error ?? `HTTP ${response.status}`));
+  }
+  return (data as AiConfigResponse).config;
+}
+
 export async function fetchAdminTokens(): Promise<AdminToken[]> {
   const result = await apiGet<AdminTokensResponse>("/api/admin/admin-tokens", {
     headers: adminHeaders()
@@ -395,4 +442,40 @@ export async function deleteAdminSystemPage(id: number): Promise<void> {
     throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
   }
   invalidatePublicSiteContentCache();
+}
+
+
+export interface BackupSelections {
+  problemsets: boolean;
+  oauth: boolean;
+  systemPages: boolean;
+  users: boolean;
+  aiConfig: boolean;
+}
+
+export async function exportBackup(selections: BackupSelections, password: string): Promise<unknown> {
+  const url = `${apiBaseUrl}/api/admin/backup/export`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ selections, password: password || "" })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
+  return payload;
+}
+
+export async function restoreBackup(backupData: unknown, selections: BackupSelections, password: string): Promise<void> {
+  const url = `${apiBaseUrl}/api/admin/backup/restore`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { ...adminHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ ...(backupData as Record<string, unknown>), selections, password: password || "" })
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(String(payload?.error ?? `HTTP ${response.status}`));
+  }
 }

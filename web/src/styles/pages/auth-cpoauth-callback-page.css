@@ -6,12 +6,28 @@
 }
 
 .auth-callback-page .callback-card {
+  position: relative;
   width: min(100%, 440px);
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius);
   box-shadow: none;
   padding: 24px 26px;
+}
+
+.auth-callback-page .auth-card-controls {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.auth-callback-page .auth-card-controls .top-control {
+  width: 34px;
+  height: 34px;
 }
 
 .auth-callback-page .callback-card h2 {
@@ -38,4 +54,18 @@
 
 .auth-callback-page .back:hover {
   text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .auth-callback-page.callback-wrap {
+    padding: 16px 8px;
+  }
+
+  .auth-callback-page .callback-card {
+    padding: 20px 16px;
+  }
+
+  .auth-callback-page .callback-card h2 {
+    font-size: 20px;
+  }
 }

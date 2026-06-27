@@ -22,8 +22,7 @@ const editingUid = ref("");
 const editForm = reactive({
   uid: "",
   username: "",
-  email: "",
-  password: ""
+  email: ""
 });
 
 const allSelected = computed(() => users.value.length > 0 && selected.value.length === users.value.length);
@@ -66,7 +65,6 @@ function startEdit(target: AuthUser) {
   editForm.uid = target.uid;
   editForm.username = target.username;
   editForm.email = target.email;
-  editForm.password = "";
   document.getElementById("user-edit")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -79,11 +77,9 @@ async function submitEdit() {
     const updated = await updateUser(editingUid.value, {
       uid: editForm.uid.trim(),
       username: editForm.username.trim(),
-      email: editForm.email.trim(),
-      ...(editForm.password ? { password: editForm.password } : {})
+      email: editForm.email.trim()
     });
     editingUid.value = updated.uid;
-    editForm.password = "";
     notifySuccess(t("admin.users.updated", { uid: updated.uid }));
     await loadUsers();
   } catch (err) {
@@ -255,10 +251,6 @@ onMounted(loadUsers);
         <label>
           <span>{{ t("admin.users.email") }}</span>
           <input v-model.trim="editForm.email" type="email" :placeholder="t('admin.users.editable')" />
-        </label>
-        <label>
-          <span>{{ t("admin.users.newPassword") }}</span>
-          <input v-model="editForm.password" type="password" :placeholder="t('admin.users.passwordPlaceholder')" />
         </label>
       </div>
       <div class="admin-actions">

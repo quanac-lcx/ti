@@ -1,5 +1,4 @@
-﻿// @ts-nocheck
-import { dbPool } from "../src/db.js";
+﻿import { dbPool } from "../src/db.js";
 
 async function main() {
   await dbPool.query("UPDATE users SET is_admin = 1, is_banned = 0 WHERE uid = 'pre1'");

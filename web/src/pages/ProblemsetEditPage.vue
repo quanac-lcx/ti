@@ -256,15 +256,18 @@ watch(sourceId, loadEditable);
 
             <div class="collapse-tip">
               <details open>
-                <summary>{{ t("problemset.edit.materialSummary") }}</summary>
+                <summary>{{ t("problemset.create.configSummary") }}</summary>
                 <div class="tip-body">
-                  <p>{{ t("problemset.edit.materialIntro") }}</p>
                   <ol>
-                    <li>{{ t("problemset.edit.materialItem1") }}</li>
-                    <li>{{ t("problemset.edit.materialItem2") }}</li>
+                    <li>{{ t("problemset.create.rules.item1") }}</li>
+                    <li>{{ t("problemset.create.rules.item2") }}</li>
+                    <li>{{ t("problemset.create.rules.item3") }}</li>
+                    <li>{{ t("problemset.create.rules.item4") }}</li>
+                    <li>{{ t("problemset.create.rules.item5") }}</li>
+                    <li>{{ t("problemset.create.rules.item6") }}</li>
+                    <li>{{ t("problemset.create.rules.item7") }}</li>
+                    <li>{{ t("problemset.create.rules.item8") }}</li>
                   </ol>
-                  <p>{{ t("problemset.edit.materialNote1") }}</p>
-                  <p>{{ t("problemset.edit.materialNote2") }}</p>
                 </div>
               </details>
             </div>

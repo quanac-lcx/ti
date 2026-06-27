@@ -1,0 +1,42 @@
+.not-found-msg-root {
+    display: grid;
+    place-items: center;
+    text-align: center;
+    padding: 32px 20px;
+    min-height: 10vh;
+}
+
+.not-found-msg-text {
+    margin: 0;
+    font-size: 16px;
+    color: var(--app-text-muted);
+    line-height: 1.7;
+}
+
+.not-found-msg-link {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 0;
+    color: var(--app-primary);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.not-found-msg-link:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+    .not-found-msg-root {
+        padding: 24px 16px;
+    }
+
+    .not-found-msg-text {
+        font-size: 14px;
+    }
+
+    .not-found-msg-link {
+        font-size: 14px;
+    }
+}

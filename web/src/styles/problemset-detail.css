@@ -123,6 +123,19 @@
   font-size: 20px;
 }
 
+.problemset-detail-page .question-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.problemset-detail-page .question-head .question-title,
+.problemset-detail-page .question-head .history-question-title {
+  margin: 0;
+}
+
 .problemset-detail-page .question-stem {
   margin-bottom: 12px;
 }
@@ -311,6 +324,22 @@
   font-weight: 700;
 }
 
+@media (hover: hover) {
+  .problemset-detail-page .body-card .ai-trigger-btn,
+  .problemset-detail-page .history-question .ai-trigger-btn {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .problemset-detail-page .body-card:hover .ai-trigger-btn,
+  .problemset-detail-page .body-card:focus-within .ai-trigger-btn,
+  .problemset-detail-page .history-question:hover .ai-trigger-btn,
+  .problemset-detail-page .history-question:focus-within .ai-trigger-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 .problemset-detail-page .list-card {
   padding: 12px;
 }
@@ -416,5 +445,67 @@
 
   .problemset-detail-page .history-main-score {
     font-size: 36px;
+  }
+}
+
+@media (max-width: 640px) {
+  .problemset-detail-page {
+    gap: 10px;
+  }
+
+  .problemset-detail-page .problemset-detail-summary {
+    padding: 10px 12px;
+  }
+
+  .problemset-detail-page .problemset-detail-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .problemset-detail-page .action-btn {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .problemset-detail-page .problemset-detail-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .problemset-detail-page .tabs-card {
+    padding: 8px 12px;
+  }
+
+  .problemset-detail-page .tab-btn {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .problemset-detail-page .body-card {
+    padding: 12px;
+  }
+
+  .problemset-detail-page .question-title {
+    font-size: 18px;
+  }
+
+  .problemset-detail-page .question-stem {
+    font-size: 15px;
+  }
+
+  .problemset-detail-page .question-btn {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .problemset-detail-page .history-meta {
+    gap: 6px;
+  }
+
+  .problemset-detail-page .history-main-score {
+    font-size: 28px;
   }
 }

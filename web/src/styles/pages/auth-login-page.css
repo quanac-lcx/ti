@@ -6,12 +6,28 @@
 }
 
 .auth-login-page .auth-card {
+  position: relative;
   width: min(100%, 440px);
   background: var(--panel-bg);
   border: 1px solid var(--panel-border);
   border-radius: var(--panel-radius);
   box-shadow: none;
   padding: 28px 30px 22px;
+}
+
+.auth-login-page .auth-card-controls {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+}
+
+.auth-login-page .auth-card-controls .top-control {
+  width: 34px;
+  height: 34px;
 }
 
 .auth-login-page .brand-logo {
@@ -142,4 +158,26 @@
   margin: 0;
   color: var(--app-danger);
   font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .auth-login-page.auth-wrap {
+    padding: 16px 8px;
+  }
+
+  .auth-login-page .auth-card {
+    padding: 22px 18px 18px;
+  }
+
+  .auth-login-page .auth-card h2 {
+    font-size: 24px;
+  }
+
+  .auth-login-page .auth-card .brand-desc {
+    font-size: 13px;
+  }
+
+  .auth-login-page .admin-token-section {
+    gap: 6px;
+  }
 }

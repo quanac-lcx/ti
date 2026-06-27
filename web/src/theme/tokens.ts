@@ -1,4 +1,6 @@
-export type ThemeMode = "light" | "dark";
+export type ThemeMode = "auto" | "light" | "dark";
+
+export type ResolvedThemeMode = "light" | "dark";
 
 export interface LayoutThemeTokens {
   siderBg: string;
@@ -137,7 +139,7 @@ export const softDarkThemeTokens = {
 export const themeTokensMap = {
   light: softLightThemeTokens,
   dark: softDarkThemeTokens
-} as const satisfies Record<ThemeMode, AppThemeTokens>;
+} as const satisfies Record<ResolvedThemeMode, AppThemeTokens>;
 
 function toCssVariables(theme: AppThemeTokens): Record<string, string> {
   return {
@@ -186,7 +188,7 @@ function toCssVariables(theme: AppThemeTokens): Record<string, string> {
   };
 }
 
-export function applyThemeTokens(mode: ThemeMode): void {
+export function applyThemeTokens(mode: ResolvedThemeMode): void {
   if (typeof document === "undefined") {
     return;
   }

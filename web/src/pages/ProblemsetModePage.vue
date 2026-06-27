@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { onBeforeRouteLeave, onBeforeRouteUpdate, useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
@@ -16,7 +16,11 @@ import {
   type SubmissionDetail
 } from "../api/submission";
 import { renderLuoguMarkdown } from "../utils/luoguMarkdown";
+import { normalizeOptionAnswer, isMultipleQuestion as isMulti } from "../utils/shared";
 import { askConfirm, notifyError, notifySuccess } from "../composables/feedback";
+import AiAssistPanel from "../components/AiAssistPanel.vue";
+import HighlightToolbar from "../components/HighlightToolbar.vue";
+import { useTextHighlighter } from "../composables/useTextHighlighter";
 
 interface QuestionResult {
   correct: boolean;
@@ -56,6 +60,7 @@ const noticeTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const showGuestLoginModal = ref(false);
 const autosaveIntervalSeconds = ref<AutosaveIntervalSeconds>(DEFAULT_AUTOSAVE_INTERVAL_SECONDS);
 const skipLeaveConfirmOnce = ref(false);
+const highlighterEnabled = ref(true);
 
 const answers = reactive<Record<string, string>>({});
 const results = reactive<Record<string, QuestionResult>>({});
@@ -63,6 +68,16 @@ const results = reactive<Record<string, QuestionResult>>({});
 let countdownTimer: ReturnType<typeof setInterval> | null = null;
 let autosaveTimer: ReturnType<typeof setInterval> | null = null;
 let navigatingByUserAction = false;
+
+const modeLeftEl = ref<HTMLElement | null>(null);
+const {
+  toolbarState,
+  bindContainer,
+  unbindContainer,
+  applyHighlight,
+  clearHighlight,
+  dismissToolbar
+} = useTextHighlighter();
 
 const problemsetId = computed(() => {
   const parsed = Number(route.params.id);
@@ -179,8 +194,10 @@ async function loadAutosaveIntervalSetting() {
   try {
     const settings = await getMySettings();
     autosaveIntervalSeconds.value = normalizeAutosaveInterval(settings.autosaveIntervalSeconds);
+    highlighterEnabled.value = Boolean(settings.highlighterEnabled ?? true);
   } catch {
     autosaveIntervalSeconds.value = DEFAULT_AUTOSAVE_INTERVAL_SECONDS;
+    highlighterEnabled.value = true;
   }
 }
 
@@ -277,21 +294,8 @@ function handleBeforeUnload(event: BeforeUnloadEvent) {
   event.returnValue = "";
 }
 
-function normalizeOptionAnswer(raw: string) {
-  return Array.from(
-    new Set(
-      String(raw ?? "")
-        .split(",")
-        .map((item) => item.trim().toUpperCase())
-        .filter((item) => /^[A-Z]$/.test(item))
-    )
-  )
-    .sort()
-    .join(",");
-}
-
 function isMultipleQuestion(question: ProblemQuestion) {
-  return normalizeOptionAnswer(question.answer).includes(",");
+  return isMulti(question.answer);
 }
 
 function hydrateAnswers(next: Record<string, string>) {
@@ -648,11 +652,20 @@ onMounted(() => {
   loadPage();
 });
 watch(() => [route.params.id, route.path, route.query.resume, route.query.force], loadPage);
+watch(loading, async (isLoading) => {
+  if (isLoading) return;
+  // Wait for Vue to flush DOM updates after loading finishes
+  await nextTick();
+  if (highlighterEnabled.value && modeLeftEl.value) {
+    bindContainer(modeLeftEl.value);
+  }
+});
 onUnmounted(() => {
   persistLocalDraft();
   window.removeEventListener("beforeunload", handleBeforeUnload);
   resetIntervals();
   clearNoticeTimer();
+  unbindContainer();
 });
 
 function closeGuestLoginModal() {
@@ -688,21 +701,26 @@ function closeGuestLoginModal() {
       <div v-if="!loading && error" class="panel-card error-card">{{ error }}</div>
       <template v-else-if="!loading && detail">
         <section class="mode-layout">
-          <div class="mode-left">
+          <div ref="modeLeftEl" class="mode-left">
             <article
               v-for="question in detail.questions"
               :id="`question-${question.id}`"
               :key="question.id"
               class="panel-card question-card"
             >
-              <h3>
-                {{ t("problemset.common.questionNumber", { index: question.index }) }}
-                <span v-if="question.groupQuestionIndex">
-                  · {{ question.groupQuestionIndex }}
-                  <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
-                  {{ t("problemset.common.subQuestion") }}
-                </span>
-              </h3>
+              <div class="question-head">
+                <h3>{{ t("problemset.common.questionNumber", { index: question.index }) }}</h3>
+                <AiAssistPanel
+                  :question="question"
+                  :question-label="t('problemset.common.questionNumber', { index: question.index })"
+                  mode="hint-only"
+                />
+              </div>
+              <p v-if="question.groupQuestionIndex" class="sub-question-label">
+                {{ t("problemset.common.materialQuestionIndex", { index: question.groupQuestionIndex }) }}
+                <span v-if="question.groupQuestionCount"> / {{ question.groupQuestionCount }}</span>
+                {{ t("problemset.common.subQuestion") }}
+              </p>
               <details v-if="question.sharedMaterial?.trim()" class="shared-material-panel" open>
                 <summary class="shared-material-summary">
                   <span class="shared-material-arrow" aria-hidden="true"></span>
@@ -751,6 +769,7 @@ function closeGuestLoginModal() {
           </div>
 
           <aside class="panel-card mode-right">
+            <div id="ai-sidebar-panel" class="ai-sidebar-target"></div>
             <div v-if="isExam" class="mode-timer-card" :class="{ danger: remainingSeconds <= 300 }">
               <span class="mode-timer-label">{{ t("problemset.mode.remainingTime") }}</span>
               <strong class="mode-timer-value">{{ formatDuration(remainingSeconds) }}</strong>
@@ -816,6 +835,14 @@ function closeGuestLoginModal() {
             </div>
           </aside>
         </section>
+        <HighlightToolbar
+          :x="toolbarState.x"
+          :y="toolbarState.y"
+          :visible="toolbarState.visible"
+          @highlight="applyHighlight"
+          @clear="clearHighlight"
+          @close="dismissToolbar"
+        />
       </template>
     </div>
   </TiLayout>

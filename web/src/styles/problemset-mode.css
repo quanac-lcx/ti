@@ -176,6 +176,14 @@
   padding: 14px;
 }
 
+.problemset-mode-page .question-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .problemset-mode-page .shared-material-panel {
   margin: 0 0 12px;
 }
@@ -227,9 +235,15 @@
 }
 
 .problemset-mode-page .question-card h3 {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 20px;
   color: var(--app-text);
+}
+
+.problemset-mode-page .sub-question-label {
+  margin: 0 0 10px;
+  color: var(--app-text-soft);
+  font-size: 13px;
 }
 
 .problemset-mode-page .question-stem {
@@ -457,6 +471,19 @@
   margin-left: 7px;
 }
 
+@media (hover: hover) {
+  .problemset-mode-page .question-card .ai-trigger-btn {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .problemset-mode-page .question-card:hover .ai-trigger-btn,
+  .problemset-mode-page .question-card:focus-within .ai-trigger-btn {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
 @media (max-width: 1160px) {
   .problemset-mode-page .mode-layout {
     grid-template-columns: 1fr;
@@ -474,5 +501,61 @@
     max-height: none;
     overflow: visible;
     z-index: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .problemset-mode-page {
+    gap: 8px;
+  }
+
+  .problemset-mode-page .mode-header {
+    padding: 10px 12px;
+  }
+
+  .problemset-mode-page .mode-header h2 {
+    font-size: 24px;
+  }
+
+  .problemset-mode-page .mode-timer {
+    font-size: 22px;
+  }
+
+  .problemset-mode-page .question-card {
+    padding: 10px;
+  }
+
+  .problemset-mode-page .question-card h3 {
+    font-size: 18px;
+  }
+
+  .problemset-mode-page .question-stem {
+    font-size: 15px;
+  }
+
+  .problemset-mode-page .mode-option-key {
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .problemset-mode-page .mode-option-text {
+    font-size: 15px;
+  }
+
+  .problemset-mode-page .mode-summary-card strong {
+    font-size: 14px;
+  }
+
+  .problemset-mode-page .btn {
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+
+  .problemset-mode-page .exam-notice {
+    right: 8px;
+    top: 8px;
+    width: calc(100vw - 16px);
+    max-width: 360px;
   }
 }

@@ -41,3 +41,24 @@
   font-size: 15px;
   line-height: 1.7;
 }
+
+@media (max-width: 640px) {
+  .auth-banned-page .banned-card {
+    padding: 22px 18px;
+  }
+
+  .auth-banned-page .banned-icon {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 12px;
+    font-size: 24px;
+  }
+
+  .auth-banned-page .banned-title {
+    font-size: 24px;
+  }
+
+  .auth-banned-page .banned-text {
+    font-size: 14px;
+  }
+}
