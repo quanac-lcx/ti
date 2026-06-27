@@ -517,8 +517,3 @@ docker compose -f docker-compose.prod.yml ps
 docker compose -f docker-compose.prod.yml logs -f api
 docker compose -f docker-compose.prod.yml logs -f web
 ```
-
-## 补充说明
-
-仓库里还有一份简版 Linux 部署说明：[docs/deploy-linux.md](docs/deploy-linux.md)。  
-如果你后续在 Linux 上遇到新的报错，可以直接把报错日志、执行命令、你当前 `.env` 里相关项贴出来，我再继续跟你一起排。
