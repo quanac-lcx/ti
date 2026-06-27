@@ -3362,6 +3362,8 @@ export function buildRouter() {
     const includeOauth = selections?.oauth !== false;
     const includeSystemPages = selections?.systemPages !== false;
     const includeUsers = selections?.users !== false;
+    const includeAiConfig = selections?.aiConfig !== false;
+    const includeSubmissions = selections?.submissions !== false;
     const password = typeof req.body?.password === "string" && req.body.password.trim()
       ? req.body.password.trim()
       : "";
@@ -3476,6 +3478,45 @@ export function buildRouter() {
         }));
       }
 
+      if (includeAiConfig) {
+        const aiConfig = await getAiConfig();
+        backup.data.aiConfig = {
+          defaultModelId: aiConfig.defaultModelId,
+          prompts: aiConfig.prompts,
+          models: aiConfig.models.map((m) => ({
+            id: m.id,
+            name: m.name,
+            baseUrl: m.baseUrl,
+            apiKey: m.apiKey,
+            model: m.model,
+            dailyLimit: m.dailyLimit,
+            enabled: m.enabled
+          }))
+        };
+      }
+
+      if (includeSubmissions) {
+        const [submissionRows] = await dbPool.query(
+          "SELECT id, user_uid, problemset_id, mode, status, answers_json, results_json, score, max_score, remaining_seconds, started_at, submitted_at, created_at, updated_at FROM submissions ORDER BY id ASC"
+        );
+        backup.data.submissions = submissionRows.map((row) => ({
+          id: Number(row.id),
+          userUid: String(row.user_uid ?? ""),
+          problemsetId: Number(row.problemset_id),
+          mode: String(row.mode ?? "training"),
+          status: String(row.status ?? "submitted"),
+          answersJson: row.answers_json ? String(row.answers_json) : null,
+          resultsJson: row.results_json ? String(row.results_json) : null,
+          score: Number(row.score ?? 0),
+          maxScore: Number(row.max_score ?? 0),
+          remainingSeconds: row.remaining_seconds === null || row.remaining_seconds === undefined ? null : Number(row.remaining_seconds),
+          startedAt: row.started_at ?? null,
+          submittedAt: row.submitted_at ?? null,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at
+        }));
+      }
+
       let responseBody = JSON.stringify(backup);
       if (password) {
         responseBody = encryptBackupPayload(responseBody, password);
@@ -3506,6 +3547,8 @@ export function buildRouter() {
     const restoreOauth = selections?.oauth !== false;
     const restoreSystemPages = selections?.systemPages !== false;
     const restoreUsers = selections?.users !== false;
+    const restoreAiConfig = selections?.aiConfig !== false;
+    const restoreSubmissions = selections?.submissions !== false;
 
     let backup;
     if (req.body?.encrypted) {
@@ -3692,6 +3735,53 @@ export function buildRouter() {
               u.isAdmin ? 1 : 0,
               u.isBanned ? 1 : 0,
               u.recordsPublic ? 1 : 0
+            ]
+          );
+        }
+      }
+
+      if (restoreAiConfig && backup.data.aiConfig && typeof backup.data.aiConfig === "object") {
+        const aiCfg = backup.data.aiConfig;
+        const normalized = normalizeAiConfigPayload(aiCfg);
+        await connection.query(
+          "INSERT INTO app_settings (`key`, `value`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)",
+          [AI_SETTING_KEYS.config, JSON.stringify(normalized)]
+        );
+      }
+
+      if (restoreSubmissions && Array.isArray(backup.data.submissions)) {
+        for (const sub of backup.data.submissions) {
+          await connection.query(
+            `INSERT INTO submissions (id, user_uid, problemset_id, mode, status, answers_json, results_json, score, max_score, remaining_seconds, started_at, submitted_at, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+               user_uid = VALUES(user_uid),
+               problemset_id = VALUES(problemset_id),
+               mode = VALUES(mode),
+               status = VALUES(status),
+               answers_json = VALUES(answers_json),
+               results_json = VALUES(results_json),
+               score = VALUES(score),
+               max_score = VALUES(max_score),
+               remaining_seconds = VALUES(remaining_seconds),
+               started_at = VALUES(started_at),
+               submitted_at = VALUES(submitted_at),
+               updated_at = VALUES(updated_at)`,
+            [
+              Number(sub.id),
+              String(sub.userUid ?? ""),
+              Number(sub.problemsetId),
+              String(sub.mode ?? "training"),
+              String(sub.status ?? "submitted"),
+              sub.answersJson ?? null,
+              sub.resultsJson ?? null,
+              Number(sub.score ?? 0),
+              Number(sub.maxScore ?? 0),
+              sub.remainingSeconds === null || sub.remainingSeconds === undefined ? null : Number(sub.remainingSeconds),
+              sub.startedAt ?? null,
+              sub.submittedAt ?? null,
+              sub.createdAt ?? null,
+              sub.updatedAt ?? null
             ]
           );
         }

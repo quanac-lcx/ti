@@ -279,6 +279,9 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
         item7: "A single :::group can contain multiple :::question blocks, ideal for reading-code or fill-in-code tasks.",
         item8: "Nested :::group inside :::group is not supported."
       },
+      aiGenSummary: "AI-assisted generation",
+      aiGenTip: "You can use AI to conveniently create formatted question configs. See the tutorial at",
+      aiGenLinkText: "this page",
       errors: {
         titleRequired: "Please enter a name.",
         descriptionRequired: "Please enter a description.",
@@ -653,6 +656,7 @@ This is an input question stem with Markdown and LaTeX support. This sample inte
       systemPages: "System Pages",
       users: "Users",
       aiConfig: "AI Config",
+      submissions: "Submissions",
       adminTokens: "Admin Tokens",
       passwordLabel: "Backup password (optional)",
       passwordPlaceholder: "Leave empty for no encryption",

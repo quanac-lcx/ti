@@ -534,6 +534,7 @@ export const jaJP = {
       systemPages: "システムページ",
       users: "ユーザー",
       aiConfig: "AI 設定",
+      submissions: "提出記録",
       adminTokens: "管理トークン",
       passwordLabel: "バックアップパスワード（任意）",
       passwordPlaceholder: "空欄の場合は暗号化なし",

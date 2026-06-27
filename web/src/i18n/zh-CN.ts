@@ -274,6 +274,9 @@ C. 选项C
         item7: "一个 :::group 内可包含多道 :::question，适合阅读程序、补全代码等场景。",
         item8: "暂不支持 :::group 嵌套 :::group。"
       },
+      aiGenSummary: "AI 辅助生成",
+      aiGenTip: "可以使用AI方便地创建格式化的题目配置文件，教程详见",
+      aiGenLinkText: "此页面",
       errors: {
         titleRequired: "请填写名称。",
         descriptionRequired: "请填写测验描述。",
@@ -648,6 +651,7 @@ C. 选项C
       systemPages: "系统页面",
       users: "用户",
       aiConfig: "AI 配置",
+      submissions: "提交记录",
       adminTokens: "Admin Token",
       passwordLabel: "备份密码（可选）",
       passwordPlaceholder: "留空则不加密",

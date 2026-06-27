@@ -451,6 +451,7 @@ export interface BackupSelections {
   systemPages: boolean;
   users: boolean;
   aiConfig: boolean;
+  submissions: boolean;
 }
 
 export async function exportBackup(selections: BackupSelections, password: string): Promise<unknown> {
