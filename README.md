@@ -1,11 +1,69 @@
 # ti.luogu.me
 
-`ti.luogu.me` 是一个前后端分离的题库 / 套题系统仓库，当前代码结构如下：
+在线竞赛题库与套题系统，支持题目浏览、考试 / 练习模式、AI 辅助提示与解析、CPOAuth 统一认证。
 
-- `web/`：Vue 3 + Vite 前端
-- `server/`：Node.js + Express 后端
-- `docker-compose.yml`：本地开发用的 MariaDB / Redis 基础设施
-- `docker-compose.prod.yml`：Linux 服务器生产部署编排
+> [!IMPORTANT]
+> 该文档部分内容由 AI 分析而成。
+
+## 项目结构
+
+| 目录 | 说明 |
+| --- | --- |
+| `web/` | Vue 3 + Vite 前端 SPA |
+| `server/` | Node.js + Express REST API 后端 |
+| `docs/` | 补充文档（AI 题目配置提示词等） |
+| `docker-compose.yml` | 本地开发用 MariaDB + Redis 基础设施 |
+| `docker-compose.prod.yml` | Linux 生产部署编排（含 api / web 容器） |
+
+## 技术栈
+
+### 后端 (`server/`)
+
+| 分类 | 技术 |
+| --- | --- |
+| 运行时 | Node.js ≥20 |
+| 框架 | Express.js 4 + TypeScript 5 |
+| 数据库 | MariaDB 11（[`mysql2`](server/package.json) 原生 SQL，无 ORM） |
+| 缓存 / 会话 | Redis 7（[`ioredis`](server/package.json)） |
+| 认证 | CPOAuth OAuth2 + Admin Token |
+| Schema 迁移 | 启动时自动检测并补列（[`ensureUserSchema()`](server/src/db.ts)） |
+| 开发运行 | `tsx watch` |
+
+### 前端 (`web/`)
+
+| 分类 | 技术 |
+| --- | --- |
+| 框架 | Vue 3（Composition API + `<script setup>`） |
+| 构建 | Vite 5 |
+| 路由 | vue-router 4（history 模式） |
+| 国际化 | vue-i18n 9（zh-CN / en-US / ja-JP） |
+| 主题 | CSS Variables（auto / dark / light 三模式） |
+| 样式 | 原生 CSS（按页面 / 组件拆分） |
+| Markdown 渲染 | markdown-it 14 + KaTeX + highlight.js |
+| 图标 | Font Awesome Free 6 |
+
+### 数据库
+
+| 表 | 用途 |
+| --- | --- |
+| `users` | 用户账号，含 OAuth 绑定、偏好设置 |
+| `app_settings` | 键值对应用配置（OAuth、AI、站点公告） |
+| `system_pages` | CMS 页面（用户协议、隐私政策、自定义页面） |
+| `admin_tokens` | 管理员登录令牌 |
+| `ai_usage_daily` | 每日 AI 调用量统计 |
+| `problemsets` | 题目集（四种类型：官方公开 / 个人精选 / 个人公开 / 个人私有） |
+| `questions` | 题目详情（选择题 / 填空题，支持材料组） |
+| `submissions` | 用户提交记录与评分结果 |
+
+### 核心功能
+
+- **题目 DSL**：自定义格式（`:::question` / `:::group`），支持选择题（单选 / 多选）和填空题，支持材料组（共享材料的多题组合）
+- **AI 辅助**：多模型配置，每日配额，一键生成题目提示 (`hint`) 和解析 (`solution`)
+- **认证体系**：CPOAuth OAuth2（洛谷统一认证）为用户入口，Admin Token 为管理员后台登录入口
+- **即时判分**：选择题标准化答案比对，填空题精确匹配
+- **管理后台**：用户管理、题目集 / 题目编辑、OAuth 配置、系统页面管理、数据备份
+
+## 兼容性说明
 
 当前仓库已经针对 Linux 部署做了几项兼容性处理：
 
@@ -14,7 +72,7 @@
 - 根目录新增 `.nvmrc`，便于 Linux 上直接对齐 Node 20
 - 生产环境端口支持通过 `API_BIND_HOST` / `WEB_BIND_HOST` 控制绑定地址，方便只监听 `127.0.0.1`
 
-如果你只是要部署到 Linux，推荐直接看下面的“Linux 详细部署教程”；如果你要本地开发，再看前面的开发章节。
+如果你只是要部署到 Linux，推荐直接看下面的"Linux 详细部署教程"；如果你要本地开发，再看前面的开发章节。
 
 ## 本地开发
 

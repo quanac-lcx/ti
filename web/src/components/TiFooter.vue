@@ -42,7 +42,7 @@ onMounted(async () => {
         <p>
           <i class="fa fa-copyright"></i>
           <span>{{ t("footer.copyright") }}</span>
-          <a href="https://www.luogu.me" target="_blank" rel="noreferrer" class="footer-link">www.luogu.me</a>
+          <a href="https://ti.luogu.me" target="_blank" rel="noreferrer" class="footer-link">ti.luogu.me</a>
         </p>
         <p class="group">
           <a href="https://github.com/quanac-lcx/ti" target="_blank" rel="noreferrer" class="footer-link">

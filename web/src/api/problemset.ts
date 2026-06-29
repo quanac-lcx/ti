@@ -1,5 +1,4 @@
-import { apiBaseUrl, apiGet, apiPost } from "../api";
-import { readLocalUid, userAuthHeaders } from "../utils/shared";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 
 export interface ProblemsetSummary {
   id: number;
@@ -110,30 +109,12 @@ class HttpProblemsetApi implements ProblemsetApi {
   }
 
   async update(problemsetId: number, payload: CreateProblemsetPayload): Promise<ProblemsetSummary> {
-    const response = await fetch(`${apiBaseUrl}/api/problemsets/${problemsetId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        ...userAuthHeaders()
-      },
-      body: JSON.stringify(payload)
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      throw new Error(String((data as { error?: string })?.error ?? `HTTP ${response.status}`));
-    }
-    return (data as ProblemsetCreateResponse).problemset;
+    const result = await apiPatch<ProblemsetCreateResponse>(`/api/problemsets/${problemsetId}`, payload);
+    return result.problemset;
   }
 
   async delete(problemsetId: number): Promise<void> {
-    const response = await fetch(`${apiBaseUrl}/api/problemsets/${problemsetId}`, {
-      method: "DELETE",
-      headers: userAuthHeaders()
-    });
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      throw new Error(String((data as { error?: string })?.error ?? `HTTP ${response.status}`));
-    }
+    await apiDelete(`/api/problemsets/${problemsetId}`);
   }
 
   async listUserProblemsets(uid: string): Promise<ProblemsetSummary[]> {

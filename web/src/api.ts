@@ -64,16 +64,54 @@ export async function apiGet<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export async function apiPost<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  return apiFetchWithBody<T>("POST", path, body, init);
+}
+
+export async function apiPatch<T>(path: string, body: unknown, init?: RequestInit): Promise<T> {
+  return apiFetchWithBody<T>("PATCH", path, body, init);
+}
+
+export async function apiDelete<T = void>(path: string, init?: RequestInit): Promise<T> {
   const uid = readLocalUid();
-  const headers = {
-    "Content-Type": "application/json",
-    ...(init?.headers ?? {}),
+  const headers: Record<string, string> = {
+    ...(init?.headers as Record<string, string> ?? {}),
     ...(uid ? { "x-user-uid": uid } : {})
   };
   let response: Response;
   try {
     response = await fetch(`${apiBaseUrl}${path}`, {
-      method: "POST",
+      method: "DELETE",
+      ...init,
+      headers
+    });
+  } catch (err) {
+    throw toNetworkError(err);
+  }
+  if (response.status === 403) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(handleForbiddenNavigation(payload?.error));
+  }
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    const message = String(payload?.error ?? `HTTP ${response.status}`);
+    throw new Error(message);
+  }
+  if (response.status === 204) return undefined as T;
+  const payload = await response.json().catch(() => ({}));
+  return payload as T;
+}
+
+async function apiFetchWithBody<T>(method: string, path: string, body: unknown, init?: RequestInit): Promise<T> {
+  const uid = readLocalUid();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> ?? {}),
+    ...(uid ? { "x-user-uid": uid } : {})
+  };
+  let response: Response;
+  try {
+    response = await fetch(`${apiBaseUrl}${path}`, {
+      method,
       ...init,
       headers,
       body: JSON.stringify(body)

@@ -3,7 +3,7 @@ import express from "express";
 import { randomBytes, createCipheriv, createDecipheriv, pbkdf2Sync } from "node:crypto";
 import { dbPool, pingDb } from "./db.js";
 import { pingRedis, redis } from "./redis.js";
-import { buildGravatarUrl, hashPassword, normalizeEmail, verifyPassword } from "./auth.js";
+import { buildGravatarUrl, normalizeEmail } from "./auth.js";
 import { env } from "./env.js";
 import { parseQuestionConfig } from "./questionConfigParser.js";
 
@@ -950,7 +950,7 @@ async function findOrCreateCpoauthUser(profile) {
 
   try {
     const [result] = await dbPool.query(
-      "INSERT INTO users (uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, oauth_provider, oauth_subject) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, oauth_provider, oauth_subject) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [cpoUsername, username, emailFromOauth, avatarUrl, profileCoverUrl, bioFromOauth || null, await getDefaultAiModelId(), "cpoauth", subject]
     );
 
@@ -1769,78 +1769,6 @@ export function buildRouter() {
     return res.json({ problemsets: rows.map((row) => toProblemsetSummary(row)) });
   });
 
-  router.post("/users", async (req, res) => {
-    const username = String(req.body?.username ?? "").trim();
-    const email = normalizeEmail(req.body?.email);
-    const password = String(req.body?.password ?? "");
-
-    if (!username || username.length < 2 || username.length > 64) {
-      return res.status(400).json({ error: "username must be 2-64 chars" });
-    }
-    if (!isEmail(email)) {
-      return res.status(400).json({ error: "invalid email" });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "password must be at least 6 chars" });
-    }
-
-    const [exists] = await dbPool.query("SELECT id FROM users WHERE email = ? LIMIT 1", [email]);
-    if (Array.isArray(exists) && exists.length > 0) {
-      return res.status(409).json({ error: "email already registered" });
-    }
-
-    const [adminCountRows] = await dbPool.query(
-      "SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1 AND password_hash IS NOT NULL"
-    );
-    const shouldBeAdmin = Number(adminCountRows[0]?.cnt ?? 0) === 0;
-    const profileCoverUrl = pickDefaultProfileCover();
-
-    const [result] = await dbPool.query(
-      "INSERT INTO users (name, email, password_hash, avatar_url, profile_cover_url, ai_model_id, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [username, email, hashPassword(password), buildGravatarUrl(email), profileCoverUrl, await getDefaultAiModelId(), shouldBeAdmin ? 1 : 0]
-    );
-    const userId = Number(result.insertId);
-    await dbPool.query("UPDATE users SET uid = ? WHERE id = ?", [`pre${userId}`, userId]);
-
-    const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
-      [userId]
-    );
-    return res.status(201).json({ user: toPublicUser(rows[0]) });
-  });
-
-  router.post("/sessions", async (req, res) => {
-    const identifier = String(req.body?.identifier ?? "").trim();
-    const password = String(req.body?.password ?? "");
-    const email = normalizeEmail(identifier);
-
-    if (!identifier || !password) {
-      return res.status(400).json({ error: "identifier and password are required" });
-    }
-
-    const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, is_admin, is_banned, records_public, password_hash, created_at FROM users WHERE email = ? OR name = ? OR uid = ? LIMIT 1",
-      [email, identifier, identifier]
-    );
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return res.status(401).json({ error: "invalid credentials" });
-    }
-
-    const user = rows[0];
-    if (user.is_banned) {
-      return res.status(403).json({ error: "该用户已被封禁。" });
-    }
-    if (!verifyPassword(password, user.password_hash)) {
-      return res.status(401).json({ error: "invalid credentials" });
-    }
-
-    return res.status(201).json({
-      session: {
-        user: toPublicUser(user)
-      }
-    });
-  });
-
   router.post("/auth/admin-token/session", async (req, res) => {
     const token = String(req.body?.token ?? "").trim();
     if (!isValidAdminToken(token)) {
@@ -2136,6 +2064,42 @@ export function buildRouter() {
     return res.status(201).json({ submission: toSubmissionDetail(rows[0]) });
   });
 
+  router.post("/problemsets/:id/training/start", async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const problemsetId = Number(req.params.id);
+    if (!Number.isFinite(problemsetId)) {
+      return res.status(400).json({ error: "invalid problemset id" });
+    }
+
+    const problemset = await getProblemsetById(problemsetId);
+    if (!problemset) {
+      return res.status(404).json({ error: "problemset not found" });
+    }
+    if (!canUserViewProblemset(problemset, user)) {
+      return res.status(403).json({ error: "无权访问该题目。" });
+    }
+
+    const [scoreRows] = await dbPool.query(
+      "SELECT COALESCE(SUM(score), 0) AS max_score FROM questions WHERE problemset_id = ?",
+      [problemsetId]
+    );
+    const maxScore = Number(scoreRows[0]?.max_score ?? 0);
+
+    const [result] = await dbPool.query(
+      `
+        INSERT INTO submissions (
+          user_uid, problemset_id, mode, status, answers_json, results_json,
+          score, max_score, remaining_seconds, started_at
+        ) VALUES (?, ?, 'training', 'in_progress', ?, ?, 0, ?, 0, NOW())
+      `,
+      [user.uid, problemsetId, JSON.stringify({}), JSON.stringify([]), maxScore]
+    );
+
+    const [rows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [result.insertId]);
+    return res.status(201).json({ submission: toSubmissionDetail(rows[0]) });
+  });
+
   router.post("/problemsets/:id/training/submit", async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
@@ -2152,6 +2116,41 @@ export function buildRouter() {
       return res.status(403).json({ error: "无权访问该题目。" });
     }
 
+    const submissionId = Number(req.body?.submissionId ?? NaN);
+
+    if (Number.isFinite(submissionId) && submissionId > 0) {
+      // Update existing in_progress training submission to submitted
+      const [rows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [submissionId]);
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return res.status(404).json({ error: "submission not found" });
+      }
+      const submission = rows[0];
+      if (submission.user_uid !== user.uid) {
+        return res.status(403).json({ error: "permission denied" });
+      }
+      if (submission.mode !== "training" || submission.status !== "in_progress") {
+        return res.status(400).json({ error: "submission is not an in-progress training session" });
+      }
+
+      const calc = await calculateSubmission(problemsetId, req.body?.answers ?? {});
+      await dbPool.query(
+        `
+          UPDATE submissions
+          SET status = 'submitted',
+              answers_json = ?,
+              results_json = ?,
+              score = ?,
+              max_score = ?,
+              submitted_at = NOW()
+          WHERE id = ?
+        `,
+        [JSON.stringify(calc.answers), JSON.stringify(calc.results), calc.score, calc.maxScore, submissionId]
+      );
+      const [updatedRows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [submissionId]);
+      return res.json({ submission: toSubmissionDetail(updatedRows[0]) });
+    }
+
+    // Legacy: create new submitted submission directly (guest or old flow)
     const calc = await calculateSubmission(problemsetId, req.body?.answers ?? {});
     const [result] = await dbPool.query(
       `
@@ -2169,8 +2168,8 @@ export function buildRouter() {
         calc.maxScore
       ]
     );
-    const [rows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [result.insertId]);
-    return res.status(201).json({ submission: toSubmissionDetail(rows[0]) });
+    const [newRows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [result.insertId]);
+    return res.status(201).json({ submission: toSubmissionDetail(newRows[0]) });
   });
 
   router.post("/submissions/:id/autosave", async (req, res) => {
@@ -2189,8 +2188,8 @@ export function buildRouter() {
     if (submission.user_uid !== user.uid) {
       return res.status(403).json({ error: "permission denied" });
     }
-    if (submission.mode !== "exam" || submission.status !== "in_progress") {
-      return res.status(400).json({ error: "submission is not in progress exam" });
+    if ((submission.mode !== "exam" && submission.mode !== "training") || submission.status !== "in_progress") {
+      return res.status(400).json({ error: "submission is not an in-progress exam or training session" });
     }
 
     const answers = normalizeSubmissionAnswers(req.body?.answers ?? {});
@@ -2252,7 +2251,7 @@ export function buildRouter() {
     if (submission.user_uid !== user.uid) {
       return res.status(403).json({ error: "permission denied" });
     }
-    if (submission.mode !== "exam" || (submission.status !== "paused" && submission.status !== "in_progress")) {
+    if ((submission.mode !== "exam" && submission.mode !== "training") || (submission.status !== "paused" && submission.status !== "in_progress")) {
       return res.status(400).json({ error: "submission is not resumable" });
     }
 
@@ -2328,7 +2327,7 @@ export function buildRouter() {
         SELECT s.*, p.title AS problemset_title
         FROM submissions s
         LEFT JOIN problemsets p ON p.id = s.problemset_id
-        WHERE s.user_uid = ? AND s.mode = 'exam' AND s.status IN ('paused', 'in_progress')
+        WHERE s.user_uid = ? AND s.mode IN ('exam', 'training') AND s.status IN ('paused', 'in_progress')
         ORDER BY s.updated_at DESC
         LIMIT 1
       `,
@@ -2356,12 +2355,17 @@ export function buildRouter() {
       return res.status(403).json({ error: "permission denied" });
     }
 
+    // Owner/admin can see in_progress/paused training sessions for resume.
+    // Everyone else only sees submitted records.
+    const statusFilter = isOwnerOrAdmin
+      ? "s.status IN ('submitted', 'paused', 'in_progress')"
+      : "s.status = 'submitted'";
     const [rows] = await dbPool.query(
       `
         SELECT s.*, p.title AS problemset_title
         FROM submissions s
         LEFT JOIN problemsets p ON p.id = s.problemset_id
-        WHERE s.user_uid = ? AND s.status = 'submitted'
+        WHERE s.user_uid = ? AND ${statusFilter}
         ORDER BY COALESCE(s.submitted_at, s.updated_at, s.created_at) DESC
         LIMIT 100
       `,
@@ -3121,7 +3125,6 @@ export function buildRouter() {
     const emailRaw = req.body?.email;
     const isAdmin = req.body?.isAdmin;
     const isBanned = req.body?.isBanned;
-    const password = req.body?.password;
 
     const sets = [];
     const values = [];
@@ -3163,10 +3166,6 @@ export function buildRouter() {
       }
       sets.push("is_banned = ?");
       values.push(isBanned ? 1 : 0);
-    }
-    if (typeof password === "string" && password.length >= 6) {
-      sets.push("password_hash = ?");
-      values.push(hashPassword(password));
     }
     if (sets.length === 0) {
       return res.status(400).json({ error: "nothing to update" });
@@ -3456,13 +3455,12 @@ export function buildRouter() {
 
       if (includeUsers) {
         const [userRows] = await dbPool.query(
-          "SELECT id, uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC"
+          "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC"
         );
         backup.data.users = userRows.map((row) => ({
           uid: String(row.uid ?? ""),
           name: String(row.name ?? ""),
           email: String(row.email ?? ""),
-          passwordHash: row.password_hash ? String(row.password_hash) : null,
           avatarUrl: String(row.avatar_url ?? ""),
           profileCoverUrl: String(row.profile_cover_url ?? ""),
           bio: row.bio ? String(row.bio) : "",
@@ -3702,12 +3700,11 @@ export function buildRouter() {
       if (restoreUsers && Array.isArray(backup.data.users)) {
         for (const u of backup.data.users) {
           await connection.query(
-            `INSERT INTO users (uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `INSERT INTO users (uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                name = VALUES(name),
                email = VALUES(email),
-               password_hash = COALESCE(VALUES(password_hash), password_hash),
                avatar_url = VALUES(avatar_url),
                profile_cover_url = VALUES(profile_cover_url),
                bio = VALUES(bio),
@@ -3723,7 +3720,6 @@ export function buildRouter() {
               String(u.uid ?? ""),
               String(u.name ?? ""),
               String(u.email ?? ""),
-              u.passwordHash || null,
               String(u.avatarUrl ?? ""),
               String(u.profileCoverUrl ?? ""),
               String(u.bio ?? ""),
