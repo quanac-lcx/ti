@@ -10,7 +10,6 @@ COPY server/package.json server/tsconfig.json ./server/
 RUN pnpm install --filter ./server... --frozen-lockfile
 
 COPY server/src ./server/src
-COPY server/scripts ./server/scripts
 RUN pnpm -C server build
 
 FROM node:20-alpine AS runner
