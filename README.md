@@ -25,7 +25,7 @@
 | 框架 | Express.js 4 + TypeScript 5 |
 | 数据库 | MariaDB 11（[`mysql2`](server/package.json) 原生 SQL，无 ORM） |
 | 缓存 / 会话 | Redis 7（[`ioredis`](server/package.json)） |
-| 认证 | scrypt 密码哈希 + CPOAuth OAuth2 |
+| 认证 | CPOAuth OAuth2 + Admin Token |
 | Schema 迁移 | 启动时自动检测并补列（[`ensureUserSchema()`](server/src/db.ts)） |
 | 开发运行 | `tsx watch` |
 
@@ -59,7 +59,7 @@
 
 - **题目 DSL**：自定义格式（`:::question` / `:::group`），支持选择题（单选 / 多选）和填空题，支持材料组（共享材料的多题组合）
 - **AI 辅助**：多模型配置，每日配额，一键生成题目提示 (`hint`) 和解析 (`solution`)
-- **双通道认证**：CPOAuth OAuth2（洛谷统一认证）+ 本地邮箱密码注册，首个注册用户自动成为管理员
+- **认证体系**：CPOAuth OAuth2（洛谷统一认证）为用户入口，Admin Token 为管理员后台登录入口
 - **即时判分**：选择题标准化答案比对，填空题精确匹配
 - **管理后台**：用户管理、题目集 / 题目编辑、OAuth 配置、系统页面管理、数据备份
 

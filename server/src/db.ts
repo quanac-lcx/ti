@@ -59,7 +59,6 @@ export async function ensureUserSchema() {
         uid VARCHAR(32) NULL,
         name VARCHAR(64) NOT NULL,
         email VARCHAR(191) NULL,
-        password_hash VARCHAR(255) NULL,
         avatar_url VARCHAR(255) NULL,
         profile_cover_url VARCHAR(512) NULL,
         bio TEXT NULL,
@@ -78,7 +77,6 @@ export async function ensureUserSchema() {
 
     await ensureColumn(connection, "users", "uid", "VARCHAR(32) NULL");
     await ensureColumn(connection, "users", "email", "VARCHAR(191) NULL");
-    await ensureColumn(connection, "users", "password_hash", "VARCHAR(255) NULL");
     await ensureColumn(connection, "users", "avatar_url", "VARCHAR(255) NULL");
     await ensureColumn(connection, "users", "profile_cover_url", "VARCHAR(512) NULL");
     await ensureColumn(connection, "users", "bio", "TEXT NULL");

@@ -3,7 +3,7 @@ import express from "express";
 import { randomBytes, createCipheriv, createDecipheriv, pbkdf2Sync } from "node:crypto";
 import { dbPool, pingDb } from "./db.js";
 import { pingRedis, redis } from "./redis.js";
-import { buildGravatarUrl, hashPassword, normalizeEmail, verifyPassword } from "./auth.js";
+import { buildGravatarUrl, normalizeEmail } from "./auth.js";
 import { env } from "./env.js";
 import { parseQuestionConfig } from "./questionConfigParser.js";
 
@@ -950,7 +950,7 @@ async function findOrCreateCpoauthUser(profile) {
 
   try {
     const [result] = await dbPool.query(
-      "INSERT INTO users (uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, oauth_provider, oauth_subject) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO users (uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, oauth_provider, oauth_subject) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [cpoUsername, username, emailFromOauth, avatarUrl, profileCoverUrl, bioFromOauth || null, await getDefaultAiModelId(), "cpoauth", subject]
     );
 
@@ -1767,78 +1767,6 @@ export function buildRouter() {
       [targetUid, canSeePrivate ? 1 : 0]
     );
     return res.json({ problemsets: rows.map((row) => toProblemsetSummary(row)) });
-  });
-
-  router.post("/users", async (req, res) => {
-    const username = String(req.body?.username ?? "").trim();
-    const email = normalizeEmail(req.body?.email);
-    const password = String(req.body?.password ?? "");
-
-    if (!username || username.length < 2 || username.length > 64) {
-      return res.status(400).json({ error: "username must be 2-64 chars" });
-    }
-    if (!isEmail(email)) {
-      return res.status(400).json({ error: "invalid email" });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ error: "password must be at least 6 chars" });
-    }
-
-    const [exists] = await dbPool.query("SELECT id FROM users WHERE email = ? LIMIT 1", [email]);
-    if (Array.isArray(exists) && exists.length > 0) {
-      return res.status(409).json({ error: "email already registered" });
-    }
-
-    const [adminCountRows] = await dbPool.query(
-      "SELECT COUNT(*) AS cnt FROM users WHERE is_admin = 1 AND password_hash IS NOT NULL"
-    );
-    const shouldBeAdmin = Number(adminCountRows[0]?.cnt ?? 0) === 0;
-    const profileCoverUrl = pickDefaultProfileCover();
-
-    const [result] = await dbPool.query(
-      "INSERT INTO users (name, email, password_hash, avatar_url, profile_cover_url, ai_model_id, is_admin) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [username, email, hashPassword(password), buildGravatarUrl(email), profileCoverUrl, await getDefaultAiModelId(), shouldBeAdmin ? 1 : 0]
-    );
-    const userId = Number(result.insertId);
-    await dbPool.query("UPDATE users SET uid = ? WHERE id = ?", [`pre${userId}`, userId]);
-
-    const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, is_admin, is_banned, records_public, created_at FROM users WHERE id = ? LIMIT 1",
-      [userId]
-    );
-    return res.status(201).json({ user: toPublicUser(rows[0]) });
-  });
-
-  router.post("/sessions", async (req, res) => {
-    const identifier = String(req.body?.identifier ?? "").trim();
-    const password = String(req.body?.password ?? "");
-    const email = normalizeEmail(identifier);
-
-    if (!identifier || !password) {
-      return res.status(400).json({ error: "identifier and password are required" });
-    }
-
-    const [rows] = await dbPool.query(
-      "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, is_admin, is_banned, records_public, password_hash, created_at FROM users WHERE email = ? OR name = ? OR uid = ? LIMIT 1",
-      [email, identifier, identifier]
-    );
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return res.status(401).json({ error: "invalid credentials" });
-    }
-
-    const user = rows[0];
-    if (user.is_banned) {
-      return res.status(403).json({ error: "该用户已被封禁。" });
-    }
-    if (!verifyPassword(password, user.password_hash)) {
-      return res.status(401).json({ error: "invalid credentials" });
-    }
-
-    return res.status(201).json({
-      session: {
-        user: toPublicUser(user)
-      }
-    });
   });
 
   router.post("/auth/admin-token/session", async (req, res) => {
@@ -3197,7 +3125,6 @@ export function buildRouter() {
     const emailRaw = req.body?.email;
     const isAdmin = req.body?.isAdmin;
     const isBanned = req.body?.isBanned;
-    const password = req.body?.password;
 
     const sets = [];
     const values = [];
@@ -3239,10 +3166,6 @@ export function buildRouter() {
       }
       sets.push("is_banned = ?");
       values.push(isBanned ? 1 : 0);
-    }
-    if (typeof password === "string" && password.length >= 6) {
-      sets.push("password_hash = ?");
-      values.push(hashPassword(password));
     }
     if (sets.length === 0) {
       return res.status(400).json({ error: "nothing to update" });
@@ -3532,13 +3455,12 @@ export function buildRouter() {
 
       if (includeUsers) {
         const [userRows] = await dbPool.query(
-          "SELECT id, uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC"
+          "SELECT id, uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public, created_at FROM users ORDER BY id ASC"
         );
         backup.data.users = userRows.map((row) => ({
           uid: String(row.uid ?? ""),
           name: String(row.name ?? ""),
           email: String(row.email ?? ""),
-          passwordHash: row.password_hash ? String(row.password_hash) : null,
           avatarUrl: String(row.avatar_url ?? ""),
           profileCoverUrl: String(row.profile_cover_url ?? ""),
           bio: row.bio ? String(row.bio) : "",
@@ -3778,12 +3700,11 @@ export function buildRouter() {
       if (restoreUsers && Array.isArray(backup.data.users)) {
         for (const u of backup.data.users) {
           await connection.query(
-            `INSERT INTO users (uid, name, email, password_hash, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `INSERT INTO users (uid, name, email, avatar_url, profile_cover_url, bio, ai_model_id, submission_analysis_mode, autosave_interval_seconds, oauth_provider, oauth_subject, is_admin, is_banned, records_public)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                name = VALUES(name),
                email = VALUES(email),
-               password_hash = COALESCE(VALUES(password_hash), password_hash),
                avatar_url = VALUES(avatar_url),
                profile_cover_url = VALUES(profile_cover_url),
                bio = VALUES(bio),
@@ -3799,7 +3720,6 @@ export function buildRouter() {
               String(u.uid ?? ""),
               String(u.name ?? ""),
               String(u.email ?? ""),
-              u.passwordHash || null,
               String(u.avatarUrl ?? ""),
               String(u.profileCoverUrl ?? ""),
               String(u.bio ?? ""),
