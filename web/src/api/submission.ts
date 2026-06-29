@@ -90,11 +90,16 @@ export async function startExamSubmission(problemsetId: number, forceNew = false
   return (payload as SubmissionResponse).submission;
 }
 
-export async function autosaveExamSubmission(
+export async function autosaveSubmission(
   submissionId: number,
   payload: { answers: Record<string, string>; remainingSeconds: number }
 ) {
   await apiPost(`/api/submissions/${submissionId}/autosave`, payload);
+}
+
+export async function startTrainingSubmission(problemsetId: number): Promise<SubmissionDetail> {
+  const result = await apiPost<SubmissionResponse>(`/api/problemsets/${problemsetId}/training/start`, {});
+  return result.submission;
 }
 
 export async function pauseExamSubmission(
@@ -105,7 +110,7 @@ export async function pauseExamSubmission(
   return result.submission;
 }
 
-export async function resumeExamSubmission(submissionId: number): Promise<SubmissionDetail> {
+export async function resumeSubmission(submissionId: number): Promise<SubmissionDetail> {
   const result = await apiPost<SubmissionResponse>(`/api/submissions/${submissionId}/resume`, {});
   return result.submission;
 }
@@ -120,7 +125,7 @@ export async function submitExamSubmission(
 
 export async function submitTrainingSubmission(
   problemsetId: number,
-  payload: { answers: Record<string, string> }
+  payload: { answers: Record<string, string>; submissionId?: number }
 ): Promise<SubmissionDetail> {
   const result = await apiPost<SubmissionResponse>(`/api/problemsets/${problemsetId}/training/submit`, payload);
   return result.submission;

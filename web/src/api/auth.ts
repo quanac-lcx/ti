@@ -1,6 +1,4 @@
-import { apiPost } from "../api";
-import { apiGet, apiBaseUrl } from "../api";
-import { handleForbiddenNavigation } from "../utils/authRedirect";
+import { apiBaseUrl, apiGet, apiPatch, apiPost } from "../api";
 
 export type AutosaveIntervalSeconds = 0 | 30 | 60 | 120 | 300 | 600;
 
@@ -129,25 +127,9 @@ export async function updateMySettings(payload: {
   aiModelId: string;
   highlighterEnabled: boolean;
 }): Promise<{ settings: MySettingsResponse["settings"]; user: AuthUser }> {
-  const me = loadLocalUser();
-  const result = await fetch(`${apiBaseUrl}/api/users/_me/settings`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      ...(me?.uid ? { "x-user-uid": me.uid } : {})
-    },
-    body: JSON.stringify(payload)
-  });
-  const data = await result.json().catch(() => ({}));
-  if (result.status === 403) {
-    throw new Error(handleForbiddenNavigation((data as { error?: string })?.error));
-  }
-  if (!result.ok) {
-    throw new Error(String((data as { error?: string })?.error ?? `HTTP ${result.status}`));
-  }
-  const typed = data as MySettingsResponse;
+  const result = await apiPatch<MySettingsResponse>("/api/users/_me/settings", payload);
   return {
-    settings: typed.settings,
-    user: typed.user
+    settings: result.settings,
+    user: result.user
   };
 }

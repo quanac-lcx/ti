@@ -2136,6 +2136,42 @@ export function buildRouter() {
     return res.status(201).json({ submission: toSubmissionDetail(rows[0]) });
   });
 
+  router.post("/problemsets/:id/training/start", async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const problemsetId = Number(req.params.id);
+    if (!Number.isFinite(problemsetId)) {
+      return res.status(400).json({ error: "invalid problemset id" });
+    }
+
+    const problemset = await getProblemsetById(problemsetId);
+    if (!problemset) {
+      return res.status(404).json({ error: "problemset not found" });
+    }
+    if (!canUserViewProblemset(problemset, user)) {
+      return res.status(403).json({ error: "无权访问该题目。" });
+    }
+
+    const [scoreRows] = await dbPool.query(
+      "SELECT COALESCE(SUM(score), 0) AS max_score FROM questions WHERE problemset_id = ?",
+      [problemsetId]
+    );
+    const maxScore = Number(scoreRows[0]?.max_score ?? 0);
+
+    const [result] = await dbPool.query(
+      `
+        INSERT INTO submissions (
+          user_uid, problemset_id, mode, status, answers_json, results_json,
+          score, max_score, remaining_seconds, started_at
+        ) VALUES (?, ?, 'training', 'in_progress', ?, ?, 0, ?, 0, NOW())
+      `,
+      [user.uid, problemsetId, JSON.stringify({}), JSON.stringify([]), maxScore]
+    );
+
+    const [rows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [result.insertId]);
+    return res.status(201).json({ submission: toSubmissionDetail(rows[0]) });
+  });
+
   router.post("/problemsets/:id/training/submit", async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
@@ -2152,6 +2188,41 @@ export function buildRouter() {
       return res.status(403).json({ error: "无权访问该题目。" });
     }
 
+    const submissionId = Number(req.body?.submissionId ?? NaN);
+
+    if (Number.isFinite(submissionId) && submissionId > 0) {
+      // Update existing in_progress training submission to submitted
+      const [rows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [submissionId]);
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return res.status(404).json({ error: "submission not found" });
+      }
+      const submission = rows[0];
+      if (submission.user_uid !== user.uid) {
+        return res.status(403).json({ error: "permission denied" });
+      }
+      if (submission.mode !== "training" || submission.status !== "in_progress") {
+        return res.status(400).json({ error: "submission is not an in-progress training session" });
+      }
+
+      const calc = await calculateSubmission(problemsetId, req.body?.answers ?? {});
+      await dbPool.query(
+        `
+          UPDATE submissions
+          SET status = 'submitted',
+              answers_json = ?,
+              results_json = ?,
+              score = ?,
+              max_score = ?,
+              submitted_at = NOW()
+          WHERE id = ?
+        `,
+        [JSON.stringify(calc.answers), JSON.stringify(calc.results), calc.score, calc.maxScore, submissionId]
+      );
+      const [updatedRows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [submissionId]);
+      return res.json({ submission: toSubmissionDetail(updatedRows[0]) });
+    }
+
+    // Legacy: create new submitted submission directly (guest or old flow)
     const calc = await calculateSubmission(problemsetId, req.body?.answers ?? {});
     const [result] = await dbPool.query(
       `
@@ -2169,8 +2240,8 @@ export function buildRouter() {
         calc.maxScore
       ]
     );
-    const [rows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [result.insertId]);
-    return res.status(201).json({ submission: toSubmissionDetail(rows[0]) });
+    const [newRows] = await dbPool.query("SELECT * FROM submissions WHERE id = ? LIMIT 1", [result.insertId]);
+    return res.status(201).json({ submission: toSubmissionDetail(newRows[0]) });
   });
 
   router.post("/submissions/:id/autosave", async (req, res) => {
@@ -2189,8 +2260,8 @@ export function buildRouter() {
     if (submission.user_uid !== user.uid) {
       return res.status(403).json({ error: "permission denied" });
     }
-    if (submission.mode !== "exam" || submission.status !== "in_progress") {
-      return res.status(400).json({ error: "submission is not in progress exam" });
+    if ((submission.mode !== "exam" && submission.mode !== "training") || submission.status !== "in_progress") {
+      return res.status(400).json({ error: "submission is not an in-progress exam or training session" });
     }
 
     const answers = normalizeSubmissionAnswers(req.body?.answers ?? {});
@@ -2252,7 +2323,7 @@ export function buildRouter() {
     if (submission.user_uid !== user.uid) {
       return res.status(403).json({ error: "permission denied" });
     }
-    if (submission.mode !== "exam" || (submission.status !== "paused" && submission.status !== "in_progress")) {
+    if ((submission.mode !== "exam" && submission.mode !== "training") || (submission.status !== "paused" && submission.status !== "in_progress")) {
       return res.status(400).json({ error: "submission is not resumable" });
     }
 
@@ -2328,7 +2399,7 @@ export function buildRouter() {
         SELECT s.*, p.title AS problemset_title
         FROM submissions s
         LEFT JOIN problemsets p ON p.id = s.problemset_id
-        WHERE s.user_uid = ? AND s.mode = 'exam' AND s.status IN ('paused', 'in_progress')
+        WHERE s.user_uid = ? AND s.mode IN ('exam', 'training') AND s.status IN ('paused', 'in_progress')
         ORDER BY s.updated_at DESC
         LIMIT 1
       `,
@@ -2356,12 +2427,17 @@ export function buildRouter() {
       return res.status(403).json({ error: "permission denied" });
     }
 
+    // Owner/admin can see in_progress/paused training sessions for resume.
+    // Everyone else only sees submitted records.
+    const statusFilter = isOwnerOrAdmin
+      ? "s.status IN ('submitted', 'paused', 'in_progress')"
+      : "s.status = 'submitted'";
     const [rows] = await dbPool.query(
       `
         SELECT s.*, p.title AS problemset_title
         FROM submissions s
         LEFT JOIN problemsets p ON p.id = s.problemset_id
-        WHERE s.user_uid = ? AND s.status = 'submitted'
+        WHERE s.user_uid = ? AND ${statusFilter}
         ORDER BY COALESCE(s.submitted_at, s.updated_at, s.created_at) DESC
         LIMIT 100
       `,

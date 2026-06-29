@@ -7,10 +7,11 @@ import { getMySettings, loadLocalUser, type AutosaveIntervalSeconds } from "../a
 import { problemsetApi, type ProblemQuestion, type ProblemsetDetail } from "../api/problemset";
 import {
   ActiveExamConflictError,
-  autosaveExamSubmission,
+  autosaveSubmission,
   pauseExamSubmission,
-  resumeExamSubmission,
+  resumeSubmission,
   startExamSubmission,
+  startTrainingSubmission,
   submitExamSubmission,
   submitTrainingSubmission,
   type SubmissionDetail
@@ -222,9 +223,9 @@ function buildLocalDraft(): LocalModeDraft {
   };
 }
 
-function persistLocalDraft() {
+function persistLocalDraft(force = false) {
   if (submitted.value || !detail.value) return;
-  if (getAutosaveIntervalMs() <= 0) return;
+  if (!force && getAutosaveIntervalMs() <= 0) return;
   try {
     localStorage.setItem(localDraftStorageKey.value, JSON.stringify(buildLocalDraft()));
   } catch {
@@ -243,9 +244,10 @@ function restoreFromLocalDraft() {
     if (parsed.mode !== modeKey.value) return false;
     if (Number(parsed.problemsetId) !== problemsetId.value) return false;
     if (String(parsed.userKey ?? "") !== userStorageKey.value) return false;
-    if (isExam.value && currentUser?.uid && submissionId.value && Number(parsed.submissionId) !== Number(submissionId.value)) {
-      return false;
-    }
+    // Only reject draft when we have a matching submission resume in progress
+    // (submissionId will match if resumeSubmission succeeded above).
+    // If submissionIds differ (e.g. resume failed, fresh exam created), still
+    // restore draft answers — they are the best data available on refresh.
 
     const restoredAnswers: Record<string, string> = {};
     for (const question of questions.value) {
@@ -282,14 +284,14 @@ async function confirmLeaveIfNeeded() {
     danger: true
   });
   if (confirmed) {
-    persistLocalDraft();
+    persistLocalDraft(true);
   }
   return confirmed;
 }
 
 function handleBeforeUnload(event: BeforeUnloadEvent) {
   if (!shouldConfirmLeave.value || navigatingByUserAction) return;
-  persistLocalDraft();
+  persistLocalDraft(true);
   event.preventDefault();
   event.returnValue = "";
 }
@@ -336,10 +338,11 @@ function startAutosave() {
   autosaveTimer = setInterval(async () => {
     if (submitted.value) return;
     persistLocalDraft();
-    if (!isExam.value || !submissionId.value || !currentUser?.uid) return;
+    // Autosave to server for both exam and training (logged-in users only)
+    if (!submissionId.value || !currentUser?.uid) return;
     autosaving.value = true;
     try {
-      await autosaveExamSubmission(submissionId.value, {
+      await autosaveSubmission(submissionId.value, {
         answers: { ...answers },
         remainingSeconds: remainingSeconds.value
       });
@@ -448,15 +451,44 @@ function calculateLocalSubmission() {
   clearLocalDraft();
 }
 
+function readLocalDraftSubmissionId(): number | null {
+  try {
+    const raw = localStorage.getItem(localDraftStorageKey.value);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<LocalModeDraft>;
+    if (parsed.version !== 1) return null;
+    if (parsed.mode !== modeKey.value) return null;
+    if (Number(parsed.problemsetId) !== problemsetId.value) return null;
+    if (String(parsed.userKey ?? "") !== userStorageKey.value) return null;
+    const id = Number(parsed.submissionId);
+    return Number.isFinite(id) && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 async function bootstrapExamMode() {
   const resumeId = Number(route.query.resume ?? NaN);
   const forceNew = String(route.query.force ?? "").trim() === "1";
   let submission: SubmissionDetail;
 
   if (Number.isFinite(resumeId) && resumeId > 0) {
-    submission = await resumeExamSubmission(resumeId);
+    submission = await resumeSubmission(resumeId);
   } else {
-    submission = await startExamSubmission(problemsetId.value, forceNew);
+    // On page refresh (no resume query), try to recover the active
+    // submission from the local draft so answers are not lost.
+    const draftSubmissionId = readLocalDraftSubmissionId();
+    if (draftSubmissionId && !forceNew) {
+      try {
+        submission = await resumeSubmission(draftSubmissionId);
+      } catch {
+        // Resume failed (e.g. submission already submitted/replaced);
+        // fall through to start a new exam.
+        submission = await startExamSubmission(problemsetId.value, forceNew);
+      }
+    } else {
+      submission = await startExamSubmission(problemsetId.value, forceNew);
+    }
   }
 
   submissionId.value = submission.id;
@@ -468,7 +500,58 @@ async function bootstrapExamMode() {
   hydrateResults(submission);
 }
 
-function bootstrapTrainingMode() {
+async function bootstrapTrainingMode() {
+  // For logged-in users, create an in_progress submission for server-side autosave.
+  // Guests just initialize locally.
+  if (currentUser?.uid) {
+    const resumeId = Number(route.query.resume ?? NaN);
+    const forceNew = String(route.query.force ?? "").trim() === "1";
+
+    if (Number.isFinite(resumeId) && resumeId > 0) {
+      const submission = await resumeSubmission(resumeId);
+      submissionId.value = submission.id;
+      maxScore.value = Number(submission.maxScore ?? totalScore.value);
+      submissionScore.value = Number(submission.score ?? 0);
+      submitted.value = submission.status === "submitted";
+      hydrateAnswers(submission.answers ?? {});
+      hydrateResults(submission);
+      return;
+    }
+
+    // On refresh, try to resume from local draft's submissionId
+    if (!forceNew) {
+      const draftSubmissionId = readLocalDraftSubmissionId();
+      if (draftSubmissionId) {
+        try {
+          const submission = await resumeSubmission(draftSubmissionId);
+          submissionId.value = submission.id;
+          maxScore.value = Number(submission.maxScore ?? totalScore.value);
+          submissionScore.value = Number(submission.score ?? 0);
+          submitted.value = submission.status === "submitted";
+          hydrateAnswers(submission.answers ?? {});
+          hydrateResults(submission);
+          return;
+        } catch {
+          // Resume failed; fall through to start new training session.
+        }
+      }
+    }
+
+    try {
+      const submission = await startTrainingSubmission(problemsetId.value);
+      submissionId.value = submission.id;
+      maxScore.value = Number(submission.maxScore ?? totalScore.value);
+      submissionScore.value = Number(submission.score ?? 0);
+      submitted.value = submission.status === "submitted";
+      hydrateAnswers(submission.answers ?? {});
+      hydrateResults(submission);
+      return;
+    } catch {
+      // Start failed (e.g. network error); fall through to local-only mode.
+    }
+  }
+
+  // Guest or server-start-failed: local-only training
   submissionId.value = null;
   submitted.value = false;
   maxScore.value = totalScore.value;
@@ -497,13 +580,13 @@ async function loadPage() {
 
     if (isExam.value) {
       if (isGuest.value) {
-        bootstrapTrainingMode();
+        await bootstrapTrainingMode();
         remainingSeconds.value = Math.max(60, Math.floor(Number(detail.value?.summary.durationHours ?? 2) * 3600));
       } else {
         await bootstrapExamMode();
       }
     } else {
-      bootstrapTrainingMode();
+      await bootstrapTrainingMode();
     }
 
     const restored = restoreFromLocalDraft();
@@ -615,7 +698,8 @@ async function saveTrainingRecord() {
   }
   try {
     const submission = await submitTrainingSubmission(problemsetId.value, {
-      answers: { ...answers }
+      answers: { ...answers },
+      submissionId: submissionId.value ?? undefined
     });
     submitted.value = true;
     submissionId.value = submission.id;
@@ -661,7 +745,7 @@ watch(loading, async (isLoading) => {
   }
 });
 onUnmounted(() => {
-  persistLocalDraft();
+  persistLocalDraft(true);
   window.removeEventListener("beforeunload", handleBeforeUnload);
   resetIntervals();
   clearNoticeTimer();

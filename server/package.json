@@ -12,7 +12,6 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/index.js",
-    "promote:pre1": "tsx scripts/promote_pre1.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

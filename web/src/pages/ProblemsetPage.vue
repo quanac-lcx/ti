@@ -2,6 +2,7 @@
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
+import UiLoadingBar from "../components/UiLoadingBar.vue";
 import { problemsetApi, type ProblemsetSummary } from "../api/problemset";
 
 const { t } = useI18n();
@@ -59,7 +60,7 @@ onMounted(loadList);
           </router-link>
         </div>
       </div>
-      <div v-if="loading" class="loading"><i class="fa-solid fa-spinner fa-spin"></i>{{ t("common.loading") }}</div>
+      <UiLoadingBar v-if="loading" :label="t('common.loading')" />
       <div v-else-if="error" class="error"><i class="fa-solid fa-circle-exclamation"></i>{{ error }}</div>
       <div v-else-if="problems.length === 0" class="loading"><i class="fa-regular fa-folder-open"></i>{{ t("problemset.list.empty") }}</div>
       <div v-else class="list">

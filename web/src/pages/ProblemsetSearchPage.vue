@@ -3,6 +3,7 @@ import { onMounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import TiLayout from "../layouts/TiLayout.vue";
+import UiLoadingBar from "../components/UiLoadingBar.vue";
 import { problemsetApi, type ProblemsetSummary } from "../api/problemset";
 
 const route = useRoute();
@@ -91,10 +92,7 @@ watch(
         </div>
       </div>
 
-      <div v-if="loading" class="loading">
-        <i class="fa-solid fa-spinner fa-spin"></i>
-        {{ t("problemset.search.searching") }}
-      </div>
+      <UiLoadingBar v-if="loading" :label="t('problemset.search.searching')" />
       <div v-else-if="error" class="error">
         <i class="fa-solid fa-circle-exclamation"></i>
         {{ error }}
