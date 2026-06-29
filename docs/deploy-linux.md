@@ -108,7 +108,50 @@ VALUES ('AbCdEfGhIjKlMnOpQrStUvWxYz123456', 'root');
 
 - `https://ti.luogu.me/auth/login`
 
-## 6. 更新部署
+## 6. CDN 加速（可选）
+
+如果希望静态资源通过 S3 兼容存储加速，执行以下步骤：
+
+### 6.1 后台配置 S3 凭证（推荐）
+
+登录管理后台 → CP OAuth 配置页面 → S3 CDN 配置区域，填写 S3 存储桶信息并保存。
+
+### 6.2 配置 `.env` 的 CDN URL 和 API 访问
+
+编辑 `.env`，设置以下变量：
+
+```env
+S3_UPLOAD_ENABLED=true
+
+# 推荐：从后台 API 拉取 S3 凭证（只需填写 API 地址和 admin token）
+S3_API_BASE_URL=https://api.ti.luogu.me
+S3_API_ADMIN_TOKEN=<登录页生成的 admin token>
+
+# 构建时使用 CDN 域名
+VITE_CDN_BASE_URL=https://你的CDN域名
+```
+
+> 如果不希望走 API，也可以直接在 `.env` 中填写 `S3_REGION`、`S3_BUCKET` 等变量，脚本会自动降级。
+
+### 6.3 触发上传
+
+方式一（Docker）：
+
+```bash
+docker compose -f docker-compose.prod.yml --profile s3-upload run --rm s3-upload
+```
+
+方式二（本地）：
+
+```bash
+pnpm run s3-upload
+```
+
+上传脚本优先通过 `S3_API_BASE_URL` + `S3_API_ADMIN_TOKEN` 调用后台 API 获取 S3 凭证；若未配置则降级使用 `.env` 中的环境变量。
+
+后台管理界面中的 S3 配置存储在数据库中，同时支持备份导出/恢复。
+
+## 7. 更新部署
 
 ```bash
 cd /opt/ti.luogu.me
